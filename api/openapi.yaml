@@ -1,0 +1,69 @@
+openapi: 3.0.0
+info:
+  contact:
+    email: cf@harness.io
+    name: Feature Flag - developers
+    url: https://www.harness.io
+  title: Harness Feature Flag Version API
+  version: 1.0.0
+servers:
+- description: no host specified
+  url: /api/1.0
+- description: CfClient description
+  url: http://localhost:3000/api/1.0
+paths:
+  /version:
+    get:
+      operationId: GetVersion
+      responses:
+        "200":
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/inline_response_200'
+          description: OK
+        "503":
+          description: Service Unavailable
+      summary: Request for version
+      x-accepts: application/json; charset=utf-8
+  /health:
+    get:
+      operationId: GetHealthStatus
+      responses:
+        "200":
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/inline_response_200_1'
+          description: OK
+        "503":
+          description: Service Unavailable
+      summary: Request basic health status.
+      x-accepts: application/json; charset=utf-8
+components:
+  schemas:
+    inline_response_200_1:
+      example:
+        healthy: true
+      properties:
+        healthy:
+          type: boolean
+    inline_response_200:
+      example:
+        metricsServiceEnabled: true
+        gitCommit: gitCommit
+        adminServiceEnabled: true
+        clientServiceEnabled: true
+        versionInfo: versionInfo
+      properties:
+        versionInfo:
+          type: string
+        gitCommit:
+          type: string
+        adminServiceEnabled:
+          type: boolean
+        clientServiceEnabled:
+          type: boolean
+        metricsServiceEnabled:
+          type: boolean
+
