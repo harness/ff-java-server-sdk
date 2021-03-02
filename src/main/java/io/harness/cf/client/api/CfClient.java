@@ -47,7 +47,7 @@ public class CfClient implements Closeable {
   private ServerSentEvent sse;
   private AnalyticsManager analyticsManager;
 
-  public CfClient(String apiKey) {
+  public CfClient(String apiKey) throws CfClientException {
     this(apiKey, Config.builder().build());
   }
 
@@ -76,7 +76,7 @@ public class CfClient implements Closeable {
 
     initCache(environmentID);
     if (!config.isStreamEnabled()) {
-      poller.startAsync();
+      startPollingMode();
       log.info("Running in polling mode.");
     } else {
       initStreamingMode();
@@ -158,7 +158,11 @@ public class CfClient implements Closeable {
       return defaultValue;
     } finally {
       if (!target.isPrivate() && isAnalyticsEnabled) {
-        analyticsManager.pushToQueue(target, featureConfig, servedVariation);
+        if (analyticsManager != null) {
+          analyticsManager.pushToQueue(target, featureConfig, servedVariation);
+        } else {
+          log.warn("Unable to publish metrics, analytics manager has not been initalized");
+        }
       }
     }
   }
@@ -186,7 +190,11 @@ public class CfClient implements Closeable {
       return defaultValue;
     } finally {
       if (!target.isPrivate() && isAnalyticsEnabled) {
-        analyticsManager.pushToQueue(target, featureConfig, stringVariation);
+        if (analyticsManager != null) {
+          analyticsManager.pushToQueue(target, featureConfig, stringVariation);
+        } else {
+          log.warn("Unable to publish metrics, analytics manager has not been initalized");
+        }
       }
     }
   }
@@ -213,8 +221,10 @@ public class CfClient implements Closeable {
       log.error("err", e);
       return defaultValue;
     } finally {
-      if (!target.isPrivate() && isAnalyticsEnabled) {
+      if (analyticsManager != null) {
         analyticsManager.pushToQueue(target, featureConfig, numberVariation);
+      } else {
+        log.warn("Unable to publish metrics, analytics manager has not been initalized");
       }
     }
   }
@@ -242,8 +252,10 @@ public class CfClient implements Closeable {
       log.error("err", e);
       return defaultValue;
     } finally {
-      if (!target.isPrivate() && isAnalyticsEnabled) {
+      if (analyticsManager != null) {
         analyticsManager.pushToQueue(target, featureConfig, jsonObject);
+      } else {
+        log.warn("Unable to publish metrics, analytics manager has not been initalized");
       }
     }
   }
