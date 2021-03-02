@@ -121,11 +121,12 @@ public class CfClient implements Closeable {
   }
 
   private void initStreamingMode() {
-    String sseUrl = String.join("", config.getBaseUrl(), "/stream/environments/%s");
+    String sseUrl = String.join("", config.getBaseUrl(), "/stream");
     sseRequest =
         new Request.Builder()
             .url(String.format(sseUrl, environmentID))
             .header("Authorization", "Bearer " + jwtToken)
+            .header("API-Key", apiKey)
             .build();
     listener = new SSEListener(defaultApi, featureCache, segmentCache, environmentID, this);
   }
