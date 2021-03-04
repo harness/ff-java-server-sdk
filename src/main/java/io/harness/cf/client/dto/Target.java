@@ -18,7 +18,7 @@ import lombok.Setter;
 public class Target {
   private String identifier;
   private String name;
-  private Map<String, Object> custom;
+  private Map<String, Object> attributes;
   private boolean isPrivate; // If the target is private
   private Set<String> privateAttributes; // Custom set to set the attributes which are private
 

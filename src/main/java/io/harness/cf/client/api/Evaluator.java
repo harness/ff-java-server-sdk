@@ -216,9 +216,9 @@ public class Evaluator {
       field.setAccessible(true);
       return field.get(target);
     } catch (NoSuchFieldException | IllegalAccessException e) {
-      Map<String, Object> customFields = target.getCustom();
+      Map<String, Object> customFields = target.getAttributes();
       if (customFields != null) {
-        for (Map.Entry<String, Object> entry : target.getCustom().entrySet()) {
+        for (Map.Entry<String, Object> entry : target.getAttributes().entrySet()) {
           if (entry.getKey().equals(attribute)) {
             return entry.getValue();
           }

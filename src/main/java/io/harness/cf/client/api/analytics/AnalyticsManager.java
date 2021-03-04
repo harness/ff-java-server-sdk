@@ -29,7 +29,7 @@ public class AnalyticsManager {
       throws CfClientException {
     this.analyticsCache = AnalyticsCacheFactory.create(config.getAnalyticsCacheType());
     AnalyticsPublisherService analyticsPublisherService =
-        new AnalyticsPublisherService(apiKey, config.getBaseUrl(), environmentID, analyticsCache);
+        new AnalyticsPublisherService(apiKey, config, environmentID, analyticsCache);
     ringBuffer = createRingBuffer(config.getBufferSize(), analyticsPublisherService);
     ScheduledExecutorService timerExecutorService = Executors.newSingleThreadScheduledExecutor();
     TimerTask timerTask = new TimerTask(ringBuffer);

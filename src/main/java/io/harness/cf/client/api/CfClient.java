@@ -21,6 +21,7 @@ import io.jsonwebtoken.Jwts;
 import java.io.Closeable;
 import java.util.List;
 import java.util.stream.Collectors;
+import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +47,7 @@ public class CfClient implements Closeable {
   private SSEListener listener;
   private ServerSentEvent sse;
   private AnalyticsManager analyticsManager;
+  @Getter private boolean isInitialized;
 
   public CfClient(String apiKey) {
     this(apiKey, Config.builder().build());
@@ -62,6 +64,8 @@ public class CfClient implements Closeable {
 
     this.defaultApi = DefaultApiFactory.create(apiKey, config.getBaseUrl());
 
+    this.isInitialized = false;
+
     // try to authenticate
     AuthService authService =
         new AuthService(defaultApi, apiKey, this, config.getPollIntervalInSec());
@@ -76,7 +80,7 @@ public class CfClient implements Closeable {
 
     initCache(environmentID);
     if (!config.isStreamEnabled()) {
-      poller.startAsync();
+      startPollingMode();
       log.info("Running in polling mode.");
     } else {
       initStreamingMode();
@@ -86,6 +90,7 @@ public class CfClient implements Closeable {
 
     analyticsManager =
         config.isAnayticsEnabled() ? new AnalyticsManager(environmentID, apiKey, config) : null;
+    this.isInitialized = true;
   }
 
   private void initCache(String environmentID) throws io.harness.cf.ApiException {
@@ -121,11 +126,12 @@ public class CfClient implements Closeable {
   }
 
   private void initStreamingMode() {
-    String sseUrl = String.join("", config.getBaseUrl(), "/stream/environments/%s");
+    String sseUrl = String.join("", config.getBaseUrl(), "/stream");
     sseRequest =
         new Request.Builder()
             .url(String.format(sseUrl, environmentID))
             .header("Authorization", "Bearer " + jwtToken)
+            .header("API-Key", apiKey)
             .build();
     listener = new SSEListener(defaultApi, featureCache, segmentCache, environmentID, this);
   }
@@ -157,7 +163,7 @@ public class CfClient implements Closeable {
       log.error("err", e);
       return defaultValue;
     } finally {
-      if (!target.isPrivate() && isAnalyticsEnabled) {
+      if (!target.isPrivate() && isAnalyticsEnabled && (analyticsManager != null)) {
         analyticsManager.pushToQueue(target, featureConfig, servedVariation);
       }
     }
@@ -185,7 +191,7 @@ public class CfClient implements Closeable {
       log.error("err", e);
       return defaultValue;
     } finally {
-      if (!target.isPrivate() && isAnalyticsEnabled) {
+      if (!target.isPrivate() && isAnalyticsEnabled && (analyticsManager != null)) {
         analyticsManager.pushToQueue(target, featureConfig, stringVariation);
       }
     }
@@ -213,7 +219,7 @@ public class CfClient implements Closeable {
       log.error("err", e);
       return defaultValue;
     } finally {
-      if (!target.isPrivate() && isAnalyticsEnabled) {
+      if (!target.isPrivate() && isAnalyticsEnabled && (analyticsManager != null)) {
         analyticsManager.pushToQueue(target, featureConfig, numberVariation);
       }
     }
@@ -242,7 +248,7 @@ public class CfClient implements Closeable {
       log.error("err", e);
       return defaultValue;
     } finally {
-      if (!target.isPrivate() && isAnalyticsEnabled) {
+      if (!target.isPrivate() && isAnalyticsEnabled && (analyticsManager != null)) {
         analyticsManager.pushToQueue(target, featureConfig, jsonObject);
       }
     }
