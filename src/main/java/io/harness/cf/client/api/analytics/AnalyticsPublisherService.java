@@ -1,6 +1,7 @@
 package io.harness.cf.client.api.analytics;
 
 import io.harness.cf.client.api.CfClientException;
+import io.harness.cf.client.api.Config;
 import io.harness.cf.client.dto.Analytics;
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.metrics.ApiException;
@@ -48,9 +49,10 @@ public class AnalyticsPublisherService {
   private final String environmentID;
 
   public AnalyticsPublisherService(
-      String apiKey, String baseUrl, String environmentID, Cache analyticsCache)
+      String apiKey, Config config, String environmentID, Cache analyticsCache)
       throws CfClientException {
-    metricsAPI = MetricsApiFactory.create(apiKey, baseUrl);
+
+    metricsAPI = MetricsApiFactory.create(apiKey, config.getEventUrl(), config.getBaseUrl());
     this.analyticsCache = analyticsCache;
     this.environmentID = environmentID;
   }
@@ -82,7 +84,7 @@ public class AnalyticsPublisherService {
         // Clear the set because the cache is only invalidated when there is no exception, so the
         // targets will reappear in the next
         // iteration
-        log.error("Failed to send metricsData {}", e.getCode());
+        log.error("Failed to send metricsData {} : {}", e.getMessage(), e.getCode());
       }
     }
   }
@@ -104,7 +106,7 @@ public class AnalyticsPublisherService {
       final Object variation = analytics.getVariation();
       if (!globalTargetSet.contains(target) && !target.isPrivate()) {
         stagingTargetSet.add(target);
-        final Map<String, Object> attributes = target.getCustom();
+        final Map<String, Object> attributes = target.getAttributes();
         attributes.forEach(
             (k, v) -> {
               KeyValue keyValue = new KeyValue();

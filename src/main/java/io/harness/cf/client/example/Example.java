@@ -20,7 +20,7 @@ public class Example {
         Target.builder()
             .identifier("target2")
             // .identifier("hannah")
-            .custom(
+            .attributes(
                 new ImmutableMap.Builder<String, Object>()
                     .put("accountId", "kmpySmUISimoRrJL6NL73w")
                     .put("name", "ObjectName5")
@@ -32,7 +32,7 @@ public class Example {
     Target target1 =
         Target.builder()
             .identifier("subir")
-            .custom(
+            .attributes(
                 new ImmutableMap.Builder<String, Object>()
                     .put("accountId", "ampySmUISimoRrJL1NL73u")
                     .put("name", "ObjectName1")

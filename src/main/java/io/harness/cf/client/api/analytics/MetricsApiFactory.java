@@ -26,12 +26,12 @@ public class MetricsApiFactory {
   private static final int AUTH_RETRY_MAX_RETRY_COUNT = 3;
 
   @SneakyThrows
-  public static DefaultApi create(String apiKey, String basePath) {
+  public static DefaultApi create(String apiKey, String basePath, String authUrl) {
     if (Strings.isNullOrEmpty(apiKey)) {
       throw new CfClientException("SDK key cannot be empty");
     }
     DefaultApi metricsAPI = new DefaultApi();
-    io.harness.cf.api.DefaultApi clientAPI = DefaultApiFactory.create(apiKey, basePath);
+    io.harness.cf.api.DefaultApi clientAPI = DefaultApiFactory.create(apiKey, authUrl);
     if (!Strings.isNullOrEmpty(basePath)) {
       ApiClient apiClient = metricsAPI.getApiClient();
       apiClient.setBasePath(basePath);

@@ -16,8 +16,9 @@ public class CfClientTest {
   private final CfClient cfClient;
   private Target target =
       Target.builder()
+          .name("target1")
           .identifier("target1-identifier")
-          .custom(
+          .attributes(
               new ImmutableMap.Builder<String, Object>()
                   .put("accountId", "kmpySmUISimoRrJL6NL73w")
                   .put("name", "ObjectName5")
@@ -27,31 +28,45 @@ public class CfClientTest {
 
   public CfClientTest()
       throws CfClientException, ApiException, IOException, XmlPullParserException {
-    // local
-    String apiKey = "76320784-d40b-4d26-ac31-f1703c56f478";
+
+    // local settings
+    String apiKey = "669f4aac-15cc-469c-8c97-d911a4d9a5fe";
+    String baseUrl = "http://35.233.208.131/api/1.0";
+    String eventsUrl = "http://34.83.43.198/api/1.0";
+
     cfClient =
         new CfClient(
             apiKey,
-            Config.builder().baseUrl("http://localhost:7999/api/1.0").streamEnabled(true).build());
+            Config.builder()
+                .baseUrl(baseUrl)
+                .eventUrl(eventsUrl)
+                .streamEnabled(true)
+                .anayticsEnabled(true)
+                .build());
 
-    // qb
-    //      String apiKey = "1734c427-0a9f-4e2e-92a7-5e04c7dec151";
-    //      cfClient = new CfClient(apiKey, Config.builder()
-    //              .baseUrl("https://qb.harness.io/cf").build());
+    // Wait for the client to be initialized
+    int retries = 5;
+    while (!cfClient.isInitialized() && retries > 0) {
+      try {
+        Thread.sleep(2000);
+        --retries;
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
 
-    // uat
-    //    String apiKey = "b36d5e5a-4fa8-11eb-ae93-0242ac130002";
-    //    cfClient = new CfClient(apiKey);
+    if (cfClient.isInitialized() != true) {
+      throw new CfClientException("Unable to initialize client with feature flag server");
+    }
   }
 
   @Test
-  @Ignore
   public void boolVariation() {
     // String FEATURE_FLAG_KEY = "Test";
     // String FEATURE_FLAG_KEY = "show_animation";
     String FEATURE_FLAG_KEY = "enable_anomaly_detection_batch_job";
 
-    IntStream.range(0, 500)
+    IntStream.range(0, 1)
         .forEach(
             i -> {
               boolean result = cfClient.boolVariation(FEATURE_FLAG_KEY, target, false);
