@@ -66,7 +66,7 @@ public class CfClientTest {
     // String FEATURE_FLAG_KEY = "show_animation";
     String FEATURE_FLAG_KEY = "enable_anomaly_detection_batch_job";
 
-    IntStream.range(0, 1)
+    IntStream.range(0, 500)
         .forEach(
             i -> {
               boolean result = cfClient.boolVariation(FEATURE_FLAG_KEY, target, false);
