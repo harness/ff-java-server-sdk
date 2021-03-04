@@ -12,10 +12,13 @@ import lombok.Getter;
 @Builder
 @AllArgsConstructor
 public class Config {
-  public static final int MAX_FREQUENCY = 60;
+  public static final int MIN_FREQUENCY = 60;
 
   @Builder.Default
   private String baseUrl = "https://config.feature-flags.uat.harness.io/api/1.0"; // UAT
+
+  @Builder.Default
+  private String eventUrl = "https://config.feature-flags.uat.harness.io/api/1.0"; // UAT
 
   @Builder.Default private boolean streamEnabled = true;
   @Builder.Default private int pollIntervalInSec = 10;
@@ -39,7 +42,7 @@ public class Config {
   @Builder.Default private Set<String> privateAttributes = Collections.emptySet();
 
   public int getFrequency() {
-    return Math.max(frequency, Config.MAX_FREQUENCY);
+    return Math.max(frequency, Config.MIN_FREQUENCY);
   }
 
   /*
