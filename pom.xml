@@ -6,8 +6,63 @@
 
     <groupId>io.harness</groupId>
     <artifactId>ff-java-server-sdk</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.2-SNAPSHOT</version>
     <packaging>jar</packaging>
+    <name>Harness Feature Flag Java Server SDK</name>
+    <description>Harness Feature Flag Java Server SDK</description>
+    <url>https://github.com/drone/ff-java-server-sdk</url>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>rushabh-harness</id>
+            <name>Rushabh Shah</name>
+            <email>rushabh@harness.io</email>
+            <organization>Harness Inc</organization>
+            <organizationUrl>https://www.harness.io/</organizationUrl>
+        </developer>
+        <developer>
+            <id>davejohnston</id>
+            <name>Dave Johnston</name>
+            <email>dave.johnston@harness.io</email>
+            <organization>Harness Inc</organization>
+            <organizationUrl>https://www.harness.io/</organizationUrl>
+        </developer>
+        <developer>
+            <id>enver-bisevac</id>
+            <name>Enver Bisevac</name>
+            <email>enver.bisevac@harness.io</email>
+            <organization>Harness Inc</organization>
+            <organizationUrl>https://www.harness.io/</organizationUrl>
+        </developer>
+        <developer>
+            <id>hannah-tang</id>
+            <name>Hannah Tang</name>
+            <email>hannah.tang@harness.io</email>
+            <organization>Harness Inc</organization>
+            <organizationUrl>https://www.harness.io/</organizationUrl>
+        </developer>
+        <developer>
+            <id>subiradhikari</id>
+            <name>Subir Adhikari</name>
+            <email>subir.adhikari@harness.io</email>
+            <organization>Harness Inc</organization>
+            <organizationUrl>https://www.harness.io/</organizationUrl>
+        </developer>
+    </developers>
+
+    <scm>
+        <developerConnection>scm:git:ssh://https://github.com/drone/ff-java-server-sdk.git</developerConnection>
+        <connection>${project.scm.developerConnection}</connection>
+        <url>https://github.com/drone/ff-java-server-sdk</url>
+    </scm>
 
     <properties>
         <java.version>1.8</java.version>
@@ -304,7 +359,77 @@
                     <!--                    </execution>-->
                 </executions>
             </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.2.0</version>
+                <executions>
+                    <execution>
+                        <id>attach-source</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.2.0</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <source>8</source>
+                    <doclint>none</doclint>
+                    <tags>
+                        <tag>
+                            <name>http.response.details</name>
+                            <placement>a</placement>
+                            <head>Http Response Details:</head>
+                        </tag>
+                    </tags>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>1.6</version>
+                <executions>
+                    <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+                        <configuration>
+                            <keyname>${gpg.keyname}</keyname>
+                            <passphraseServerId>${gpg.keyname}</passphraseServerId>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>sonatype-nexus-snapshots</id>
+            <name>Sonatype Nexus Snapshots</name>
+            <url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
+        </snapshotRepository>
+        <repository>
+            <id>sonatype-nexus-staging</id>
+            <name>Nexus Release Repository</name>
+            <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
+    </distributionManagement>
 
 </project>
