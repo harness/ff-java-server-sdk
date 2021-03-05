@@ -256,9 +256,10 @@ public class CfClient implements Closeable {
 
   private boolean checkPreRequisite(FeatureConfig parentFeatureConfig, Target target)
       throws Exception {
+    boolean result = true;
     List<Prerequisite> prerequisites = parentFeatureConfig.getPrerequisites();
     if (!CollectionUtils.isEmpty(prerequisites)) {
-      log.debug(
+      log.info(
           "Checking pre requisites {} of parent feature {}",
           prerequisites,
           parentFeatureConfig.getFeature());
@@ -273,22 +274,26 @@ public class CfClient implements Closeable {
 
         // Pre requisite variation value evaluated below
         Object preReqEvaluatedVariation = evaluator.evaluate(preReqFeatureConfig, target);
+        log.info(
+            "Pre requisite flag {} has variation {} for target {}",
+            preReqFeatureConfig.getFeature(),
+            preReqEvaluatedVariation,
+            target);
 
-        // Possible variation value of the pre requisite FF
-        List<Object> preReqVariations =
-            preReqFeatureConfig.getVariations().stream()
-                .map(Variation::getValue)
-                .collect(Collectors.toList());
-
-        // Compare if the pre requisute variation is a possible valid value of the pre requisite FF
-        if (!preReqVariations.contains(preReqEvaluatedVariation)) {
+        // Compare if the pre requisite variation is a possible valid value of the pre requisite FF
+        List<String> validPreReqVariations = pqs.getVariations();
+        log.info(
+            "Pre requisite flag {} should have the variations {}",
+            preReqFeatureConfig.getFeature(),
+            validPreReqVariations);
+        if (!validPreReqVariations.contains(preReqEvaluatedVariation.toString())) {
           return false;
         } else {
-          checkPreRequisite(preReqFeatureConfig, target);
+          result = checkPreRequisite(preReqFeatureConfig, target);
         }
       }
     }
-    return true;
+    return result;
   }
 
   public static String getEnvironmentID(String jwtToken) {
