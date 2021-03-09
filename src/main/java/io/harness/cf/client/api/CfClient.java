@@ -72,7 +72,7 @@ public class CfClient implements Closeable {
     authService.startAsync();
   }
 
-  public void init() throws ApiException, CfClientException {
+  void init() throws ApiException, CfClientException {
     addAuthHeader(defaultApi, jwtToken);
     environmentID = getEnvironmentID(jwtToken);
 
