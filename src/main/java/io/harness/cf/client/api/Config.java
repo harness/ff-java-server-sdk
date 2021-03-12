@@ -24,7 +24,7 @@ public class Config {
   @Builder.Default private int pollIntervalInSec = 10;
 
   // configurations for Analytics
-  @Builder.Default private boolean anayticsEnabled = false;
+  @Builder.Default private boolean analyticsEnabled = false;
 
   @Builder.Default
   @Getter(AccessLevel.NONE)

@@ -47,7 +47,6 @@ public class SSEListener implements ServerSentEvent.Listener {
 
   @Override
   public void onMessage(ServerSentEvent serverSentEvent, String s, String s1, String s2) {
-    log.info("On message");
     JsonObject jsonObject;
     try {
       jsonObject = gson.fromJson(s1, JsonObject.class);
@@ -64,6 +63,7 @@ public class SSEListener implements ServerSentEvent.Listener {
   }
 
   private void processFeature(JsonObject jsonObject) {
+    log.info("Syncing the latest features..");
     String identifier = jsonObject.get("identifier").getAsString();
     Long version = jsonObject.get("version").getAsLong();
 
@@ -82,7 +82,7 @@ public class SSEListener implements ServerSentEvent.Listener {
   }
 
   private void processSegment(JsonObject jsonObject) {
-    log.info("Syncing the latest segment..");
+    log.info("Syncing the latest segments..");
     String identifier = jsonObject.get("identifier").getAsString();
     // Long version = jsonObject.get("version").getAsLong();
     try {

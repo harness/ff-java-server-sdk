@@ -57,7 +57,7 @@ public class CfClient implements Closeable {
     this.apiKey = apiKey;
     this.config = config;
 
-    this.isAnalyticsEnabled = config.isAnayticsEnabled();
+    this.isAnalyticsEnabled = config.isAnalyticsEnabled();
 
     this.featureCache = Caffeine.newBuilder().maximumSize(10000).build();
     this.segmentCache = Caffeine.newBuilder().maximumSize(10000).build();
@@ -89,7 +89,7 @@ public class CfClient implements Closeable {
     }
 
     analyticsManager =
-        config.isAnayticsEnabled() ? new AnalyticsManager(environmentID, apiKey, config) : null;
+        config.isAnalyticsEnabled() ? new AnalyticsManager(environmentID, apiKey, config) : null;
     this.isInitialized = true;
   }
 
