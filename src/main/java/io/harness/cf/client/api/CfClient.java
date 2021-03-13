@@ -62,13 +62,13 @@ public class CfClient implements Closeable {
     this.featureCache = Caffeine.newBuilder().maximumSize(10000).build();
     this.segmentCache = Caffeine.newBuilder().maximumSize(10000).build();
 
-    this.defaultApi = DefaultApiFactory.create(apiKey, config.getBaseUrl());
+    this.defaultApi = DefaultApiFactory.create(apiKey, config.getConfigUrl());
 
     this.isInitialized = false;
 
     // try to authenticate
     AuthService authService =
-        new AuthService(defaultApi, apiKey, this, config.getPollIntervalInSec());
+        new AuthService(defaultApi, apiKey, this, config.getPollIntervalInSeconds());
     authService.startAsync();
   }
 
@@ -119,14 +119,14 @@ public class CfClient implements Closeable {
             featureCache,
             segmentCache,
             environmentID,
-            config.getPollIntervalInSec(),
+            config.getPollIntervalInSeconds(),
             config.isStreamEnabled(),
             this);
     poller.startAsync();
   }
 
   private void initStreamingMode() {
-    String sseUrl = String.join("", config.getBaseUrl(), "/stream");
+    String sseUrl = String.join("", config.getConfigUrl(), "/stream");
     sseRequest =
         new Request.Builder()
             .url(String.format(sseUrl, environmentID))

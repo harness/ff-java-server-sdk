@@ -41,7 +41,7 @@ public class Poller extends AbstractScheduledService {
   @Override
   protected void runOneIteration() throws Exception {
     try {
-      log.info("Getting the latest feature configs..");
+      log.debug("Getting the latest features and segments..");
       List<FeatureConfig> featureConfigs = defaultApi.getFeatureConfig(environmentID);
       if (featureConfigs != null) {
         featureCache.putAll(

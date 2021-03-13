@@ -38,7 +38,7 @@ public class CfClientTest {
         new CfClient(
             apiKey,
             Config.builder()
-                .baseUrl(baseUrl)
+                .configUrl(baseUrl)
                 .eventUrl(eventsUrl)
                 .streamEnabled(true)
                 .analyticsEnabled(true)

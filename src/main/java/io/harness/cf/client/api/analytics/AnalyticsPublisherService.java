@@ -52,7 +52,7 @@ public class AnalyticsPublisherService {
       String apiKey, Config config, String environmentID, Cache analyticsCache)
       throws CfClientException {
 
-    metricsAPI = MetricsApiFactory.create(apiKey, config.getEventUrl(), config.getBaseUrl());
+    metricsAPI = MetricsApiFactory.create(apiKey, config.getEventUrl(), config.getConfigUrl());
     this.analyticsCache = analyticsCache;
     this.environmentID = environmentID;
   }
