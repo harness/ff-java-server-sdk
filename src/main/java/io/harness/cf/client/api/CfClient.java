@@ -62,7 +62,7 @@ public class CfClient implements Closeable {
     this.featureCache = Caffeine.newBuilder().maximumSize(10000).build();
     this.segmentCache = Caffeine.newBuilder().maximumSize(10000).build();
 
-    this.defaultApi = DefaultApiFactory.create(apiKey, config.getConfigUrl());
+    this.defaultApi = DefaultApiFactory.create(config.getConfigUrl());
 
     this.isInitialized = false;
 

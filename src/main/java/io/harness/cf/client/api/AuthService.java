@@ -1,5 +1,7 @@
 package io.harness.cf.client.api;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
+
 import com.google.common.util.concurrent.AbstractScheduledService;
 import io.harness.cf.ApiException;
 import io.harness.cf.api.DefaultApi;
@@ -25,6 +27,10 @@ public class AuthService extends AbstractScheduledService {
 
   @Override
   protected void runOneIteration() throws Exception {
+    if (isNullOrEmpty(apiKey)) {
+      throw new CfClientException("SDK key cannot be empty");
+    }
+
     try {
       AuthenticationResponse authResponse =
           defaultApi.authenticate(
