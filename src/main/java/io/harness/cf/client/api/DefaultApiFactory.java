@@ -12,10 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 public class DefaultApiFactory {
 
   @SneakyThrows
-  public static DefaultApi create(String apiKey, String basePath) {
-    if (Strings.isNullOrEmpty(apiKey)) {
-      throw new CfClientException("SDK key cannot be empty");
-    }
+  public static DefaultApi create(String basePath) {
     DefaultApi defaultApi = new DefaultApi();
     if (!Strings.isNullOrEmpty(basePath)) {
       ApiClient apiClient = defaultApi.getApiClient();

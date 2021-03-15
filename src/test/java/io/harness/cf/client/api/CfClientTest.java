@@ -38,10 +38,10 @@ public class CfClientTest {
         new CfClient(
             apiKey,
             Config.builder()
-                .baseUrl(baseUrl)
+                .configUrl(baseUrl)
                 .eventUrl(eventsUrl)
                 .streamEnabled(true)
-                .anayticsEnabled(true)
+                .analyticsEnabled(true)
                 .build());
 
     // Wait for the client to be initialized
