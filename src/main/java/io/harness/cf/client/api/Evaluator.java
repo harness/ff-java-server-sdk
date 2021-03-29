@@ -48,18 +48,32 @@ public class Evaluator {
       return null;
     }
     for (VariationMap variationMap : variationMaps) {
-      List<String> targets = variationMap.getTargets();
-      if (targets != null && targets.contains(target.getIdentifier())) {
-        return variationMap.getVariation();
+      List<TargetMap> targets = variationMap.getTargets();
+
+      if (targets != null) {
+        Iterator<TargetMap> iterator = targets.iterator();
+        while (iterator.hasNext()) {
+          TargetMap targetMap = iterator.next();
+          if (targetMap.getIdentifier().contains(target.getIdentifier())) {
+            return variationMap.getVariation();
+          }
+        }
       }
+
       List<String> segmentIdentifiers = variationMap.getTargetSegments();
       if (segmentIdentifiers != null) {
         for (String segmentIdentifier : segmentIdentifiers) {
           Segment segment = segmentCache.getIfPresent(segmentIdentifier);
           if (segment != null) {
-            List<String> includedTargets = segment.getIncluded();
-            if (includedTargets != null && includedTargets.contains(target.getIdentifier())) {
-              return variationMap.getVariation();
+            List<io.harness.cf.model.Target> includedTargets = segment.getIncluded();
+            if (includedTargets != null) {
+              Iterator<io.harness.cf.model.Target> iterator = includedTargets.iterator();
+              while (iterator.hasNext()) {
+                io.harness.cf.model.Target includedTarget = iterator.next();
+                if (includedTarget.getIdentifier().contains(target.getIdentifier())) {
+                  return variationMap.getVariation();
+                }
+              }
             }
           }
         }
@@ -143,9 +157,15 @@ public class Evaluator {
         for (String segmentIdentifier : (List<String>) value) {
           Segment segment = segmentCache.getIfPresent(segmentIdentifier);
           if (segment != null) {
-            List<String> includedTargets = segment.getIncluded();
-            if (includedTargets != null && includedTargets.contains(target.getIdentifier())) {
-              return true;
+            List<io.harness.cf.model.Target> includedTargets = segment.getIncluded();
+            if (includedTargets != null) {
+              Iterator<io.harness.cf.model.Target> iterator = includedTargets.iterator();
+              while (iterator.hasNext()) {
+                io.harness.cf.model.Target includedTarget = iterator.next();
+                if (includedTarget.getIdentifier().contains(target.getIdentifier())) {
+                  return true;
+                }
+              }
             }
             if ((segment.getRules() != null) && !segment.getRules().isEmpty()) {
               for (Clause rule : segment.getRules()) {
