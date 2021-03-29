@@ -1,5 +1,7 @@
 package io.harness.cf.client.dto;
 
+import io.harness.cf.model.Target;
+import java.util.ArrayList;
 import java.util.List;
 
 public final class SegmentBuilder {
@@ -76,12 +78,22 @@ public final class SegmentBuilder {
     targetSegment.setName(name);
     targetSegment.setEnvironment(environment);
     targetSegment.setTags(tags);
-    targetSegment.setIncluded(included);
-    targetSegment.setExcluded(excluded);
+    targetSegment.setIncluded(makeSegmentList(included));
+    targetSegment.setExcluded(makeSegmentList(excluded));
     targetSegment.setRules(rules);
     targetSegment.setCreatedAt(createdAt);
     targetSegment.setModifiedAt(modifiedAt);
     targetSegment.setVersion(version);
     return targetSegment;
+  }
+
+  private List<Target> makeSegmentList(List<String> targets) {
+    List<Target> targetList = new ArrayList<>();
+    for (String name : targets) {
+      Target target = new Target();
+      target.name(name);
+      targetList.add(target);
+    }
+    return targetList;
   }
 }
