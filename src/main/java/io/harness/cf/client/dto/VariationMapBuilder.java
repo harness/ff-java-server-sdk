@@ -1,6 +1,8 @@
 package io.harness.cf.client.dto;
 
+import io.harness.cf.model.TargetMap;
 import io.harness.cf.model.VariationMap;
+import java.util.ArrayList;
 import java.util.List;
 
 public final class VariationMapBuilder {
@@ -32,8 +34,18 @@ public final class VariationMapBuilder {
   public VariationMap build() {
     VariationMap variationMap = new VariationMap();
     variationMap.setVariation(variation);
-    variationMap.setTargets(targets);
+    variationMap.setTargets(makeTargetMap(targets));
     variationMap.setTargetSegments(targetSegments);
     return variationMap;
+  }
+
+  private List<TargetMap> makeTargetMap(List<String> targets) {
+    List<TargetMap> targetMapList = new ArrayList<>();
+    for (String name : targets) {
+      TargetMap targetMap = new TargetMap();
+      targetMap.name(name);
+      targetMapList.add(targetMap);
+    }
+    return targetMapList;
   }
 }

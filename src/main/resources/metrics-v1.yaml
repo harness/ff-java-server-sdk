@@ -12,25 +12,20 @@ servers:
   - url: 'http://localhost:3000/api/1.0'
     description: CfClient description
 paths:
-  '/metrics/{environmentUUID}':
+  '/metrics/{environment}':
     post:
       summary: Send metrics to the Analytics server.
       description: Send metrics to Analytics server
       operationId: postMetrics
       parameters:
-        - name: environmentUUID
-          in: path
-          required: true
-          description: Unique identifier for the environment object in the API.
-          schema:
-            type: string
-      security:
-        - BearerAuth: []
+        - $ref: '#/components/parameters/environmentPathParam'
       requestBody:
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/Metrics'
+      security:
+        - BearerAuth: []
       responses:
         '200':
           description: OK
@@ -116,6 +111,14 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+  parameters:
+    environmentPathParam:
+      name: environment
+      in: path
+      required: true
+      description: environment parameter in query.
+      schema:
+        type: string
   responses:
     Unauthenticated:
       description: Unauthenticated
