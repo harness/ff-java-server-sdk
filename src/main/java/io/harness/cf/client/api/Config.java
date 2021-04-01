@@ -18,13 +18,13 @@ public class Config {
   private String configUrl = "https://config.feature-flags.uat.harness.io/api/1.0"; // UAT
 
   @Builder.Default
-  private String eventUrl = "https://config.feature-flags.uat.harness.io/api/1.0"; // UAT
+  private String eventUrl = "https://event.feature-flags.uat.harness.io/api/1.0"; // UAT
 
   @Builder.Default private boolean streamEnabled = true;
   @Builder.Default private int pollIntervalInSeconds = 60;
 
   // configurations for Analytics
-  @Builder.Default private boolean analyticsEnabled = false;
+  @Builder.Default private boolean analyticsEnabled = true;
 
   @Builder.Default
   @Getter(AccessLevel.NONE)
