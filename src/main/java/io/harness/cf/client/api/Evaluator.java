@@ -24,7 +24,7 @@ public class Evaluator {
   public Object evaluate(FeatureConfig featureConfig, Target target) throws CfClientException {
     String servedVariation = featureConfig.getOffVariation();
     if (featureConfig.getState() == FeatureState.OFF) {
-      return servedVariation;
+      return getVariationValue(featureConfig.getVariations(), servedVariation);
     }
 
     servedVariation = processVariationMap(target, featureConfig.getVariationToTargetMap());

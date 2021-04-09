@@ -6,6 +6,7 @@ import static io.harness.cf.model.FeatureConfig.KindEnum.*;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Strings;
+import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.here.oksse.OkSse;
 import com.here.oksse.ServerSentEvent;
@@ -242,7 +243,8 @@ public class CfClient implements Closeable {
           return jsonObject;
         }
       }
-      jsonObject = (JsonObject) evaluator.evaluate(featureConfig, target);
+      jsonObject =
+          new Gson().fromJson((String) evaluator.evaluate(featureConfig, target), JsonObject.class);
       return jsonObject;
     } catch (Exception e) {
       log.error("err", e);

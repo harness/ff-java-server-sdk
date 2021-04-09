@@ -1,6 +1,8 @@
 package io.harness.cf.client.api;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import io.harness.cf.ApiException;
 import io.harness.cf.client.dto.Target;
 import java.io.IOException;
@@ -30,9 +32,9 @@ public class CfClientTest {
       throws CfClientException, ApiException, IOException, XmlPullParserException {
 
     // local settings
-    String apiKey = "669f4aac-15cc-469c-8c97-d911a4d9a5fe";
-    String baseUrl = "http://35.233.208.131/api/1.0";
-    String eventsUrl = "http://34.83.43.198/api/1.0";
+    String apiKey = "dee0f227-7e8f-4f9a-866d-943a1517a47e";
+    String baseUrl = "http://localhost/api/1.0";
+    String eventsUrl = "http://localhost/api/1.0";
 
     cfClient =
         new CfClient(
@@ -61,16 +63,36 @@ public class CfClientTest {
   }
 
   @Test
+  @Ignore
   public void boolVariation() {
     // String FEATURE_FLAG_KEY = "Test";
     // String FEATURE_FLAG_KEY = "show_animation";
     String FEATURE_FLAG_KEY = "enable_anomaly_detection_batch_job";
 
-    IntStream.range(0, 500)
+    IntStream.range(0, 1)
         .forEach(
             i -> {
               boolean result = cfClient.boolVariation(FEATURE_FLAG_KEY, target, false);
               log.info("Boolean variation: {}", result);
+              try {
+                Thread.sleep(2000);
+              } catch (InterruptedException e) {
+                e.printStackTrace();
+              }
+            });
+  }
+
+  @Test
+  @Ignore
+  public void jsonVariation() {
+    String FEATURE_FLAG_KEY = "Test_JSON";
+    JsonObject defaultValue = new Gson().fromJson("{'default' : 'true'}", JsonObject.class);
+
+    IntStream.range(0, 1)
+        .forEach(
+            i -> {
+              JsonObject result = cfClient.jsonVariation(FEATURE_FLAG_KEY, target, defaultValue);
+              log.info("JSON variation: {}", result.toString());
               try {
                 Thread.sleep(2000);
               } catch (InterruptedException e) {
