@@ -12,10 +12,14 @@ import lombok.extern.slf4j.Slf4j;
 public class DefaultApiFactory {
 
   @SneakyThrows
-  public static DefaultApi create(String basePath) {
+  public static DefaultApi create(
+      String basePath, int connectionTimeout, int readTimeout, int writeTimeout) {
     DefaultApi defaultApi = new DefaultApi();
     if (!Strings.isNullOrEmpty(basePath)) {
       ApiClient apiClient = defaultApi.getApiClient();
+      apiClient.setConnectTimeout(connectionTimeout);
+      apiClient.setReadTimeout(readTimeout);
+      apiClient.setWriteTimeout(writeTimeout);
       apiClient.setBasePath(basePath);
       defaultApi.setApiClient(apiClient);
     }

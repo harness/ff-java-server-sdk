@@ -58,14 +58,14 @@ public class CfClient implements Closeable {
     this.apiKey = apiKey;
     this.config = config;
 
-    this.isAnalyticsEnabled = config.isAnalyticsEnabled();
-
-    this.featureCache = Caffeine.newBuilder().maximumSize(10000).build();
-    this.segmentCache = Caffeine.newBuilder().maximumSize(10000).build();
-
-    this.defaultApi = DefaultApiFactory.create(config.getConfigUrl());
-
-    this.isInitialized = false;
+    isAnalyticsEnabled = config.isAnalyticsEnabled();
+    featureCache = Caffeine.newBuilder().maximumSize(10000).build();
+    segmentCache = Caffeine.newBuilder().maximumSize(10000).build();
+    defaultApi =
+        DefaultApiFactory.create(
+            config.getConfigUrl(), config.getConnectionTimeout(),
+            config.getReadTimeout(), config.getWriteTimeout());
+    isInitialized = false;
 
     // try to authenticate
     AuthService authService =
@@ -91,7 +91,7 @@ public class CfClient implements Closeable {
 
     analyticsManager =
         config.isAnalyticsEnabled() ? new AnalyticsManager(environmentID, apiKey, config) : null;
-    this.isInitialized = true;
+    isInitialized = true;
   }
 
   private void initCache(String environmentID) throws io.harness.cf.ApiException {
@@ -164,7 +164,10 @@ public class CfClient implements Closeable {
       log.error("err", e);
       return defaultValue;
     } finally {
-      if (!target.isPrivate() && isAnalyticsEnabled && (analyticsManager != null)) {
+      if (!target.isPrivate()
+          && isAnalyticsEnabled
+          && analyticsManager != null
+          && featureConfig != null) {
         analyticsManager.pushToQueue(target, featureConfig, servedVariation);
       }
     }
@@ -192,7 +195,10 @@ public class CfClient implements Closeable {
       log.error("err", e);
       return defaultValue;
     } finally {
-      if (!target.isPrivate() && isAnalyticsEnabled && (analyticsManager != null)) {
+      if (!target.isPrivate()
+          && isAnalyticsEnabled
+          && analyticsManager != null
+          && featureConfig != null) {
         analyticsManager.pushToQueue(target, featureConfig, stringVariation);
       }
     }
@@ -220,7 +226,10 @@ public class CfClient implements Closeable {
       log.error("err", e);
       return defaultValue;
     } finally {
-      if (!target.isPrivate() && isAnalyticsEnabled && (analyticsManager != null)) {
+      if (!target.isPrivate()
+          && isAnalyticsEnabled
+          && analyticsManager != null
+          && featureConfig != null) {
         analyticsManager.pushToQueue(target, featureConfig, numberVariation);
       }
     }
@@ -250,7 +259,10 @@ public class CfClient implements Closeable {
       log.error("err", e);
       return defaultValue;
     } finally {
-      if (!target.isPrivate() && isAnalyticsEnabled && (analyticsManager != null)) {
+      if (!target.isPrivate()
+          && isAnalyticsEnabled
+          && analyticsManager != null
+          && featureConfig != null) {
         analyticsManager.pushToQueue(target, featureConfig, jsonObject);
       }
     }
@@ -282,7 +294,8 @@ public class CfClient implements Closeable {
             preReqEvaluatedVariation,
             target);
 
-        // Compare if the pre requisite variation is a possible valid value of the pre requisite FF
+        // Compare if the pre requisite variation is a possible valid value of
+        // the pre requisite FF
         List<String> validPreReqVariations = pqs.getVariations();
         log.info(
             "Pre requisite flag {} should have the variations {}",
@@ -317,8 +330,8 @@ public class CfClient implements Closeable {
   @Override
   public void close() {
     stopPoller();
-    if (this.sse != null) {
-      this.sse.close();
+    if (sse != null) {
+      sse.close();
     }
   }
 }

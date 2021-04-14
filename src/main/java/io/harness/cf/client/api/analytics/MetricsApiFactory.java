@@ -3,6 +3,7 @@ package io.harness.cf.client.api.analytics;
 import com.google.common.base.Strings;
 import io.harness.cf.ApiException;
 import io.harness.cf.client.api.CfClientException;
+import io.harness.cf.client.api.Config;
 import io.harness.cf.client.api.DefaultApiFactory;
 import io.harness.cf.client.dto.AuthenticationRequestBuilder;
 import io.harness.cf.metrics.ApiClient;
@@ -26,12 +27,15 @@ public class MetricsApiFactory {
   private static final int AUTH_RETRY_MAX_RETRY_COUNT = 3;
 
   @SneakyThrows
-  public static DefaultApi create(String apiKey, String basePath, String authUrl) {
+  public static DefaultApi create(String apiKey, Config config) {
     DefaultApi metricsAPI = new DefaultApi();
-    io.harness.cf.api.DefaultApi clientAPI = DefaultApiFactory.create(authUrl);
-    if (!Strings.isNullOrEmpty(basePath)) {
+    io.harness.cf.api.DefaultApi clientAPI =
+        DefaultApiFactory.create(
+            config.getConfigUrl(), config.getConnectionTimeout(),
+            config.getReadTimeout(), config.getWriteTimeout());
+    if (!Strings.isNullOrEmpty(config.getEventUrl())) {
       ApiClient apiClient = metricsAPI.getApiClient();
-      apiClient.setBasePath(basePath);
+      apiClient.setBasePath(config.getEventUrl());
       metricsAPI.setApiClient(apiClient);
     }
 
