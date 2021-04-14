@@ -41,13 +41,20 @@ public class Config {
   // Custom list to set the attributes which are private; move over to target
   @Builder.Default private Set<String> privateAttributes = Collections.emptySet();
 
+  /** timeout in milliseconds to connect to CF Server */
+  @Builder.Default int connectionTimeout = 10000;
+  /** timeout in milliseconds for reading data from CF Server */
+  @Builder.Default int readTimeout = 30000;
+  /** timeout in milliseconds for writing data to CF Server */
+  @Builder.Default int writeTimeout = 10000;
+
   public int getFrequency() {
     return Math.max(frequency, Config.MIN_FREQUENCY);
   }
 
   /*
-   BufferSize must be a power of 2 for LMAX to work. This function vaidates that.
-   Source: https://stackoverflow.com/a/600306/1493480
+   BufferSize must be a power of 2 for LMAX to work. This function vaidates
+   that. Source: https://stackoverflow.com/a/600306/1493480
   */
   public int getBufferSize() throws CfClientException {
     if (!(bufferSize != 0 && ((bufferSize & (bufferSize - 1)) == 0))) {

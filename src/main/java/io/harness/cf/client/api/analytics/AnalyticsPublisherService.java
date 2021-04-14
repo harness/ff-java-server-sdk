@@ -12,17 +12,12 @@ import io.harness.cf.metrics.model.MetricsData;
 import io.harness.cf.metrics.model.TargetData;
 import io.harness.cf.model.FeatureConfig;
 import io.jsonwebtoken.lang.Collections;
-import java.io.FileReader;
-import java.io.IOException;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
-import org.apache.maven.model.Model;
-import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
-import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
 /**
  * This class prepares the message body for metrics and posts it to the server
@@ -41,6 +36,8 @@ public class AnalyticsPublisherService {
   private static final String SDK_TYPE = "SDK_TYPE";
   private static final String ANONYMOUS_TARGET = "anonymous";
   private static final String SERVER = "server";
+  private static final String SDK_LANGUAGE = "SDK_LANGUAGE";
+  private static final String SDK_VERSION = "SDK_VERSION";
 
   private String jarVerion = "";
 
@@ -52,7 +49,7 @@ public class AnalyticsPublisherService {
       String apiKey, Config config, String environmentID, Cache analyticsCache)
       throws CfClientException {
 
-    metricsAPI = MetricsApiFactory.create(apiKey, config.getEventUrl(), config.getConfigUrl());
+    metricsAPI = MetricsApiFactory.create(apiKey, config);
     this.analyticsCache = analyticsCache;
     this.environmentID = environmentID;
   }
@@ -81,9 +78,8 @@ public class AnalyticsPublisherService {
         log.info("Invalidating the cache");
         analyticsCache.resetCache();
       } catch (ApiException e) {
-        // Clear the set because the cache is only invalidated when there is no exception, so the
-        // targets will reappear in the next
-        // iteration
+        // Clear the set because the cache is only invalidated when there is no
+        // exception, so the targets will reappear in the next iteration
         log.error("Failed to send metricsData {} : {}", e.getMessage(), e.getCode());
       }
     }
@@ -139,6 +135,8 @@ public class AnalyticsPublisherService {
       setMetricsAttriutes(metricsData, JAR_VERSION, jarVerion);
       setMetricsAttriutes(metricsData, SDK_TYPE, SERVER);
 
+      setMetricsAttriutes(metricsData, SDK_LANGUAGE, "java");
+      setMetricsAttriutes(metricsData, SDK_VERSION, jarVerion);
       metrics.addMetricsDataItem(metricsData);
     }
 
@@ -154,10 +152,8 @@ public class AnalyticsPublisherService {
 
   private String getVersion() throws CfClientException {
     try {
-      MavenXpp3Reader reader = new MavenXpp3Reader();
-      Model model = reader.read(new FileReader("pom.xml"));
-      return model.getVersion();
-    } catch (XmlPullParserException | IOException e) {
+      return io.harness.cf.Version.VERSION;
+    } catch (Exception e) {
       throw new CfClientException("Exception happened while getting the version " + e.getMessage());
     }
   }
