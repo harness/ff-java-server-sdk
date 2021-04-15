@@ -1,7 +1,10 @@
 package io.harness.cf.client.api;
 
 import static io.harness.cf.client.api.DefaultApiFactory.addAuthHeader;
-import static io.harness.cf.model.FeatureConfig.KindEnum.*;
+import static io.harness.cf.model.FeatureConfig.KindEnum.BOOLEAN;
+import static io.harness.cf.model.FeatureConfig.KindEnum.INT;
+import static io.harness.cf.model.FeatureConfig.KindEnum.JSON;
+import static io.harness.cf.model.FeatureConfig.KindEnum.STRING;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -14,7 +17,9 @@ import io.harness.cf.ApiException;
 import io.harness.cf.api.DefaultApi;
 import io.harness.cf.client.api.analytics.AnalyticsManager;
 import io.harness.cf.client.dto.Target;
-import io.harness.cf.model.*;
+import io.harness.cf.model.FeatureConfig;
+import io.harness.cf.model.Prerequisite;
+import io.harness.cf.model.Segment;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Header;
 import io.jsonwebtoken.Jwt;
@@ -28,7 +33,6 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Request;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ObjectUtils;
 
 @Slf4j
 public class CfClient implements Closeable {
@@ -165,6 +169,7 @@ public class CfClient implements Closeable {
       return defaultValue;
     } finally {
       if (!target.isPrivate()
+          && target.isValid()
           && isAnalyticsEnabled
           && analyticsManager != null
           && featureConfig != null) {
@@ -196,6 +201,7 @@ public class CfClient implements Closeable {
       return defaultValue;
     } finally {
       if (!target.isPrivate()
+          && target.isValid()
           && isAnalyticsEnabled
           && analyticsManager != null
           && featureConfig != null) {
@@ -227,6 +233,7 @@ public class CfClient implements Closeable {
       return defaultValue;
     } finally {
       if (!target.isPrivate()
+          && target.isValid()
           && isAnalyticsEnabled
           && analyticsManager != null
           && featureConfig != null) {
@@ -260,6 +267,7 @@ public class CfClient implements Closeable {
       return defaultValue;
     } finally {
       if (!target.isPrivate()
+          && target.isValid()
           && isAnalyticsEnabled
           && analyticsManager != null
           && featureConfig != null) {
@@ -280,7 +288,7 @@ public class CfClient implements Closeable {
       for (Prerequisite pqs : prerequisites) {
         String preReqFeature = pqs.getFeature();
         FeatureConfig preReqFeatureConfig = featureCache.getIfPresent(preReqFeature);
-        if (ObjectUtils.isEmpty(preReqFeatureConfig)) {
+        if (preReqFeatureConfig == null) {
           log.error(
               "Could not retrieve the pre requisite details of feature flag :{}",
               preReqFeatureConfig.getFeature());
