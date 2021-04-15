@@ -1,5 +1,6 @@
 package io.harness.cf.client.dto;
 
+import com.google.common.base.Strings;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -27,5 +28,9 @@ public class Target {
   @Override
   public String toString() {
     return "TargetId: " + identifier;
+  }
+
+  public boolean isValid() {
+    return !Strings.isNullOrEmpty(name) && !Strings.isNullOrEmpty(identifier);
   }
 }

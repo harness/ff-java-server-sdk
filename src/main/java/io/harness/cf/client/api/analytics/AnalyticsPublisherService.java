@@ -17,7 +17,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.ObjectUtils;
 
 /**
  * This class prepares the message body for metrics and posts it to the server
@@ -46,8 +45,7 @@ public class AnalyticsPublisherService {
   private final String environmentID;
 
   public AnalyticsPublisherService(
-      String apiKey, Config config, String environmentID, Cache analyticsCache)
-      throws CfClientException {
+      String apiKey, Config config, String environmentID, Cache analyticsCache) {
 
     metricsAPI = MetricsApiFactory.create(apiKey, config);
     this.analyticsCache = analyticsCache;
@@ -68,8 +66,8 @@ public class AnalyticsPublisherService {
       try {
         Metrics metrics = prepareMessageBody(all);
         log.debug("metrics {}", metrics);
-        if (!ObjectUtils.isEmpty(metrics.getMetricsData())
-            || !ObjectUtils.isEmpty(metrics.getTargetData())) {
+        if (!Collections.isEmpty(metrics.getMetricsData())
+            || !Collections.isEmpty(metrics.getTargetData())) {
           metricsAPI.postMetrics(environmentID, metrics);
         }
         globalTargetSet.addAll(stagingTargetSet);
