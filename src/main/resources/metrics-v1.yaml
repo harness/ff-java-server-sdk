@@ -67,6 +67,7 @@ components:
       properties:
         timestamp:
           type: integer
+          format: int64
           example: 1608175465
           description: time at when this data was recorded
         count:

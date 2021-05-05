@@ -12,7 +12,6 @@ import io.harness.cf.metrics.model.MetricsData;
 import io.harness.cf.metrics.model.TargetData;
 import io.harness.cf.model.FeatureConfig;
 import io.jsonwebtoken.lang.Collections;
-import java.time.Instant;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -120,7 +119,7 @@ public class AnalyticsPublisherService {
         metrics.addTargetDataItem(targetData);
       }
 
-      metricsData.setTimestamp((int) Instant.now().getEpochSecond());
+      metricsData.setTimestamp(System.currentTimeMillis());
       metricsData.count(entry.getValue());
       metricsData.setMetricsType(MetricsData.MetricsTypeEnum.FFMETRICS);
       setMetricsAttriutes(metricsData, FEATURE_NAME_ATTRIBUTE, featureConfig.getFeature());
