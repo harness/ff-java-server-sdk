@@ -21,26 +21,26 @@ public class Evaluator {
     this.segmentCache = segmentCache;
   }
 
-  public Object evaluate(FeatureConfig featureConfig, Target target) throws CfClientException {
+  public Variation evaluate(FeatureConfig featureConfig, Target target) throws CfClientException {
     String servedVariation = featureConfig.getOffVariation();
     if (featureConfig.getState() == FeatureState.OFF) {
-      return getVariationValue(featureConfig.getVariations(), servedVariation);
+      return getVariation(featureConfig.getVariations(), servedVariation);
     }
 
     servedVariation = processVariationMap(target, featureConfig.getVariationToTargetMap());
     if (servedVariation != null) {
-      return getVariationValue(featureConfig.getVariations(), servedVariation);
+      return getVariation(featureConfig.getVariations(), servedVariation);
     }
 
     servedVariation = processRules(featureConfig, target);
     if (servedVariation != null) {
-      return getVariationValue(featureConfig.getVariations(), servedVariation);
+      return getVariation(featureConfig.getVariations(), servedVariation);
     }
 
     Serve defaultServe = featureConfig.getDefaultServe();
     servedVariation = processDefaultServe(defaultServe, target);
 
-    return getVariationValue(featureConfig.getVariations(), servedVariation);
+    return getVariation(featureConfig.getVariations(), servedVariation);
   }
 
   private String processVariationMap(Target target, List<VariationMap> variationMaps) {
@@ -217,11 +217,11 @@ public class Evaluator {
     return servedVariation;
   }
 
-  private String getVariationValue(List<Variation> variations, String variationIdentifier)
+  private Variation getVariation(List<Variation> variations, String variationIdentifier)
       throws CfClientException {
     for (Variation variation : variations) {
       if (variationIdentifier.equals(variation.getIdentifier())) {
-        return variation.getValue();
+        return variation;
       }
     }
     throw new CfClientException(format("Invalid variation identifier %s.", variationIdentifier));
