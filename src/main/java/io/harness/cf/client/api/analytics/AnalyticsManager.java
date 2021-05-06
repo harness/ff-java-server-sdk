@@ -9,6 +9,7 @@ import io.harness.cf.client.dto.Analytics;
 import io.harness.cf.client.dto.EventType;
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.FeatureConfig;
+import io.harness.cf.model.Variation;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -57,7 +58,7 @@ public class AnalyticsManager {
   }
 
   // push the incoming data to the ring buffer
-  public void pushToQueue(Target target, FeatureConfig featureConfig, Object variation) {
+  public void pushToQueue(Target target, FeatureConfig featureConfig, Variation variation) {
     Analytics analytics =
         Analytics.builder()
             .featureConfig(featureConfig)
