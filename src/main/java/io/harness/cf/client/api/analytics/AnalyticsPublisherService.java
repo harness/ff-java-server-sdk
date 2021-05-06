@@ -11,6 +11,7 @@ import io.harness.cf.metrics.model.Metrics;
 import io.harness.cf.metrics.model.MetricsData;
 import io.harness.cf.metrics.model.TargetData;
 import io.harness.cf.model.FeatureConfig;
+import io.harness.cf.model.Variation;
 import io.jsonwebtoken.lang.Collections;
 import java.util.HashSet;
 import java.util.Map;
@@ -27,6 +28,8 @@ import lombok.extern.slf4j.Slf4j;
 public class AnalyticsPublisherService {
   private static final String FEATURE_NAME_ATTRIBUTE = "featureName";
   private static final String FEATURE_VALUE_ATTRIBUTE = "featureValue";
+  private static final String VARIATION_VALUE_ATTRIBUTE = "featureValue";
+  private static final String VARIATION_IDENTIFIER_ATTRIBUTE = "variationIdentifier";
   private static final String TARGET_ATTRIBUTE = "target";
   private static final Set<Target> globalTargetSet = new HashSet<>();
   private static final Set<Target> stagingTargetSet = new HashSet<>();
@@ -96,7 +99,7 @@ public class AnalyticsPublisherService {
       final Set<String> privateAttributes = analytics.getTarget().getPrivateAttributes();
       final Target target = analytics.getTarget();
       final FeatureConfig featureConfig = analytics.getFeatureConfig();
-      final Object variation = analytics.getVariation();
+      final Variation variation = analytics.getVariation();
       if (!globalTargetSet.contains(target) && !target.isPrivate()) {
         stagingTargetSet.add(target);
         final Map<String, Object> attributes = target.getAttributes();
@@ -123,7 +126,10 @@ public class AnalyticsPublisherService {
       metricsData.count(entry.getValue());
       metricsData.setMetricsType(MetricsData.MetricsTypeEnum.FFMETRICS);
       setMetricsAttriutes(metricsData, FEATURE_NAME_ATTRIBUTE, featureConfig.getFeature());
-      setMetricsAttriutes(metricsData, FEATURE_VALUE_ATTRIBUTE, variation.toString());
+      // TODO : deprecate this field FEATURE_VALUE_ATTRIBUTE in the subsequent releases
+      setMetricsAttriutes(metricsData, FEATURE_VALUE_ATTRIBUTE, variation.getValue());
+      setMetricsAttriutes(metricsData, VARIATION_IDENTIFIER_ATTRIBUTE, variation.getIdentifier());
+      setMetricsAttriutes(metricsData, VARIATION_VALUE_ATTRIBUTE, variation.getValue());
       if (target.isPrivate()) {
         setMetricsAttriutes(metricsData, TARGET_ATTRIBUTE, ANONYMOUS_TARGET);
       } else {

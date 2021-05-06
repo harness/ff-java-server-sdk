@@ -20,6 +20,7 @@ import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Prerequisite;
 import io.harness.cf.model.Segment;
+import io.harness.cf.model.Variation;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Header;
 import io.jsonwebtoken.Jwt;
@@ -148,6 +149,7 @@ public class CfClient implements Closeable {
 
   public boolean boolVariation(String key, Target target, boolean defaultValue) {
     boolean servedVariation = defaultValue;
+    Variation variation = null;
     FeatureConfig featureConfig = featureCache.getIfPresent(key);
     try {
       if (featureConfig == null || featureConfig.getKind() != BOOLEAN) {
@@ -162,7 +164,8 @@ public class CfClient implements Closeable {
           return servedVariation;
         }
       }
-      servedVariation = Boolean.parseBoolean((String) evaluator.evaluate(featureConfig, target));
+      variation = evaluator.evaluate(featureConfig, target);
+      servedVariation = Boolean.parseBoolean((String) variation.getValue());
       return servedVariation;
     } catch (Exception e) {
       log.error("err", e);
@@ -172,14 +175,16 @@ public class CfClient implements Closeable {
           && target.isValid()
           && isAnalyticsEnabled
           && analyticsManager != null
-          && featureConfig != null) {
-        analyticsManager.pushToQueue(target, featureConfig, servedVariation);
+          && featureConfig != null
+          && variation != null) {
+        analyticsManager.pushToQueue(target, featureConfig, variation);
       }
     }
   }
 
   public String stringVariation(String key, Target target, String defaultValue) {
     String stringVariation = defaultValue;
+    Variation variation = null;
     FeatureConfig featureConfig = featureCache.getIfPresent(key);
     try {
       if (featureConfig == null || featureConfig.getKind() != STRING) {
@@ -194,7 +199,8 @@ public class CfClient implements Closeable {
           return stringVariation;
         }
       }
-      stringVariation = (String) evaluator.evaluate(featureConfig, target);
+      variation = evaluator.evaluate(featureConfig, target);
+      stringVariation = (String) variation.getValue();
       return stringVariation;
     } catch (Exception e) {
       log.error("err", e);
@@ -204,14 +210,16 @@ public class CfClient implements Closeable {
           && target.isValid()
           && isAnalyticsEnabled
           && analyticsManager != null
-          && featureConfig != null) {
-        analyticsManager.pushToQueue(target, featureConfig, stringVariation);
+          && featureConfig != null
+          && variation != null) {
+        analyticsManager.pushToQueue(target, featureConfig, variation);
       }
     }
   }
 
   public double numberVariation(String key, Target target, int defaultValue) {
     double numberVariation = defaultValue;
+    Variation variation = null;
     FeatureConfig featureConfig = featureCache.getIfPresent(key);
     if (featureConfig == null || featureConfig.getKind() != INT) {
       return defaultValue;
@@ -226,7 +234,8 @@ public class CfClient implements Closeable {
           return numberVariation;
         }
       }
-      numberVariation = Integer.parseInt((String) evaluator.evaluate(featureConfig, target));
+      variation = evaluator.evaluate(featureConfig, target);
+      numberVariation = Integer.parseInt((String) variation.getValue());
       return numberVariation;
     } catch (Exception e) {
       log.error("err", e);
@@ -236,14 +245,16 @@ public class CfClient implements Closeable {
           && target.isValid()
           && isAnalyticsEnabled
           && analyticsManager != null
-          && featureConfig != null) {
-        analyticsManager.pushToQueue(target, featureConfig, numberVariation);
+          && featureConfig != null
+          && variation != null) {
+        analyticsManager.pushToQueue(target, featureConfig, variation);
       }
     }
   }
 
   public JsonObject jsonVariation(String key, Target target, JsonObject defaultValue) {
     JsonObject jsonObject = defaultValue;
+    Variation variation = null;
     FeatureConfig featureConfig = featureCache.getIfPresent(key);
     try {
       if (featureConfig == null || featureConfig.getKind() != JSON) {
@@ -259,8 +270,8 @@ public class CfClient implements Closeable {
           return jsonObject;
         }
       }
-      jsonObject =
-          new Gson().fromJson((String) evaluator.evaluate(featureConfig, target), JsonObject.class);
+      variation = evaluator.evaluate(featureConfig, target);
+      jsonObject = new Gson().fromJson((String) variation.getValue(), JsonObject.class);
       return jsonObject;
     } catch (Exception e) {
       log.error("err", e);
@@ -270,8 +281,9 @@ public class CfClient implements Closeable {
           && target.isValid()
           && isAnalyticsEnabled
           && analyticsManager != null
-          && featureConfig != null) {
-        analyticsManager.pushToQueue(target, featureConfig, jsonObject);
+          && featureConfig != null
+          && variation != null) {
+        analyticsManager.pushToQueue(target, featureConfig, variation);
       }
     }
   }
@@ -295,7 +307,8 @@ public class CfClient implements Closeable {
         }
 
         // Pre requisite variation value evaluated below
-        Object preReqEvaluatedVariation = evaluator.evaluate(preReqFeatureConfig, target);
+        Object preReqEvaluatedVariation =
+            evaluator.evaluate(preReqFeatureConfig, target).getValue();
         log.info(
             "Pre requisite flag {} has variation {} for target {}",
             preReqFeatureConfig.getFeature(),

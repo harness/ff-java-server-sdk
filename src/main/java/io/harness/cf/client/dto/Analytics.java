@@ -1,6 +1,7 @@
 package io.harness.cf.client.dto;
 
 import io.harness.cf.model.FeatureConfig;
+import io.harness.cf.model.Variation;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -19,6 +20,6 @@ import lombok.ToString;
 public class Analytics {
   private FeatureConfig featureConfig;
   private Target target;
-  private Object variation;
+  private Variation variation;
   private EventType eventType = EventType.METRICS;
 }
