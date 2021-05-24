@@ -5,7 +5,6 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import io.harness.cf.client.dto.Analytics;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -22,7 +21,6 @@ public class GuavaCache implements Cache {
   LoadingCache<Analytics, Integer> cache =
       CacheBuilder.newBuilder()
           .maximumSize(10000)
-          .expireAfterAccess(60, TimeUnit.SECONDS)
           .build(
               new CacheLoader<Analytics, Integer>() {
                 @Override

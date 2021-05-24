@@ -45,6 +45,7 @@ public class AnalyticsPublisherService {
   private final DefaultApi metricsAPI;
   private final Cache analyticsCache;
   private final String environmentID;
+  private final Config config;
 
   public AnalyticsPublisherService(
       String apiKey, Config config, String environmentID, Cache analyticsCache) {
@@ -52,6 +53,7 @@ public class AnalyticsPublisherService {
     metricsAPI = MetricsApiFactory.create(apiKey, config);
     this.analyticsCache = analyticsCache;
     this.environmentID = environmentID;
+    this.config = config;
   }
 
   /**
@@ -60,22 +62,25 @@ public class AnalyticsPublisherService {
    * @throws CfClientException
    */
   public void sendDataAndResetCache() throws CfClientException {
-    log.info("Reading from queue and building cache");
+    log.debug("Reading from queue and building cache");
     jarVerion = getVersion();
 
     final Map<Analytics, Integer> all = analyticsCache.getAll();
     if (!all.isEmpty()) {
       try {
         Metrics metrics = prepareMessageBody(all);
-        log.debug("metrics {}", metrics);
         if (!Collections.isEmpty(metrics.getMetricsData())
             || !Collections.isEmpty(metrics.getTargetData())) {
+          long startTime = System.currentTimeMillis();
           metricsAPI.postMetrics(environmentID, metrics);
+          long endTime = System.currentTimeMillis();
+          if ((endTime - startTime) > config.getMetricsServiceAcceptableDuration()) {
+            log.warn("Metrics service API duratopm=[{}]", (endTime - startTime));
+          }
         }
         globalTargetSet.addAll(stagingTargetSet);
         stagingTargetSet.clear();
         log.debug("Successfully sent analytics data to the server");
-        log.info("Invalidating the cache");
         analyticsCache.resetCache();
       } catch (ApiException e) {
         // Clear the set because the cache is only invalidated when there is no
@@ -126,8 +131,6 @@ public class AnalyticsPublisherService {
       metricsData.count(entry.getValue());
       metricsData.setMetricsType(MetricsData.MetricsTypeEnum.FFMETRICS);
       setMetricsAttriutes(metricsData, FEATURE_NAME_ATTRIBUTE, featureConfig.getFeature());
-      // TODO : deprecate this field FEATURE_VALUE_ATTRIBUTE in the subsequent releases
-      setMetricsAttriutes(metricsData, FEATURE_VALUE_ATTRIBUTE, variation.getValue());
       setMetricsAttriutes(metricsData, VARIATION_IDENTIFIER_ATTRIBUTE, variation.getIdentifier());
       setMetricsAttriutes(metricsData, VARIATION_VALUE_ATTRIBUTE, variation.getValue());
       if (target.isPrivate()) {
