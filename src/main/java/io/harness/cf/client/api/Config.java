@@ -48,6 +48,10 @@ public class Config {
   /** timeout in milliseconds for writing data to CF Server */
   @Builder.Default int writeTimeout = 10000;
 
+  @Getter @Builder.Default boolean debug = false;
+  /** If metrics service POST call is taking > this time, we need to know about it */
+  @Getter @Builder.Default long metricsServiceAcceptableDuration = 10000;
+
   public int getFrequency() {
     return Math.max(frequency, Config.MIN_FREQUENCY);
   }

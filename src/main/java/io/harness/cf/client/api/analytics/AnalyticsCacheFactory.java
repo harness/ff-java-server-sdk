@@ -9,11 +9,11 @@ public class AnalyticsCacheFactory {
 
   public static Cache create(String cacheName) {
     if (cacheName.equals(CAFFEINE_CACHE)) {
-      log.info("Using Caffeine cache");
+      log.debug("Using Caffeine cache");
       return new CaffeineCache();
     }
     if (cacheName.equals(GUAVA_CACHE)) {
-      log.info("Using Guava cache");
+      log.debug("Using Guava cache");
       return new GuavaCache();
     }
     return null;

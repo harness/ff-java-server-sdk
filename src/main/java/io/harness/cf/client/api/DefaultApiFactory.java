@@ -15,12 +15,20 @@ public class DefaultApiFactory {
   public static DefaultApi create(
       String basePath, int connectionTimeout, int readTimeout, int writeTimeout) {
     DefaultApi defaultApi = new DefaultApi();
+    return create(basePath, connectionTimeout, readTimeout, writeTimeout, false);
+  }
+
+  @SneakyThrows
+  public static DefaultApi create(
+      String basePath, int connectionTimeout, int readTimeout, int writeTimeout, boolean debug) {
+    DefaultApi defaultApi = new DefaultApi();
     if (!Strings.isNullOrEmpty(basePath)) {
       ApiClient apiClient = defaultApi.getApiClient();
       apiClient.setConnectTimeout(connectionTimeout);
       apiClient.setReadTimeout(readTimeout);
       apiClient.setWriteTimeout(writeTimeout);
       apiClient.setBasePath(basePath);
+      apiClient.setDebugging(debug);
       defaultApi.setApiClient(apiClient);
     }
 

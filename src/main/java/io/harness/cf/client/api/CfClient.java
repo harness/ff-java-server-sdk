@@ -68,8 +68,11 @@ public class CfClient implements Closeable {
     segmentCache = Caffeine.newBuilder().maximumSize(10000).build();
     defaultApi =
         DefaultApiFactory.create(
-            config.getConfigUrl(), config.getConnectionTimeout(),
-            config.getReadTimeout(), config.getWriteTimeout());
+            config.getConfigUrl(),
+            config.getConnectionTimeout(),
+            config.getReadTimeout(),
+            config.getWriteTimeout(),
+            config.isDebug());
     isInitialized = false;
 
     // try to authenticate
