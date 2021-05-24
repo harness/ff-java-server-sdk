@@ -77,7 +77,7 @@ public class AnalyticsManager {
       event.setTarget(analytics.getTarget());
       event.setVariation(analytics.getVariation());
     } catch (InsufficientCapacityException e) {
-      log.debug("Insufficient capacity in the analytics ringBuffer", e);
+      log.warn("Insufficient capacity in the analytics ringBuffer");
     } finally {
       if (sequence != -1) {
         ringBuffer.publish(sequence);

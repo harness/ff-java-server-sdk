@@ -24,7 +24,7 @@ public class TimerTask implements Runnable {
       Analytics event = ringBuffer.get(sequence); // Get the entry in the Disruptor for the sequence
       event.setEventType(EventType.TIMER);
     } catch (InsufficientCapacityException e) {
-      log.debug("Insufficient capacity in the analytics ringBuffer", e);
+      log.warn("Insufficient capacity in the analytics ringBuffer");
     } finally {
       if (sequence != -1) {
         ringBuffer.publish(sequence);
