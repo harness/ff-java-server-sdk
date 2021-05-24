@@ -43,6 +43,7 @@ public class CfClient implements Closeable {
   private final boolean isAnalyticsEnabled;
   @Setter private String jwtToken;
   private String environmentID;
+  private String clusterIdentifier;
 
   private Cache<String, FeatureConfig> featureCache;
   private Cache<String, Segment> segmentCache;
@@ -84,6 +85,7 @@ public class CfClient implements Closeable {
   void init() throws ApiException, CfClientException {
     addAuthHeader(defaultApi, jwtToken);
     environmentID = getEnvironmentID(jwtToken);
+    clusterIdentifier = getClusterIdentifier(jwtToken);
 
     evaluator = new Evaluator(segmentCache);
 
@@ -104,7 +106,8 @@ public class CfClient implements Closeable {
 
   private void initCache(String environmentID) throws io.harness.cf.ApiException {
     if (!Strings.isNullOrEmpty(environmentID)) {
-      List<FeatureConfig> featureConfigs = defaultApi.getFeatureConfig(environmentID);
+      List<FeatureConfig> featureConfigs =
+          defaultApi.getFeatureConfig(environmentID, clusterIdentifier);
       if (featureConfigs != null) {
         featureCache.putAll(
             featureConfigs.stream()
@@ -112,7 +115,7 @@ public class CfClient implements Closeable {
                     Collectors.toMap(FeatureConfig::getFeature, featureConfig -> featureConfig)));
       }
 
-      List<Segment> segments = defaultApi.getAllSegments(environmentID);
+      List<Segment> segments = defaultApi.getAllSegments(environmentID, clusterIdentifier);
       if (segments != null) {
         segmentCache.putAll(
             segments.stream()
@@ -128,6 +131,7 @@ public class CfClient implements Closeable {
             featureCache,
             segmentCache,
             environmentID,
+            clusterIdentifier,
             config.getPollIntervalInSeconds(),
             config.isStreamEnabled(),
             this);
@@ -142,7 +146,9 @@ public class CfClient implements Closeable {
             .header("Authorization", "Bearer " + jwtToken)
             .header("API-Key", apiKey)
             .build();
-    listener = new SSEListener(defaultApi, featureCache, segmentCache, environmentID, this);
+    listener =
+        new SSEListener(
+            defaultApi, featureCache, segmentCache, environmentID, clusterIdentifier, this);
   }
 
   void startSSE() {
@@ -340,6 +346,14 @@ public class CfClient implements Closeable {
     String unsignedJwt = jwtToken.substring(0, i + 1);
     Jwt<Header, Claims> untrusted = Jwts.parser().parseClaimsJwt(unsignedJwt);
     jwtToken = (String) untrusted.getBody().get("environment");
+    return jwtToken;
+  }
+
+  public static String getClusterIdentifier(String jwtToken) {
+    int i = jwtToken.lastIndexOf('.');
+    String unsignedJwt = jwtToken.substring(0, i + 1);
+    Jwt<Header, Claims> untrusted = Jwts.parser().parseClaimsJwt(unsignedJwt);
+    jwtToken = (String) untrusted.getBody().get("clusterIdentifier");
     return jwtToken;
   }
 
