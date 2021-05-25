@@ -6,7 +6,7 @@
 
     <groupId>io.harness</groupId>
     <artifactId>ff-java-server-sdk</artifactId>
-    <version>0.0.8</version>
+    <version>0.0.9-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>Harness Feature Flag Java Server SDK</name>
     <description>Harness Feature Flag Java Server SDK</description>
@@ -122,6 +122,13 @@
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-jackson</artifactId> <!-- or jjwt-gson if Gson is preferred -->
             <version>0.11.2</version>
+            <scope>runtime</scope>
+        </dependency>
+        <!--Adding this explicit dependency until jjwt-jackson 0.11.3 is released. This is required to address CVE issues in jackson-databind -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId> <!-- or jjwt-gson if Gson is preferred -->
+            <version>2.9.10.7</version>
             <scope>runtime</scope>
         </dependency>
 
