@@ -24,6 +24,7 @@ public class SSEListener implements ServerSentEvent.Listener {
   private final Cache<String, FeatureConfig> featureCache;
   private final Cache<String, Segment> segmentCache;
   private final String environmentID;
+  private final String clusterIdentifier;
   private CfClient cfClient;
 
   SSEListener(
@@ -31,11 +32,13 @@ public class SSEListener implements ServerSentEvent.Listener {
       Cache<String, FeatureConfig> featureCache,
       Cache<String, Segment> segmentCache,
       String environmentID,
+      String clusterIdentifier,
       CfClient cfClient) {
     this.defaultApi = defaultApi;
     this.featureCache = featureCache;
     this.segmentCache = segmentCache;
     this.environmentID = environmentID;
+    this.clusterIdentifier = clusterIdentifier;
     this.cfClient = cfClient;
   }
 
@@ -70,7 +73,7 @@ public class SSEListener implements ServerSentEvent.Listener {
     for (int i = 0; i < 3; i++) {
       try {
         FeatureConfig featureConfig =
-            defaultApi.getFeatureConfigByIdentifier(identifier, environmentID);
+            defaultApi.getFeatureConfigByIdentifier(identifier, environmentID, clusterIdentifier);
         if (version.equals(featureConfig.getVersion())) {
           featureCache.put(featureConfig.getFeature(), featureConfig);
           break;
@@ -86,7 +89,7 @@ public class SSEListener implements ServerSentEvent.Listener {
     String identifier = jsonObject.get("identifier").getAsString();
     // Long version = jsonObject.get("version").getAsLong();
     try {
-      List<Segment> segments = defaultApi.getAllSegments(environmentID);
+      List<Segment> segments = defaultApi.getAllSegments(environmentID, clusterIdentifier);
       if (segments != null) {
         segmentCache.putAll(
             segments.stream()

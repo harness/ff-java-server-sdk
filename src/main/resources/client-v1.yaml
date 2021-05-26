@@ -24,6 +24,7 @@ paths:
           description: Unique identifier for the environment object in the API.
           schema:
             type: string
+        - $ref: '#/components/parameters/clusterQueryParam'
       security:
         - BearerAuth: []
       responses:
@@ -52,6 +53,7 @@ paths:
           description: Unique identifier for the environment object in the API.
           schema:
             type: string
+        - $ref: '#/components/parameters/clusterQueryParam'
       security:
         - BearerAuth: []
       responses:
@@ -73,6 +75,7 @@ paths:
           description: Unique identifier for the environment object in the API.
           schema:
             type: string
+        - $ref: '#/components/parameters/clusterQueryParam'
       security:
         - BearerAuth: []
       responses:
@@ -110,6 +113,7 @@ paths:
           description: Unique identifier for the environment object in the API
           schema:
             type: string
+        - $ref: '#/components/parameters/clusterQueryParam'
       security:
         - BearerAuth: []
       responses:
@@ -169,6 +173,7 @@ paths:
           description: Unique identifier for the target object in the API.
           schema:
             type: string
+        - $ref: '#/components/parameters/clusterQueryParam'
       responses:
         '200':
           description: OK
@@ -201,6 +206,7 @@ paths:
           description: Unique identifier for the target object in the API.
           schema:
             type: string
+        - $ref: '#/components/parameters/clusterQueryParam'
       responses:
         '200':
           description: OK
@@ -218,6 +224,7 @@ paths:
           schema:
             type: string
           required: true
+        - $ref: '#/components/parameters/clusterQueryParam'
       security:
         - BearerAuth: []
       responses:
@@ -575,6 +582,8 @@ components:
           type: string
         kind:
           type: string
+        identifier:
+          type: string
       required:
         - flag
         - value
@@ -588,6 +597,14 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+  parameters:
+    clusterQueryParam:
+      name: clusterIdentifier
+      in: query
+      required: false
+      description: Unique identifier for the cluster for the account
+      schema:
+        type: string
   responses:
     Unauthenticated:
       description: Unauthenticated
@@ -613,3 +630,4 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+

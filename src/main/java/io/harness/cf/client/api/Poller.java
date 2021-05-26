@@ -17,6 +17,7 @@ public class Poller extends AbstractScheduledService {
   private final Cache<String, FeatureConfig> featureCache;
   private final Cache<String, Segment> segmentCache;
   private String environmentID;
+  private String clusterIdentifier;
   private int pollIntervalInSec;
   private boolean streamEnabled;
   private CfClient cfClient;
@@ -26,6 +27,7 @@ public class Poller extends AbstractScheduledService {
       Cache<String, FeatureConfig> featureCache,
       Cache<String, Segment> segmentCache,
       String environmentID,
+      String clusterIdentifier,
       int pollIntervalInSec,
       boolean streamEnabled,
       CfClient cfClient) {
@@ -33,6 +35,7 @@ public class Poller extends AbstractScheduledService {
     this.featureCache = featureCache;
     this.segmentCache = segmentCache;
     this.environmentID = environmentID;
+    this.clusterIdentifier = clusterIdentifier;
     this.pollIntervalInSec = pollIntervalInSec;
     this.streamEnabled = streamEnabled;
     this.cfClient = cfClient;
@@ -42,14 +45,15 @@ public class Poller extends AbstractScheduledService {
   protected void runOneIteration() throws Exception {
     try {
       log.debug("Getting the latest features and segments..");
-      List<FeatureConfig> featureConfigs = defaultApi.getFeatureConfig(environmentID);
+      List<FeatureConfig> featureConfigs =
+          defaultApi.getFeatureConfig(environmentID, clusterIdentifier);
       if (featureConfigs != null) {
         featureCache.putAll(
             featureConfigs.stream()
                 .collect(Collectors.toMap(FeatureConfig::getFeature, config -> config)));
       }
 
-      List<Segment> segments = defaultApi.getAllSegments(environmentID);
+      List<Segment> segments = defaultApi.getAllSegments(environmentID, clusterIdentifier);
       if (segments != null) {
         segmentCache.putAll(
             segments.stream()
