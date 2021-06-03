@@ -31,6 +31,7 @@ public class Poller extends AbstractScheduledService {
       int pollIntervalInSec,
       boolean streamEnabled,
       CfClient cfClient) {
+
     this.defaultApi = defaultApi;
     this.featureCache = featureCache;
     this.segmentCache = segmentCache;
@@ -42,11 +43,13 @@ public class Poller extends AbstractScheduledService {
   }
 
   @Override
-  protected void runOneIteration() throws Exception {
+  protected void runOneIteration() {
     try {
+
       log.debug("Getting the latest features and segments..");
       List<FeatureConfig> featureConfigs =
           defaultApi.getFeatureConfig(environmentID, clusterIdentifier);
+
       if (featureConfigs != null) {
         featureCache.putAll(
             featureConfigs.stream()
@@ -65,12 +68,14 @@ public class Poller extends AbstractScheduledService {
         cfClient.startSSE();
       }
     } catch (Exception e) {
+
       log.error("Failed to get FeatureConfig or Segments: {}", e.getMessage());
     }
   }
 
   @Override
   protected Scheduler scheduler() {
+
     return Scheduler.newFixedDelaySchedule(0L, pollIntervalInSec, TimeUnit.SECONDS);
   }
 }

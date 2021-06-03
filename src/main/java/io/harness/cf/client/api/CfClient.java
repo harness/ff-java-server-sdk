@@ -16,6 +16,7 @@ import com.here.oksse.ServerSentEvent;
 import io.harness.cf.ApiException;
 import io.harness.cf.api.DefaultApi;
 import io.harness.cf.client.api.analytics.AnalyticsManager;
+import io.harness.cf.client.common.Destroyable;
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Prerequisite;
@@ -25,7 +26,6 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Header;
 import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.Jwts;
-import java.io.Closeable;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.Getter;
@@ -36,7 +36,7 @@ import okhttp3.Request;
 import org.apache.commons.collections4.CollectionUtils;
 
 @Slf4j
-public class CfClient implements Closeable {
+public class CfClient implements Destroyable {
 
   private final String apiKey;
   private final Config config;
@@ -45,10 +45,10 @@ public class CfClient implements Closeable {
   private String environmentID;
   private String clusterIdentifier;
 
-  private Cache<String, FeatureConfig> featureCache;
-  private Cache<String, Segment> segmentCache;
+  private final Cache<String, FeatureConfig> featureCache;
+  private final Cache<String, Segment> segmentCache;
   private Evaluator evaluator;
-  private DefaultApi defaultApi;
+  private final DefaultApi defaultApi;
   private Poller poller;
   private Request sseRequest;
   private SSEListener listener;
@@ -152,6 +152,7 @@ public class CfClient implements Closeable {
   }
 
   void startSSE() {
+
     OkSse okSse = new OkSse();
     sse = okSse.newServerSentEvent(sseRequest, listener);
   }
@@ -358,7 +359,9 @@ public class CfClient implements Closeable {
   }
 
   void stopPoller() {
+
     if (poller != null && poller.isRunning()) {
+
       log.info("Stopping poller.");
       poller.stopAsync();
     }
@@ -366,10 +369,18 @@ public class CfClient implements Closeable {
 
   @SneakyThrows
   @Override
-  public void close() {
+  public void destroy() {
+
+    if (analyticsManager != null) {
+
+      analyticsManager.destroy();
+    }
+
     stopPoller();
     if (sse != null) {
+
       sse.close();
     }
+    featureCache.cleanUp();
   }
 }

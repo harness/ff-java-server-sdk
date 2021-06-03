@@ -19,13 +19,14 @@ import okhttp3.Response;
 
 @Slf4j
 public class SSEListener implements ServerSentEvent.Listener {
+
   private final Gson gson = new Gson();
   private final DefaultApi defaultApi;
   private final Cache<String, FeatureConfig> featureCache;
   private final Cache<String, Segment> segmentCache;
   private final String environmentID;
   private final String clusterIdentifier;
-  private CfClient cfClient;
+  private final CfClient cfClient;
 
   SSEListener(
       DefaultApi defaultApi,
@@ -34,6 +35,7 @@ public class SSEListener implements ServerSentEvent.Listener {
       String environmentID,
       String clusterIdentifier,
       CfClient cfClient) {
+
     this.defaultApi = defaultApi;
     this.featureCache = featureCache;
     this.segmentCache = segmentCache;
@@ -44,12 +46,14 @@ public class SSEListener implements ServerSentEvent.Listener {
 
   @Override
   public void onOpen(ServerSentEvent serverSentEvent, Response response) {
+
     log.info("SSE connection opened. ");
     cfClient.stopPoller();
   }
 
   @Override
   public void onMessage(ServerSentEvent serverSentEvent, String s, String s1, String s2) {
+
     JsonObject jsonObject;
     try {
       jsonObject = gson.fromJson(s1, JsonObject.class);
@@ -66,12 +70,14 @@ public class SSEListener implements ServerSentEvent.Listener {
   }
 
   private void processFeature(JsonObject jsonObject) {
+
     log.info("Syncing the latest features..");
     String identifier = jsonObject.get("identifier").getAsString();
     Long version = jsonObject.get("version").getAsLong();
 
     for (int i = 0; i < 3; i++) {
       try {
+
         FeatureConfig featureConfig =
             defaultApi.getFeatureConfigByIdentifier(identifier, environmentID, clusterIdentifier);
         if (version.equals(featureConfig.getVersion())) {
@@ -79,16 +85,19 @@ public class SSEListener implements ServerSentEvent.Listener {
           break;
         }
       } catch (ApiException e) {
+
         log.error(format("Failed to sync the feature %s due to %s", identifier, e.getMessage()));
       }
     }
   }
 
   private void processSegment(JsonObject jsonObject) {
+
     log.info("Syncing the latest segments..");
     String identifier = jsonObject.get("identifier").getAsString();
     // Long version = jsonObject.get("version").getAsLong();
     try {
+
       List<Segment> segments = defaultApi.getAllSegments(environmentID, clusterIdentifier);
       if (segments != null) {
         segmentCache.putAll(
@@ -96,34 +105,40 @@ public class SSEListener implements ServerSentEvent.Listener {
                 .collect(Collectors.toMap(Segment::getIdentifier, segment -> segment)));
       }
     } catch (ApiException e) {
+
       log.error(format("Failed to sync the segment %s due to %s", identifier, e.getMessage()));
     }
   }
 
   @Override
   public void onComment(ServerSentEvent serverSentEvent, String s) {
+
     log.info("On comment");
   }
 
   @Override
   public boolean onRetryTime(ServerSentEvent serverSentEvent, long l) {
+
     return false;
   }
 
   @Override
   public boolean onRetryError(
       ServerSentEvent serverSentEvent, Throwable throwable, Response response) {
+
     return false;
   }
 
   @Override
   public void onClosed(ServerSentEvent serverSentEvent) {
+
     log.info("SSE connection closed. Switching to polling mode.");
     cfClient.startPollingMode();
   }
 
   @Override
   public Request onPreRetry(ServerSentEvent serverSentEvent, Request request) {
+
     return null;
   }
 }
