@@ -1,4 +1,4 @@
-package io.harness.cf.client.example;
+package io.harness.cf.client;
 
 import com.google.common.collect.ImmutableMap;
 import io.harness.cf.client.api.CfClient;
@@ -6,7 +6,7 @@ import io.harness.cf.client.dto.Target;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class Example {
+class Example {
 
   public static final String FEATURE_FLAG_KEY = "toggle";
   public static final String API_KEY = "8b3bf1d0-6c88-4cdb-99a1-36aff131911a";
