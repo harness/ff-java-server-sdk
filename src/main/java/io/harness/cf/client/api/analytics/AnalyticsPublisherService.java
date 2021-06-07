@@ -1,5 +1,6 @@
 package io.harness.cf.client.api.analytics;
 
+import com.google.common.base.Strings;
 import io.harness.cf.client.api.CfClientException;
 import io.harness.cf.client.api.Config;
 import io.harness.cf.client.dto.Analytics;
@@ -122,8 +123,15 @@ public class AnalyticsPublisherService {
               }
               targetData.addAttributesItem(keyValue);
             });
+
         targetData.setIdentifier(target.getIdentifier());
-        targetData.setName(target.getName());
+        if (Strings.isNullOrEmpty(target.getName())) {
+
+          targetData.setName(target.getIdentifier());
+        } else {
+
+          targetData.setName(target.getName());
+        }
         metrics.addTargetDataItem(targetData);
       }
 
