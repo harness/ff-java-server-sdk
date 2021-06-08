@@ -128,6 +128,8 @@ public class CfClient implements Destroyable {
   }
 
   void startPollingMode() {
+
+    stopPoller();
     poller =
         new Poller(
             defaultApi,
@@ -142,7 +144,8 @@ public class CfClient implements Destroyable {
   }
 
   private void initStreamingMode() {
-    String sseUrl = String.join("", config.getConfigUrl(), "/stream?cluster=" + cluster);
+
+    final String sseUrl = String.join("", config.getConfigUrl(), "/stream?cluster=" + cluster);
 
     sseRequest =
         new Request.Builder()
