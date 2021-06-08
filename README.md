@@ -23,7 +23,7 @@ Add the following snippet to your project's `pom.xml` file:
 
 After dependency has been added, the SDK elements, primarily `CfClient` should be accessible in the main application.
 
-## **_Initialization_**
+## Initialization
 
 `CfClient` is a base class that provides all features of SDK.
 
@@ -50,11 +50,9 @@ Target target = Target.builder()
 
 `"YOUR_API_KEY"` is an authentication key, needed for access to Harness services.
 
-**Your Harness SDK is now initialized. Congratulations!!!**
+**Your Harness SDK is now initialized. Congratulations!**
 
-<br><br>
-
-### **_Public API Methods_** ###
+### Public API Methods ###
 
 The Public API exposes a few methods that you can utilize:
 
@@ -68,8 +66,6 @@ The Public API exposes a few methods that you can utilize:
 
 * `public void destroy()`
 
-  <br><br>
-
 ## Fetch evaluation's value
 
 It is possible to fetch a value for a given evaluation. Evaluation is performed based on a different type. In case there
@@ -77,13 +73,13 @@ is no evaluation with provided id, the default value is returned.
 
 Use the appropriate method to fetch the desired Evaluation of a certain type.
 
-### Bool variation</u>
+### Bool variation
 
 ```
 boolean result = cfClient.boolVariation("sample_boolean_flag", target, false);  
 ```
 
-### Number variation</u>
+### Number variation
 
 ```
 boolean result = cfClient.numberVariation("sample_number_flag", target, 0);  
@@ -95,7 +91,7 @@ boolean result = cfClient.numberVariation("sample_number_flag", target, 0);
 boolean result = cfClient.stringVariation("sample_string_flag", target, "");  
 ```
 
-## _Using feature flags metrics_
+## Using feature flags metrics
 
 Metrics API endpoint can be changed like this:
 
@@ -107,7 +103,7 @@ Config.builder()
 
 Otherwise, the default metrics endpoint URL will be used.
 
-## _Shutting down the SDK_
+## Shutting down the SDK
 
 To avoid potential memory leak, when SDK is no longer needed
 (when the app is closed, for example), a caller should call this method:
