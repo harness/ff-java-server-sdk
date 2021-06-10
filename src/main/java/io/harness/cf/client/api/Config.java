@@ -14,11 +14,9 @@ import lombok.Getter;
 public class Config {
   public static final int MIN_FREQUENCY = 60;
 
-  @Builder.Default
-  private String configUrl = "https://config.feature-flags.uat.harness.io/api/1.0"; // UAT
+  @Builder.Default private String configUrl = "https://config.ff.harness.io/api/1.0"; // UAT
 
-  @Builder.Default
-  private String eventUrl = "https://event.feature-flags.uat.harness.io/api/1.0"; // UAT
+  @Builder.Default private String eventUrl = "https://events.ff.harness.io/api/1.0"; // UAT
 
   @Builder.Default private boolean streamEnabled = true;
   @Builder.Default private int pollIntervalInSeconds = 60;
