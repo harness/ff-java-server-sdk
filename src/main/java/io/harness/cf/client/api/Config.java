@@ -12,11 +12,12 @@ import lombok.Getter;
 @Builder
 @AllArgsConstructor
 public class Config {
+
   public static final int MIN_FREQUENCY = 60;
 
-  @Builder.Default private String configUrl = "https://config.ff.harness.io/api/1.0"; // UAT
+  @Builder.Default private String configUrl = "https://config.ff.harness.io/api/1.0"; // Prod.
 
-  @Builder.Default private String eventUrl = "https://events.ff.harness.io/api/1.0"; // UAT
+  @Builder.Default private String eventUrl = "https://events.ff.harness.io/api/1.0"; // Prod.
 
   @Builder.Default private boolean streamEnabled = true;
   @Builder.Default private int pollIntervalInSeconds = 60;
