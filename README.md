@@ -17,7 +17,7 @@ Add the following snippet to your project's `pom.xml` file:
 <dependency>
     <groupId>io.harness</groupId>
     <artifactId>ff-java-server-sdk</artifactId>
-    <version>0.0.9</version>
+    <version>1.0.0-SNAPSHOT</version>
 </dependency>
 ```
 
