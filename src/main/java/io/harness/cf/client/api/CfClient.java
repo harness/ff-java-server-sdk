@@ -100,7 +100,10 @@ public class CfClient implements Destroyable {
     }
 
     analyticsManager =
-        config.isAnalyticsEnabled() ? new AnalyticsManager(environmentID, apiKey, config) : null;
+        config.isAnalyticsEnabled()
+            ? new AnalyticsManager(environmentID, clusterIdentifier, apiKey, config)
+            : null;
+
     isInitialized = true;
   }
 

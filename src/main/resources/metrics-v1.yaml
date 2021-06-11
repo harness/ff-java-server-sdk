@@ -19,6 +19,7 @@ paths:
       operationId: postMetrics
       parameters:
         - $ref: '#/components/parameters/environmentPathParam'
+        - $ref: '#/components/parameters/clusterQueryParam'
       requestBody:
         content:
           application/json:
@@ -118,6 +119,13 @@ components:
       in: path
       required: true
       description: environment parameter in query.
+      schema:
+        type: string
+    clusterQueryParam:
+      name: clusterIdentifier
+      in: query
+      required: false
+      description: Unique identifier for the cluster for the account
       schema:
         type: string
   responses:
