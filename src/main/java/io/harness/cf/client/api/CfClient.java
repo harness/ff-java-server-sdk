@@ -387,4 +387,9 @@ public class CfClient implements Destroyable {
     }
     featureCache.cleanUp();
   }
+
+  public boolean isInitialized() {
+
+    return isInitialized;
+  }
 }
