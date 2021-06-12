@@ -122,7 +122,7 @@ components:
       schema:
         type: string
     clusterQueryParam:
-      name: clusterIdentifier
+      name: cluster
       in: query
       required: false
       description: Unique identifier for the cluster for the account

@@ -43,7 +43,7 @@ public class CfClient implements Destroyable {
   private final boolean isAnalyticsEnabled;
   @Setter private String jwtToken;
   private String environmentID;
-  private String clusterIdentifier;
+  private String cluster;
 
   private final Cache<String, FeatureConfig> featureCache;
   private final Cache<String, Segment> segmentCache;
@@ -85,7 +85,7 @@ public class CfClient implements Destroyable {
   void init() throws ApiException, CfClientException {
     addAuthHeader(defaultApi, jwtToken);
     environmentID = getEnvironmentID(jwtToken);
-    clusterIdentifier = getClusterIdentifier(jwtToken);
+    cluster = getCluster(jwtToken);
 
     evaluator = new Evaluator(segmentCache);
 
@@ -101,7 +101,7 @@ public class CfClient implements Destroyable {
 
     analyticsManager =
         config.isAnalyticsEnabled()
-            ? new AnalyticsManager(environmentID, clusterIdentifier, apiKey, config)
+            ? new AnalyticsManager(environmentID, cluster, apiKey, config)
             : null;
 
     isInitialized = true;
@@ -109,8 +109,7 @@ public class CfClient implements Destroyable {
 
   private void initCache(String environmentID) throws io.harness.cf.ApiException {
     if (!Strings.isNullOrEmpty(environmentID)) {
-      List<FeatureConfig> featureConfigs =
-          defaultApi.getFeatureConfig(environmentID, clusterIdentifier);
+      List<FeatureConfig> featureConfigs = defaultApi.getFeatureConfig(environmentID, cluster);
       if (featureConfigs != null) {
         featureCache.putAll(
             featureConfigs.stream()
@@ -118,7 +117,7 @@ public class CfClient implements Destroyable {
                     Collectors.toMap(FeatureConfig::getFeature, featureConfig -> featureConfig)));
       }
 
-      List<Segment> segments = defaultApi.getAllSegments(environmentID, clusterIdentifier);
+      List<Segment> segments = defaultApi.getAllSegments(environmentID, cluster);
       if (segments != null) {
         segmentCache.putAll(
             segments.stream()
@@ -134,7 +133,7 @@ public class CfClient implements Destroyable {
             featureCache,
             segmentCache,
             environmentID,
-            clusterIdentifier,
+            cluster,
             config.getPollIntervalInSeconds(),
             config.isStreamEnabled(),
             this);
@@ -142,16 +141,18 @@ public class CfClient implements Destroyable {
   }
 
   private void initStreamingMode() {
-    String sseUrl = String.join("", config.getConfigUrl(), "/stream");
+
+    String sseUrl = String.join("", config.getConfigUrl(), "/stream?cluster=" + cluster);
+
     sseRequest =
         new Request.Builder()
             .url(String.format(sseUrl, environmentID))
             .header("Authorization", "Bearer " + jwtToken)
             .header("API-Key", apiKey)
             .build();
+
     listener =
-        new SSEListener(
-            defaultApi, featureCache, segmentCache, environmentID, clusterIdentifier, this);
+        new SSEListener(defaultApi, featureCache, segmentCache, environmentID, cluster, this);
   }
 
   void startSSE() {
@@ -353,7 +354,7 @@ public class CfClient implements Destroyable {
     return jwtToken;
   }
 
-  public static String getClusterIdentifier(String jwtToken) {
+  public static String getCluster(String jwtToken) {
     int i = jwtToken.lastIndexOf('.');
     String unsignedJwt = jwtToken.substring(0, i + 1);
     Jwt<Header, Claims> untrusted = Jwts.parser().parseClaimsJwt(unsignedJwt);

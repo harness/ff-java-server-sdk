@@ -36,12 +36,12 @@ public class AnalyticsManager implements Destroyable {
     timerExecutorService = Executors.newSingleThreadScheduledExecutor();
   }
 
-  public AnalyticsManager(String environmentID, String clusterID, String apiKey, Config config)
+  public AnalyticsManager(String environmentID, String cluster, String apiKey, Config config)
       throws CfClientException {
 
     this.analyticsCache = AnalyticsCacheFactory.create(config.getAnalyticsCacheType());
     AnalyticsPublisherService analyticsPublisherService =
-        new AnalyticsPublisherService(apiKey, config, environmentID, clusterID, analyticsCache);
+        new AnalyticsPublisherService(apiKey, config, environmentID, cluster, analyticsCache);
     ringBuffer = createRingBuffer(config.getBufferSize(), analyticsPublisherService);
 
     TimerTask timerTask = new TimerTask(ringBuffer);
