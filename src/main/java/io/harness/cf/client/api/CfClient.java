@@ -83,6 +83,7 @@ public class CfClient implements Destroyable {
   }
 
   void init() throws ApiException, CfClientException {
+    log.info("Initializing CF client..");
     addAuthHeader(defaultApi, jwtToken);
     environmentID = getEnvironmentID(jwtToken);
     cluster = getCluster(jwtToken);
@@ -141,7 +142,6 @@ public class CfClient implements Destroyable {
   }
 
   private void initStreamingMode() {
-
     String sseUrl = String.join("", config.getConfigUrl(), "/stream?cluster=" + cluster);
 
     sseRequest =
@@ -156,7 +156,6 @@ public class CfClient implements Destroyable {
   }
 
   void startSSE() {
-
     OkSse okSse = new OkSse();
     sse = okSse.newServerSentEvent(sseRequest, listener);
   }
@@ -179,7 +178,7 @@ public class CfClient implements Destroyable {
         }
       }
       variation = evaluator.evaluate(featureConfig, target);
-      servedVariation = Boolean.parseBoolean((String) variation.getValue());
+      servedVariation = Boolean.parseBoolean(variation.getValue());
       return servedVariation;
     } catch (Exception e) {
       log.error("err", e);

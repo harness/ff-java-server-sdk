@@ -45,7 +45,6 @@ public class Poller extends AbstractScheduledService {
   @Override
   protected void runOneIteration() {
     try {
-
       log.debug("Getting the latest features and segments..");
       List<FeatureConfig> featureConfigs = defaultApi.getFeatureConfig(environmentID, cluster);
 
@@ -61,20 +60,18 @@ public class Poller extends AbstractScheduledService {
             segments.stream()
                 .collect(Collectors.toMap(Segment::getIdentifier, segment -> segment)));
       }
-
+    } catch (Exception e) {
+      log.error("Failed to get FeatureConfig or Segments: {}", e.getMessage());
+    } finally {
       if (streamEnabled) {
         log.info("Switching to streaming mode.");
         cfClient.startSSE();
       }
-    } catch (Exception e) {
-
-      log.error("Failed to get FeatureConfig or Segments: {}", e.getMessage());
     }
   }
 
   @Override
   protected Scheduler scheduler() {
-
-    return Scheduler.newFixedDelaySchedule(0L, pollIntervalInSec, TimeUnit.SECONDS);
+    return Scheduler.newFixedDelaySchedule(pollIntervalInSec, pollIntervalInSec, TimeUnit.SECONDS);
   }
 }
