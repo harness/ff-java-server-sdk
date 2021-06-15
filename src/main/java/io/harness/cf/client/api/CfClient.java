@@ -127,6 +127,8 @@ public class CfClient implements Destroyable {
   }
 
   void startPollingMode() {
+
+    stopPoller();
     poller =
         new Poller(
             defaultApi,
@@ -142,7 +144,7 @@ public class CfClient implements Destroyable {
 
   private void initStreamingMode() {
 
-    String sseUrl = String.join("", config.getConfigUrl(), "/stream?cluster=" + cluster);
+    final String sseUrl = String.join("", config.getConfigUrl(), "/stream?cluster=" + cluster);
 
     sseRequest =
         new Request.Builder()
@@ -162,6 +164,7 @@ public class CfClient implements Destroyable {
   }
 
   public boolean boolVariation(String key, Target target, boolean defaultValue) {
+
     boolean servedVariation = defaultValue;
     Variation variation = null;
     FeatureConfig featureConfig = featureCache.getIfPresent(key);
@@ -182,6 +185,7 @@ public class CfClient implements Destroyable {
       servedVariation = Boolean.parseBoolean((String) variation.getValue());
       return servedVariation;
     } catch (Exception e) {
+
       log.error("err", e);
       return defaultValue;
     } finally {
@@ -197,6 +201,7 @@ public class CfClient implements Destroyable {
   }
 
   public String stringVariation(String key, Target target, String defaultValue) {
+
     String stringVariation = defaultValue;
     Variation variation = null;
     FeatureConfig featureConfig = featureCache.getIfPresent(key);
@@ -217,6 +222,7 @@ public class CfClient implements Destroyable {
       stringVariation = (String) variation.getValue();
       return stringVariation;
     } catch (Exception e) {
+
       log.error("err", e);
       return defaultValue;
     } finally {
@@ -232,6 +238,7 @@ public class CfClient implements Destroyable {
   }
 
   public double numberVariation(String key, Target target, int defaultValue) {
+
     double numberVariation = defaultValue;
     Variation variation = null;
     FeatureConfig featureConfig = featureCache.getIfPresent(key);
@@ -252,6 +259,7 @@ public class CfClient implements Destroyable {
       numberVariation = Integer.parseInt((String) variation.getValue());
       return numberVariation;
     } catch (Exception e) {
+
       log.error("err", e);
       return defaultValue;
     } finally {
@@ -267,6 +275,7 @@ public class CfClient implements Destroyable {
   }
 
   public JsonObject jsonVariation(String key, Target target, JsonObject defaultValue) {
+
     JsonObject jsonObject = defaultValue;
     Variation variation = null;
     FeatureConfig featureConfig = featureCache.getIfPresent(key);
@@ -288,6 +297,7 @@ public class CfClient implements Destroyable {
       jsonObject = new Gson().fromJson((String) variation.getValue(), JsonObject.class);
       return jsonObject;
     } catch (Exception e) {
+
       log.error("err", e);
       return defaultValue;
     } finally {
