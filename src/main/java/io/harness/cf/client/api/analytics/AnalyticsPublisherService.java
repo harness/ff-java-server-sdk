@@ -28,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class AnalyticsPublisherService {
+
   private static final String FEATURE_NAME_ATTRIBUTE = "featureName";
   private static final String VARIATION_VALUE_ATTRIBUTE = "featureValue";
   private static final String VARIATION_IDENTIFIER_ATTRIBUTE = "variationIdentifier";
@@ -49,14 +50,16 @@ public class AnalyticsPublisherService {
   private final DefaultApi metricsAPI;
   private final Cache analyticsCache;
   private final String environmentID;
+  private final String cluster;
   private final Config config;
 
   public AnalyticsPublisherService(
-      String apiKey, Config config, String environmentID, Cache analyticsCache) {
+      String apiKey, Config config, String environmentID, String cluster, Cache analyticsCache) {
 
     metricsAPI = MetricsApiFactory.create(apiKey, config);
     this.analyticsCache = analyticsCache;
     this.environmentID = environmentID;
+    this.cluster = cluster;
     this.config = config;
   }
 
@@ -77,7 +80,7 @@ public class AnalyticsPublisherService {
         if (!Collections.isEmpty(metrics.getMetricsData())
             || !Collections.isEmpty(metrics.getTargetData())) {
           long startTime = System.currentTimeMillis();
-          metricsAPI.postMetrics(environmentID, metrics);
+          metricsAPI.postMetrics(environmentID, cluster, metrics);
           long endTime = System.currentTimeMillis();
           if ((endTime - startTime) > config.getMetricsServiceAcceptableDuration()) {
             log.warn("Metrics service API duration=[{}]", (endTime - startTime));
