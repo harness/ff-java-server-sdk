@@ -13,14 +13,14 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class Poller extends AbstractScheduledService {
 
+  private final String cluster;
+  private final CfClient cfClient;
+  private final String environmentID;
+  private final int pollIntervalInSec;
   private final DefaultApi defaultApi;
-  private final Cache<String, FeatureConfig> featureCache;
+  private final boolean streamEnabled;
   private final Cache<String, Segment> segmentCache;
-  private String environmentID;
-  private String cluster;
-  private int pollIntervalInSec;
-  private boolean streamEnabled;
-  private CfClient cfClient;
+  private final Cache<String, FeatureConfig> featureCache;
 
   public Poller(
       DefaultApi defaultApi,
@@ -32,18 +32,23 @@ public class Poller extends AbstractScheduledService {
       boolean streamEnabled,
       CfClient cfClient) {
 
+    this.cluster = cluster;
+    this.cfClient = cfClient;
     this.defaultApi = defaultApi;
     this.featureCache = featureCache;
     this.segmentCache = segmentCache;
     this.environmentID = environmentID;
-    this.cluster = cluster;
-    this.pollIntervalInSec = pollIntervalInSec;
     this.streamEnabled = streamEnabled;
-    this.cfClient = cfClient;
+    this.pollIntervalInSec = pollIntervalInSec;
   }
 
   @Override
   protected void runOneIteration() {
+
+    if (Thread.currentThread().isInterrupted()) {
+
+      return;
+    }
     try {
       log.debug("Getting the latest features and segments..");
       List<FeatureConfig> featureConfigs = defaultApi.getFeatureConfig(environmentID, cluster);
@@ -64,6 +69,7 @@ public class Poller extends AbstractScheduledService {
       log.error("Failed to get FeatureConfig or Segments: {}", e.getMessage());
     } finally {
       if (streamEnabled) {
+
         log.info("Switching to streaming mode.");
         cfClient.startSSE();
       }
