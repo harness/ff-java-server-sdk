@@ -3,6 +3,8 @@ package io.harness.cf.client.api;
 import com.google.common.base.Strings;
 import io.harness.cf.ApiClient;
 import io.harness.cf.api.DefaultApi;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +20,6 @@ public class DefaultApiFactory {
     return create(basePath, connectionTimeout, readTimeout, writeTimeout, false);
   }
 
-  @SneakyThrows
   public static DefaultApi create(
       String basePath, int connectionTimeout, int readTimeout, int writeTimeout, boolean debug) {
     DefaultApi defaultApi = new DefaultApi();
@@ -29,6 +30,14 @@ public class DefaultApiFactory {
       apiClient.setWriteTimeout(writeTimeout);
       apiClient.setBasePath(basePath);
       apiClient.setDebugging(debug);
+      apiClient.setUserAgent("java " + io.harness.cf.Version.VERSION);
+      String hostname = "UnknownHost";
+      try {
+        hostname = InetAddress.getLocalHost().getHostName();
+      } catch (UnknownHostException e) {
+        log.warn("Unable to get hostname");
+      }
+      apiClient.addDefaultHeader("Hostname", hostname);
       defaultApi.setApiClient(apiClient);
     }
 
