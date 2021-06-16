@@ -40,7 +40,7 @@ public class AuthService extends AbstractScheduledService {
       cfClient.init();
       this.stopAsync();
     } catch (ApiException apiException) {
-      if (apiException.getCode() == 401) {
+      if (apiException.getCode() == 401 || apiException.getCode() == 403) {
         String errorMsg = String.format("Invalid apiKey %s. Serving default value. ", apiKey);
         log.error(errorMsg);
         throw new CfClientException(errorMsg);
