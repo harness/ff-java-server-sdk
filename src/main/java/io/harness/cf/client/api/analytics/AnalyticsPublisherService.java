@@ -30,7 +30,6 @@ import lombok.extern.slf4j.Slf4j;
 public class AnalyticsPublisherService {
 
   private static final String FEATURE_NAME_ATTRIBUTE = "featureName";
-  private static final String VARIATION_VALUE_ATTRIBUTE = "featureValue";
   private static final String VARIATION_IDENTIFIER_ATTRIBUTE = "variationIdentifier";
   private static final String TARGET_ATTRIBUTE = "target";
   private static final Set<Target> globalTargetSet = new HashSet<>();
@@ -121,8 +120,6 @@ public class AnalyticsPublisherService {
       setMetricsAttriutes(metricsData, FEATURE_NAME_ATTRIBUTE, entry.getKey().getFeatureName());
       setMetricsAttriutes(
           metricsData, VARIATION_IDENTIFIER_ATTRIBUTE, entry.getKey().getVariationIdentifier());
-      setMetricsAttriutes(
-          metricsData, VARIATION_VALUE_ATTRIBUTE, entry.getKey().getVariationValue());
       setMetricsAttriutes(metricsData, TARGET_ATTRIBUTE, GLOBAL_TARGET);
       setMetricsAttriutes(metricsData, JAR_VERSION, jarVerion);
       setMetricsAttriutes(metricsData, SDK_TYPE, SERVER);
@@ -161,7 +158,6 @@ public class AnalyticsPublisherService {
       metricsData.setMetricsType(MetricsData.MetricsTypeEnum.FFMETRICS);
       setMetricsAttriutes(metricsData, FEATURE_NAME_ATTRIBUTE, featureConfig.getFeature());
       setMetricsAttriutes(metricsData, VARIATION_IDENTIFIER_ATTRIBUTE, variation.getIdentifier());
-      setMetricsAttriutes(metricsData, VARIATION_VALUE_ATTRIBUTE, variation.getValue());
       if (target.isPrivate()) {
         setMetricsAttriutes(metricsData, TARGET_ATTRIBUTE, ANONYMOUS_TARGET);
       } else {

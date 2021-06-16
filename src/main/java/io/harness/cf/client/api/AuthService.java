@@ -42,7 +42,7 @@ public class AuthService extends AbstractScheduledService {
       this.stopAsync();
     } catch (ApiException apiException) {
       log.error("Failed to get auth token {}", apiException.getMessage());
-      if (apiException.getCode() == 401) {
+      if (apiException.getCode() == 401 || apiException.getCode() == 403) {
         String errorMsg = String.format("Invalid apiKey %s. Serving default value. ", apiKey);
         log.error(errorMsg);
         throw new CfClientException(errorMsg);
