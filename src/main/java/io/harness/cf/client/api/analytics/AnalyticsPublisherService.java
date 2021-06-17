@@ -38,7 +38,9 @@ public class AnalyticsPublisherService {
   private static final String SDK_TYPE = "SDK_TYPE";
   private static final String ANONYMOUS_TARGET = "anonymous";
   /** This target identifier is used to aggregate and send data for all targets as a summary */
-  private static final String GLOBAL_TARGET = "global";
+  private static final String GLOBAL_TARGET = "__global__cf_target";
+
+  private static final String GLOBAL_TARGET_NAME = "Global Target";
 
   private static final String SERVER = "server";
   private static final String SDK_LANGUAGE = "SDK_LANGUAGE";
@@ -103,6 +105,8 @@ public class AnalyticsPublisherService {
     for (Map.Entry<Analytics, Integer> entry : data.entrySet()) {
       Target target = entry.getKey().getTarget();
       addTargetData(metrics, target);
+      addTargetData(
+          metrics, Target.builder().name(GLOBAL_TARGET_NAME).identifier(GLOBAL_TARGET).build());
       SummaryMetrics summaryMetrics = prepareSummaryMetricsKey(entry.getKey());
       final Integer summaryCount = summaryMetricsData.get(summaryMetrics);
       if (summaryCount == null) {
@@ -121,7 +125,6 @@ public class AnalyticsPublisherService {
       setMetricsAttriutes(
           metricsData, VARIATION_IDENTIFIER_ATTRIBUTE, entry.getKey().getVariationIdentifier());
       setMetricsAttriutes(metricsData, TARGET_ATTRIBUTE, GLOBAL_TARGET);
-      setMetricsAttriutes(metricsData, JAR_VERSION, jarVerion);
       setMetricsAttriutes(metricsData, SDK_TYPE, SERVER);
 
       setMetricsAttriutes(metricsData, SDK_LANGUAGE, "java");
