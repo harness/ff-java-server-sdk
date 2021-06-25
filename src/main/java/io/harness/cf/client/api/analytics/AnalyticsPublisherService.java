@@ -99,14 +99,14 @@ public class AnalyticsPublisherService {
     }
   }
 
-  private Metrics prepareSummaryMetricsBody(Map<Analytics, Integer> data) {
+  protected Metrics prepareSummaryMetricsBody(Map<Analytics, Integer> data) {
     Metrics metrics = new Metrics();
     Map<SummaryMetrics, Integer> summaryMetricsData = new HashMap<>();
+    addTargetData(
+        metrics, Target.builder().name(GLOBAL_TARGET_NAME).identifier(GLOBAL_TARGET).build());
     for (Map.Entry<Analytics, Integer> entry : data.entrySet()) {
       Target target = entry.getKey().getTarget();
       addTargetData(metrics, target);
-      addTargetData(
-          metrics, Target.builder().name(GLOBAL_TARGET_NAME).identifier(GLOBAL_TARGET).build());
       SummaryMetrics summaryMetrics = prepareSummaryMetricsKey(entry.getKey());
       final Integer summaryCount = summaryMetricsData.get(summaryMetrics);
       if (summaryCount == null) {
@@ -180,7 +180,9 @@ public class AnalyticsPublisherService {
   private void addTargetData(Metrics metrics, Target target) {
     Set<String> privateAttributes = target.getPrivateAttributes();
     TargetData targetData = new TargetData();
-    if (!globalTargetSet.contains(target) && !target.isPrivate()) {
+    if (!stagingTargetSet.contains(target)
+        && !globalTargetSet.contains(target)
+        && !target.isPrivate()) {
       stagingTargetSet.add(target);
       final Map<String, Object> attributes = target.getAttributes();
       attributes.forEach(
