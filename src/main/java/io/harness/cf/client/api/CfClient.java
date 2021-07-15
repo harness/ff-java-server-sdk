@@ -34,33 +34,38 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Request;
 import org.apache.commons.collections4.CollectionUtils;
+import org.jetbrains.annotations.Nullable;
 
 @Slf4j
 public class CfClient implements Destroyable {
 
-  private final String apiKey;
-  private final Config config;
-  private final boolean isAnalyticsEnabled;
-  @Setter private String jwtToken;
-  private String environmentID;
-  private String cluster;
+  protected String cluster;
+  protected final Config config;
+  protected String environmentID;
+  protected final boolean isAnalyticsEnabled;
 
-  private final Cache<String, FeatureConfig> featureCache;
-  private final Cache<String, Segment> segmentCache;
-  private Evaluator evaluator;
-  private final DefaultApi defaultApi;
   private Poller poller;
   private Request sseRequest;
-  private SSEListener listener;
   private ServerSentEvent sse;
-  private AnalyticsManager analyticsManager;
+  private Evaluator evaluator;
+  private final String apiKey;
+  private SSEListener listener;
+  private final DefaultApi defaultApi;
+  protected AnalyticsManager analyticsManager;
+  private final Cache<String, Segment> segmentCache;
+  private final Cache<String, FeatureConfig> featureCache;
+
+  @Setter private String jwtToken;
+
   @Getter private boolean isInitialized;
 
   public CfClient(String apiKey) {
+
     this(apiKey, Config.builder().build());
   }
 
   public CfClient(String apiKey, Config config) {
+
     this.apiKey = apiKey;
     this.config = config;
 
@@ -100,12 +105,17 @@ public class CfClient implements Destroyable {
       log.info("Running in streaming mode.");
     }
 
-    analyticsManager =
-        config.isAnalyticsEnabled()
-            ? new AnalyticsManager(environmentID, cluster, apiKey, config)
-            : null;
+    analyticsManager = getAnalyticsManager();
 
     isInitialized = true;
+  }
+
+  @Nullable
+  protected AnalyticsManager getAnalyticsManager() throws CfClientException {
+
+    return config.isAnalyticsEnabled()
+        ? new AnalyticsManager(environmentID, cluster, apiKey, config)
+        : null;
   }
 
   private void initCache(String environmentID) throws io.harness.cf.ApiException {
@@ -189,12 +199,7 @@ public class CfClient implements Destroyable {
       log.error("err", e);
       return defaultValue;
     } finally {
-      if (!target.isPrivate()
-          && target.isValid()
-          && isAnalyticsEnabled
-          && analyticsManager != null
-          && featureConfig != null
-          && variation != null) {
+      if (canPushToMetrics(target, variation, featureConfig)) {
         analyticsManager.pushToQueue(target, featureConfig, variation);
       }
     }
@@ -226,12 +231,7 @@ public class CfClient implements Destroyable {
       log.error("err", e);
       return defaultValue;
     } finally {
-      if (!target.isPrivate()
-          && target.isValid()
-          && isAnalyticsEnabled
-          && analyticsManager != null
-          && featureConfig != null
-          && variation != null) {
+      if (canPushToMetrics(target, variation, featureConfig)) {
         analyticsManager.pushToQueue(target, featureConfig, variation);
       }
     }
@@ -263,12 +263,9 @@ public class CfClient implements Destroyable {
       log.error("err", e);
       return defaultValue;
     } finally {
-      if (!target.isPrivate()
-          && target.isValid()
-          && isAnalyticsEnabled
-          && analyticsManager != null
-          && featureConfig != null
-          && variation != null) {
+
+      if (canPushToMetrics(target, variation, featureConfig)) {
+
         analyticsManager.pushToQueue(target, featureConfig, variation);
       }
     }
@@ -301,15 +298,22 @@ public class CfClient implements Destroyable {
       log.error("err", e);
       return defaultValue;
     } finally {
-      if (!target.isPrivate()
-          && target.isValid()
-          && isAnalyticsEnabled
-          && analyticsManager != null
-          && featureConfig != null
-          && variation != null) {
+
+      if (canPushToMetrics(target, variation, featureConfig)) {
         analyticsManager.pushToQueue(target, featureConfig, variation);
       }
     }
+  }
+
+  protected boolean canPushToMetrics(
+      Target target, Variation variation, FeatureConfig featureConfig) {
+
+    return !target.isPrivate()
+        && target.isValid()
+        && isAnalyticsEnabled
+        && analyticsManager != null
+        && featureConfig != null
+        && variation != null;
   }
 
   private boolean checkPreRequisite(FeatureConfig parentFeatureConfig, Target target)

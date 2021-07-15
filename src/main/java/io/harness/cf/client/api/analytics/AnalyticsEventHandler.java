@@ -26,26 +26,43 @@ public class AnalyticsEventHandler implements EventHandler<Analytics> {
 
   @Override
   public void onEvent(Analytics analytics, long l, boolean b) {
+
     switch (analytics.getEventType()) {
       case TIMER:
-        try {
-          analyticsPublisherService.sendDataAndResetCache();
-        } catch (CfClientException e) {
-          log.warn("Failed to send analytics data to server", e);
-        }
+        onTimerEvent();
         break;
+
       case METRICS:
-        log.debug(
-            "Analytics object received in queue: Target:{},FeatureFlag:{}",
-            analytics.getTarget().getIdentifier(),
-            analytics.getFeatureConfig().getFeature());
-        Integer count = analyticsCache.get(analytics);
-        if (count == null) {
-          analyticsCache.put(analytics, 1);
-        } else {
-          analyticsCache.put(analytics, count + 1);
-        }
+        onMetricsEvent(analytics);
         break;
+    }
+  }
+
+  protected void onMetricsEvent(Analytics analytics) {
+
+    log.debug(
+        "Analytics object received in queue: Target:{},FeatureFlag:{}",
+        analytics.getTarget().getIdentifier(),
+        analytics.getFeatureConfig().getFeature());
+
+    Integer count = analyticsCache.get(analytics);
+    if (count == null) {
+
+      analyticsCache.put(analytics, 1);
+    } else {
+
+      analyticsCache.put(analytics, count + 1);
+    }
+  }
+
+  protected void onTimerEvent() {
+
+    try {
+
+      analyticsPublisherService.sendDataAndResetCache();
+    } catch (CfClientException e) {
+
+      log.warn("Failed to send analytics data to server", e);
     }
   }
 

@@ -14,15 +14,18 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class EvaluatorTest {
+
   private static Evaluator evaluator;
 
   @BeforeClass
-  public static void beforeClass() throws Exception {
+  public static void beforeClass() {
+
     evaluator = new Evaluator(Caffeine.newBuilder().maximumSize(10000).build());
   }
 
   @Test
   public void evaluate() throws CfClientException {
+
     FeatureConfig featureConfig =
         FeatureConfigBuilder.aFeatureConfig()
             .state(FeatureState.ON)

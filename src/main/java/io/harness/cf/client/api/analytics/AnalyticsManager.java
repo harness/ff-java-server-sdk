@@ -16,6 +16,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * This class handles various analytics service related components and prepares them 1) It creates
@@ -28,7 +29,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class AnalyticsManager implements Destroyable {
 
-  private final Cache analyticsCache;
+  protected final Cache analyticsCache;
+
   private final RingBuffer<Analytics> ringBuffer;
   private final ScheduledExecutorService timerExecutorService;
 
@@ -59,14 +61,20 @@ public class AnalyticsManager implements Destroyable {
         new Disruptor<>(factory, bufferSize, DaemonThreadFactory.INSTANCE);
 
     // Connect the handler
-    disruptor.handleEventsWith(
-        new AnalyticsEventHandler(analyticsCache, analyticsPublisherService));
+    disruptor.handleEventsWith(getAnalyticsEventHandler(analyticsPublisherService));
 
     // Start the Disruptor, starts all threads running
     disruptor.start();
 
     // Get the ring buffer from the Disruptor to be used for publishing.
     return disruptor.getRingBuffer();
+  }
+
+  @NotNull
+  protected AnalyticsEventHandler getAnalyticsEventHandler(
+      AnalyticsPublisherService analyticsPublisherService) {
+
+    return new AnalyticsEventHandler(analyticsCache, analyticsPublisherService);
   }
 
   // push the incoming data to the ring buffer
