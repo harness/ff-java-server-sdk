@@ -1,7 +1,8 @@
 package io.harness.cf.client.api.mock;
 
 import io.harness.cf.client.api.Config;
-import java.util.Set;
+import io.harness.cf.client.api.analytics.AnalyticsCacheFactory;
+import java.util.Collections;
 
 public class MockedCfConfiguration extends Config {
 
@@ -11,39 +12,24 @@ public class MockedCfConfiguration extends Config {
     MOCKED_MIN_FREQUENCY = 2;
   }
 
-  public MockedCfConfiguration(
-      String configUrl,
-      String eventUrl,
-      boolean streamEnabled,
-      int pollIntervalInSeconds,
-      boolean analyticsEnabled,
-      int frequency,
-      int bufferSize,
-      String analyticsCacheType,
-      boolean allAttributesPrivate,
-      Set<String> privateAttributes,
-      int connectionTimeout,
-      int readTimeout,
-      int writeTimeout,
-      boolean debug,
-      long metricsServiceAcceptableDuration) {
+  public MockedCfConfiguration() {
 
     super(
-        configUrl,
-        eventUrl,
-        streamEnabled,
-        pollIntervalInSeconds,
-        analyticsEnabled,
-        frequency,
-        bufferSize,
-        analyticsCacheType,
-        allAttributesPrivate,
-        privateAttributes,
-        connectionTimeout,
-        readTimeout,
-        writeTimeout,
-        debug,
-        metricsServiceAcceptableDuration);
+        "",
+        "",
+        true,
+        10,
+        true,
+        2,
+        1024,
+        AnalyticsCacheFactory.GUAVA_CACHE,
+        false,
+        Collections.emptySet(),
+        10000,
+        30000,
+        10000,
+        true,
+        10000);
   }
 
   @Override

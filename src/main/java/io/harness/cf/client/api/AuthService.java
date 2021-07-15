@@ -12,13 +12,15 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class AuthService extends AbstractScheduledService {
-  private DefaultApi defaultApi;
-  private String apiKey;
-  private CfClient cfClient;
-  private int pollIntervalInSec;
+
+  protected final String apiKey;
+  protected final CfClient cfClient;
+  protected final DefaultApi defaultApi;
+  protected final int pollIntervalInSec;
 
   public AuthService(
       DefaultApi defaultApi, String apiKey, CfClient cfClient, int pollIntervalInSec) {
+
     this.defaultApi = defaultApi;
     this.apiKey = apiKey;
     this.cfClient = cfClient;
@@ -27,22 +29,29 @@ public class AuthService extends AbstractScheduledService {
 
   @Override
   protected void runOneIteration() throws Exception {
+
     if (isNullOrEmpty(apiKey)) {
+
       throw new CfClientException("SDK key cannot be empty");
     }
 
     try {
+
       AuthenticationResponse authResponse =
           defaultApi.authenticate(
               AuthenticationRequestBuilder.anAuthenticationRequest().apiKey(apiKey).build());
+
       String jwtToken = authResponse.getAuthToken();
       cfClient.setJwtToken(jwtToken);
       cfClient.init();
       log.info("Stopping Auth service");
       this.stopAsync();
+
     } catch (ApiException apiException) {
+
       log.error("Failed to get auth token {}", apiException.getMessage());
       if (apiException.getCode() == 401 || apiException.getCode() == 403) {
+
         String errorMsg = String.format("Invalid apiKey %s. Serving default value. ", apiKey);
         log.error(errorMsg);
         throw new CfClientException(errorMsg);
@@ -52,6 +61,7 @@ public class AuthService extends AbstractScheduledService {
 
   @Override
   protected Scheduler scheduler() {
+
     return Scheduler.newFixedDelaySchedule(0L, pollIntervalInSec, TimeUnit.SECONDS);
   }
 }
