@@ -217,6 +217,7 @@ public class CfClient implements Destroyable {
       return defaultValue;
     } finally {
       if (canPushToMetrics(target, variation, featureConfig)) {
+
         analyticsManager.pushToQueue(target, featureConfig, variation);
       }
     }
@@ -317,6 +318,7 @@ public class CfClient implements Destroyable {
     } finally {
 
       if (canPushToMetrics(target, variation, featureConfig)) {
+
         analyticsManager.pushToQueue(target, featureConfig, variation);
       }
     }

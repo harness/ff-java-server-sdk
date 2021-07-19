@@ -4,14 +4,13 @@ import static io.harness.cf.client.api.DefaultApiFactory.addAuthHeader;
 
 import io.harness.cf.ApiException;
 import io.harness.cf.client.api.*;
+import io.harness.cf.client.api.analytics.AnalyticsManager;
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Variation;
 import org.jetbrains.annotations.NotNull;
 
 public class MockedCfClient extends CfClient {
-
-  private MockedAnalyticsManager analyticsManager;
 
   public MockedCfClient(String apiKey) {
 
@@ -25,7 +24,7 @@ public class MockedCfClient extends CfClient {
 
   @NotNull
   @Override
-  protected MockedAnalyticsManager getAnalyticsManager() throws CfClientException {
+  protected AnalyticsManager getAnalyticsManager() throws CfClientException {
 
     if (analyticsManager == null) {
 
@@ -47,7 +46,7 @@ public class MockedCfClient extends CfClient {
 
       throw new IllegalStateException("Analytics manager not yet instantiated");
     }
-    analyticsManager.addCallback(callback);
+    ((MockedAnalyticsManager) analyticsManager).addCallback(callback);
   }
 
   public void removeCallback(MockedAnalyticsHandlerCallback callback) throws IllegalStateException {
@@ -56,7 +55,7 @@ public class MockedCfClient extends CfClient {
 
       throw new IllegalStateException("Analytics manager not yet instantiated");
     }
-    analyticsManager.removeCallback(callback);
+    ((MockedAnalyticsManager) analyticsManager).removeCallback(callback);
   }
 
   @Override
