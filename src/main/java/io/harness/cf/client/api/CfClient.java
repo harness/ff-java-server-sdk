@@ -1,10 +1,7 @@
 package io.harness.cf.client.api;
 
 import static io.harness.cf.client.api.DefaultApiFactory.addAuthHeader;
-import static io.harness.cf.model.FeatureConfig.KindEnum.BOOLEAN;
-import static io.harness.cf.model.FeatureConfig.KindEnum.INT;
-import static io.harness.cf.model.FeatureConfig.KindEnum.JSON;
-import static io.harness.cf.model.FeatureConfig.KindEnum.STRING;
+import static io.harness.cf.model.FeatureConfig.KindEnum.*;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;

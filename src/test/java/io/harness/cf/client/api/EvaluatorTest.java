@@ -1,6 +1,6 @@
 package io.harness.cf.client.api;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.collect.ImmutableList;

@@ -1,7 +1,6 @@
 package io.harness.cf.client.api;
 
 import static io.harness.cf.client.api.Operators.*;
-import static io.harness.cf.client.api.Operators.SEGMENT_MATCH;
 import static java.lang.String.format;
 
 import com.github.benmanes.caffeine.cache.Cache;
