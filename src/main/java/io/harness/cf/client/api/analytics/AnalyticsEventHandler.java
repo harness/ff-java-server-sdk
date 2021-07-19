@@ -68,5 +68,4 @@ public class AnalyticsEventHandler implements EventHandler<Analytics> {
 
   // Uncomment the below line to print the cache for debugging purpose
   // AnalyticsManager.analyticsCache.printCache();
-
 }

@@ -97,6 +97,7 @@ public class AnalyticsManager implements Destroyable {
       event.setTarget(analytics.getTarget());
       event.setVariation(analytics.getVariation());
     } catch (InsufficientCapacityException e) {
+
       log.debug("Insufficient capacity in the analytics ringBuffer");
     } finally {
 
