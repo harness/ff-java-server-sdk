@@ -48,6 +48,7 @@ public class CfClient implements Destroyable {
   protected final boolean isAnalyticsEnabled;
   protected AnalyticsManager analyticsManager;
   protected final Cache<String, Segment> segmentCache;
+  protected final Cache<String, FeatureConfig> featureCache;
 
   @Setter protected String jwtToken;
 
@@ -58,7 +59,6 @@ public class CfClient implements Destroyable {
   private ServerSentEvent sse;
   private final String apiKey;
   private SSEListener listener;
-  private final Cache<String, FeatureConfig> featureCache;
 
   public CfClient(String apiKey) {
 

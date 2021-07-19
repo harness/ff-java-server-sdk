@@ -97,5 +97,9 @@ public class MockedCfClient extends CfClient {
   }
 
   @Override
-  protected void initCache(String environmentID) {}
+  protected void initCache(String environmentID) {
+
+    final FeatureConfig config = new FeatureConfig();
+    featureCache.put(MockedFeatureRepository.MOCK_BOOL, config);
+  }
 }
