@@ -89,5 +89,6 @@ public class CfClientMetricsTest {
     }
 
     cfClient.destroy();
+    Assert.assertFalse(cfClient.isInitialized);
   }
 }

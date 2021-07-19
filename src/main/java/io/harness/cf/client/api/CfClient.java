@@ -428,5 +428,6 @@ public class CfClient implements Destroyable {
       sse.close();
     }
     featureCache.cleanUp();
+    isInitialized = false;
   }
 }
