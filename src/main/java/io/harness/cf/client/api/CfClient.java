@@ -15,6 +15,7 @@ import com.here.oksse.OkSse;
 import com.here.oksse.ServerSentEvent;
 import io.harness.cf.ApiException;
 import io.harness.cf.api.DefaultApi;
+import io.harness.cf.client.Evaluation;
 import io.harness.cf.client.api.analytics.AnalyticsManager;
 import io.harness.cf.client.common.Destroyable;
 import io.harness.cf.client.dto.Target;
@@ -42,7 +43,7 @@ public class CfClient implements Destroyable {
 
   protected String cluster;
   protected final Config config;
-  protected Evaluator evaluator;
+  protected Evaluation evaluator;
   protected String environmentID;
   protected final DefaultApi defaultApi;
   protected final boolean isAnalyticsEnabled;
@@ -106,7 +107,7 @@ public class CfClient implements Destroyable {
     addAuthHeader(defaultApi, jwtToken);
     environmentID = getEnvironmentID(jwtToken);
     cluster = getCluster(jwtToken);
-    evaluator = new Evaluator(segmentCache);
+    evaluator = getEvaluator();
 
     initCache(environmentID);
 
@@ -123,6 +124,12 @@ public class CfClient implements Destroyable {
 
     analyticsManager = getAnalyticsManager();
     isInitialized = true;
+  }
+
+  @NotNull
+  protected Evaluation getEvaluator() {
+
+    return new Evaluator(segmentCache);
   }
 
   @Nullable

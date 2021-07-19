@@ -5,6 +5,7 @@ import static io.harness.cf.client.api.Operators.SEGMENT_MATCH;
 import static java.lang.String.format;
 
 import com.github.benmanes.caffeine.cache.Cache;
+import io.harness.cf.client.Evaluation;
 import io.harness.cf.client.api.rules.DistributionProcessor;
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.*;
@@ -14,14 +15,17 @@ import javax.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class Evaluator {
+public class Evaluator implements Evaluation {
+
   private final Cache<String, Segment> segmentCache;
 
   public Evaluator(Cache<String, Segment> segmentCache) {
     this.segmentCache = segmentCache;
   }
 
+  @Override
   public Variation evaluate(FeatureConfig featureConfig, Target target) throws CfClientException {
+
     String servedVariation = featureConfig.getOffVariation();
     if (featureConfig.getState() == FeatureState.OFF) {
       return getVariation(featureConfig.getVariations(), servedVariation);
@@ -44,10 +48,12 @@ public class Evaluator {
   }
 
   private String processVariationMap(Target target, List<VariationMap> variationMaps) {
+
     if (variationMaps == null) {
       return null;
     }
     for (VariationMap variationMap : variationMaps) {
+
       List<TargetMap> targets = variationMap.getTargets();
 
       if (targets != null) {
@@ -83,6 +89,7 @@ public class Evaluator {
   }
 
   private String processRules(FeatureConfig featureConfig, Target target) throws CfClientException {
+
     List<ServingRule> originalServingRules = featureConfig.getRules();
     ArrayList<ServingRule> servingRules =
         new ArrayList<>(Optional.ofNullable(originalServingRules).orElse(new ArrayList<>()));
@@ -99,6 +106,7 @@ public class Evaluator {
 
   private String processServingRule(ServingRule servingRule, Target target)
       throws CfClientException {
+
     for (Clause clause : Objects.requireNonNull(servingRule.getClauses())) {
       if (!process(clause, target)) { // check if the target match the clause
         return null;
@@ -219,6 +227,7 @@ public class Evaluator {
 
   private Variation getVariation(List<Variation> variations, String variationIdentifier)
       throws CfClientException {
+
     for (Variation variation : variations) {
       if (variationIdentifier.equals(variation.getIdentifier())) {
         return variation;

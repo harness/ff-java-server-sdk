@@ -3,6 +3,7 @@ package io.harness.cf.client.api.mock;
 import static io.harness.cf.client.api.DefaultApiFactory.addAuthHeader;
 
 import io.harness.cf.ApiException;
+import io.harness.cf.client.Evaluation;
 import io.harness.cf.client.api.*;
 import io.harness.cf.client.api.analytics.AnalyticsManager;
 import io.harness.cf.client.dto.Target;
@@ -100,6 +101,14 @@ public class MockedCfClient extends CfClient {
   protected void initCache(String environmentID) {
 
     final FeatureConfig config = new FeatureConfig();
+    config.setKind(FeatureConfig.KindEnum.BOOLEAN);
     featureCache.put(MockedFeatureRepository.MOCK_BOOL, config);
+  }
+
+  @NotNull
+  @Override
+  protected Evaluation getEvaluator() {
+
+    return new MockedEvaluator();
   }
 }
