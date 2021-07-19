@@ -67,5 +67,27 @@ public class CfClientMetricsTest {
 
       Thread.yield();
     }
+
+    Assert.assertEquals(evaluationsCount, metricsEventsCount.get());
+
+    try {
+
+      Thread.sleep((MockedCfConfiguration.MOCKED_MIN_FREQUENCY + 1) * 1000L);
+    } catch (InterruptedException e) {
+
+      Assert.fail(e.getMessage());
+    }
+
+    Assert.assertTrue(timerEventsCount.get() > 0);
+
+    try {
+
+      cfClient.removeCallback(metricsCallback);
+    } catch (IllegalStateException e) {
+
+      Assert.fail(e.getMessage());
+    }
+
+    cfClient.destroy();
   }
 }
