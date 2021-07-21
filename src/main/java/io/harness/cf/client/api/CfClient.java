@@ -1,10 +1,7 @@
 package io.harness.cf.client.api;
 
 import static io.harness.cf.client.api.DefaultApiFactory.addAuthHeader;
-import static io.harness.cf.model.FeatureConfig.KindEnum.BOOLEAN;
-import static io.harness.cf.model.FeatureConfig.KindEnum.INT;
-import static io.harness.cf.model.FeatureConfig.KindEnum.JSON;
-import static io.harness.cf.model.FeatureConfig.KindEnum.STRING;
+import static io.harness.cf.model.FeatureConfig.KindEnum.*;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -15,6 +12,7 @@ import com.here.oksse.OkSse;
 import com.here.oksse.ServerSentEvent;
 import io.harness.cf.ApiException;
 import io.harness.cf.api.DefaultApi;
+import io.harness.cf.client.Evaluation;
 import io.harness.cf.client.api.analytics.AnalyticsManager;
 import io.harness.cf.client.common.Destroyable;
 import io.harness.cf.client.dto.Target;
@@ -34,39 +32,46 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Request;
 import org.apache.commons.collections4.CollectionUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 @Slf4j
 public class CfClient implements Destroyable {
 
-  private final String apiKey;
-  private final Config config;
-  private final boolean isAnalyticsEnabled;
-  @Setter private String jwtToken;
-  private String environmentID;
-  private String cluster;
+  protected String cluster;
+  protected final Config config;
+  protected Evaluation evaluator;
+  protected String environmentID;
+  protected final DefaultApi defaultApi;
+  protected final boolean isAnalyticsEnabled;
+  protected AnalyticsManager analyticsManager;
+  protected final Cache<String, Segment> segmentCache;
+  protected final Cache<String, FeatureConfig> featureCache;
 
-  private final Cache<String, FeatureConfig> featureCache;
-  private final Cache<String, Segment> segmentCache;
-  private Evaluator evaluator;
-  private final DefaultApi defaultApi;
+  @Setter protected String jwtToken;
+
+  @Getter protected boolean isInitialized;
+
   private Poller poller;
   private Request sseRequest;
-  private SSEListener listener;
   private ServerSentEvent sse;
-  private AnalyticsManager analyticsManager;
-  @Getter private boolean isInitialized;
+  private final String apiKey;
+  private SSEListener listener;
 
   public CfClient(String apiKey) {
+
     this(apiKey, Config.builder().build());
   }
 
   public CfClient(String apiKey, Config config) {
+
     this.apiKey = apiKey;
     this.config = config;
 
     isAnalyticsEnabled = config.isAnalyticsEnabled();
     featureCache = Caffeine.newBuilder().maximumSize(10000).build();
     segmentCache = Caffeine.newBuilder().maximumSize(10000).build();
+
     defaultApi =
         DefaultApiFactory.create(
             config.getConfigUrl(),
@@ -74,42 +79,68 @@ public class CfClient implements Destroyable {
             config.getReadTimeout(),
             config.getWriteTimeout(),
             config.isDebug());
+
     isInitialized = false;
 
-    // try to authenticate
-    AuthService authService =
-        new AuthService(defaultApi, apiKey, this, config.getPollIntervalInSeconds());
+    // Try to authenticate:
+    final AuthService authService = getAuthService(apiKey, config);
     authService.startAsync();
   }
 
+  @NotNull
+  protected AuthService getAuthService(String apiKey, Config config) {
+
+    return new AuthService(defaultApi, apiKey, this, config.getPollIntervalInSeconds());
+  }
+
   void init() throws ApiException, CfClientException {
+
+    doInit();
+  }
+
+  protected void doInit() throws ApiException, CfClientException {
+
     log.info("Initializing CF client..");
     addAuthHeader(defaultApi, jwtToken);
     environmentID = getEnvironmentID(jwtToken);
     cluster = getCluster(jwtToken);
-
-    evaluator = new Evaluator(segmentCache);
+    evaluator = getEvaluator();
 
     initCache(environmentID);
+
     if (!config.isStreamEnabled()) {
+
       startPollingMode();
       log.info("Running in polling mode.");
     } else {
+
       initStreamingMode();
       startSSE();
       log.info("Running in streaming mode.");
     }
 
-    analyticsManager =
-        config.isAnalyticsEnabled()
-            ? new AnalyticsManager(environmentID, cluster, apiKey, config)
-            : null;
-
+    analyticsManager = getAnalyticsManager();
     isInitialized = true;
   }
 
-  private void initCache(String environmentID) throws io.harness.cf.ApiException {
+  @NotNull
+  protected Evaluation getEvaluator() {
+
+    return new Evaluator(segmentCache);
+  }
+
+  @Nullable
+  protected AnalyticsManager getAnalyticsManager() throws CfClientException {
+
+    return config.isAnalyticsEnabled()
+        ? new AnalyticsManager(environmentID, cluster, apiKey, config)
+        : null;
+  }
+
+  protected void initCache(String environmentID) throws io.harness.cf.ApiException {
+
     if (!Strings.isNullOrEmpty(environmentID)) {
+
       List<FeatureConfig> featureConfigs = defaultApi.getFeatureConfig(environmentID, cluster);
       if (featureConfigs != null) {
         featureCache.putAll(
@@ -189,12 +220,8 @@ public class CfClient implements Destroyable {
       log.error("err", e);
       return defaultValue;
     } finally {
-      if (!target.isPrivate()
-          && target.isValid()
-          && isAnalyticsEnabled
-          && analyticsManager != null
-          && featureConfig != null
-          && variation != null) {
+      if (canPushToMetrics(target, variation, featureConfig)) {
+
         analyticsManager.pushToQueue(target, featureConfig, variation);
       }
     }
@@ -226,12 +253,7 @@ public class CfClient implements Destroyable {
       log.error("err", e);
       return defaultValue;
     } finally {
-      if (!target.isPrivate()
-          && target.isValid()
-          && isAnalyticsEnabled
-          && analyticsManager != null
-          && featureConfig != null
-          && variation != null) {
+      if (canPushToMetrics(target, variation, featureConfig)) {
         analyticsManager.pushToQueue(target, featureConfig, variation);
       }
     }
@@ -263,12 +285,9 @@ public class CfClient implements Destroyable {
       log.error("err", e);
       return defaultValue;
     } finally {
-      if (!target.isPrivate()
-          && target.isValid()
-          && isAnalyticsEnabled
-          && analyticsManager != null
-          && featureConfig != null
-          && variation != null) {
+
+      if (canPushToMetrics(target, variation, featureConfig)) {
+
         analyticsManager.pushToQueue(target, featureConfig, variation);
       }
     }
@@ -301,15 +320,23 @@ public class CfClient implements Destroyable {
       log.error("err", e);
       return defaultValue;
     } finally {
-      if (!target.isPrivate()
-          && target.isValid()
-          && isAnalyticsEnabled
-          && analyticsManager != null
-          && featureConfig != null
-          && variation != null) {
+
+      if (canPushToMetrics(target, variation, featureConfig)) {
+
         analyticsManager.pushToQueue(target, featureConfig, variation);
       }
     }
+  }
+
+  protected boolean canPushToMetrics(
+      Target target, Variation variation, FeatureConfig featureConfig) {
+
+    return !target.isPrivate()
+        && target.isValid()
+        && isAnalyticsEnabled
+        && analyticsManager != null
+        && featureConfig != null
+        && variation != null;
   }
 
   private boolean checkPreRequisite(FeatureConfig parentFeatureConfig, Target target)
@@ -356,7 +383,8 @@ public class CfClient implements Destroyable {
     return result;
   }
 
-  public static String getEnvironmentID(String jwtToken) {
+  protected String getEnvironmentID(String jwtToken) {
+
     int i = jwtToken.lastIndexOf('.');
     String unsignedJwt = jwtToken.substring(0, i + 1);
     Jwt<Header, Claims> untrusted = Jwts.parser().parseClaimsJwt(unsignedJwt);
@@ -364,7 +392,8 @@ public class CfClient implements Destroyable {
     return jwtToken;
   }
 
-  public static String getCluster(String jwtToken) {
+  protected String getCluster(String jwtToken) {
+
     int i = jwtToken.lastIndexOf('.');
     String unsignedJwt = jwtToken.substring(0, i + 1);
     Jwt<Header, Claims> untrusted = Jwts.parser().parseClaimsJwt(unsignedJwt);
@@ -396,10 +425,6 @@ public class CfClient implements Destroyable {
       sse.close();
     }
     featureCache.cleanUp();
-  }
-
-  public boolean isInitialized() {
-
-    return isInitialized;
+    isInitialized = false;
   }
 }

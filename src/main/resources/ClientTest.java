@@ -1,18 +1,9 @@
 package io.harness.cf.client.api;
 
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.google.common.collect.ImmutableMap;
-import io.harness.cf.ApiException;
 import io.harness.cf.api.DefaultApi;
 import io.harness.cf.client.dto.*;
-import io.harness.cf.model.FeatureFlagActivationConfig;
 import io.harness.cf.model.FeatureState;
-
-import java.io.IOException;
-import java.util.*;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Before;
 import org.junit.Test;
@@ -21,6 +12,13 @@ import org.mockito.Spy;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import javax.management.modelmbean.XMLParseException;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @Slf4j
 @RunWith(MockitoJUnitRunner.class)
