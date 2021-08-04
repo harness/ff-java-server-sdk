@@ -129,6 +129,72 @@ public class Evaluator implements Evaluation {
     return Optional.ofNullable(clause.getNegate()).orElse(false) != result;
   }
 
+  /**
+   * isTargetInList determines if the specified target is in the list of targets
+   *
+   * @param target a target that we want to check if it is in the list
+   * @param listOfTargets a list of targets
+   * @return true if target is in listOfTargets otherwise returns false
+   */
+  private boolean isTargetInList(Target target, List<io.harness.cf.model.Target> listOfTargets) {
+    if (listOfTargets != null) {
+      Iterator<io.harness.cf.model.Target> iterator = listOfTargets.iterator();
+      while (iterator.hasNext()) {
+        io.harness.cf.model.Target includedTarget = iterator.next();
+        if (includedTarget.getIdentifier().contains(target.getIdentifier())) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
+   * isTargetIncludedBySegment determines if the given target is included by a segment
+   *
+   * @param segmentList a list of segments
+   * @param target the target to check if its included
+   * @return true if the target is included in the segment via rules
+   * @throws CfClientException
+   */
+  private boolean isTargetIncludedBySegment(List segmentList, Target target)
+      throws CfClientException {
+    for (String segmentIdentifier : (List<String>) segmentList) {
+      Segment segment = segmentCache.getIfPresent(segmentIdentifier);
+      if (segment != null) {
+
+        // Should Target be excluded - if in excluded list we return false
+        if (isTargetInList(target, segment.getExcluded()) == true) {
+          log.debug(
+              "Target %s excluded from segment %s via exclude list\n",
+              target.getName(), segment.getName());
+          return false;
+        }
+
+        // Should Target be included - if in included list we return true
+        if (isTargetInList(target, segment.getIncluded()) == true) {
+          log.debug(
+              "Target %s included in segment %s via include list\n",
+              target.getName(), segment.getName());
+          return true;
+        }
+
+        // Should Target be included via segment rules
+        if ((segment.getRules() != null) && !segment.getRules().isEmpty()) {
+          for (Clause rule : segment.getRules()) {
+            if (compare(rule.getValues(), target, rule) == true) {
+              log.debug(
+                  "Target %s included in segment %s via rules\n",
+                  target.getName(), segment.getName());
+              return true;
+            }
+          }
+        }
+      }
+    }
+    return false;
+  }
+
   private boolean compare(List value, Target target, Clause clause) throws CfClientException {
     String operator = clause.getOp();
     String object = null;
@@ -161,39 +227,7 @@ public class Evaluator implements Evaluation {
       case IN:
         return value.contains(object);
       case SEGMENT_MATCH:
-        for (String segmentIdentifier : (List<String>) value) {
-          Segment segment = segmentCache.getIfPresent(segmentIdentifier);
-          if (segment != null) {
-            List<io.harness.cf.model.Target> includedTargets = segment.getIncluded();
-            if (includedTargets != null) {
-              Iterator<io.harness.cf.model.Target> iterator = includedTargets.iterator();
-              while (iterator.hasNext()) {
-                io.harness.cf.model.Target includedTarget = iterator.next();
-                if (includedTarget.getIdentifier().contains(target.getIdentifier())) {
-                  return true;
-                }
-              }
-            }
-            if ((segment.getRules() != null) && !segment.getRules().isEmpty()) {
-              for (Clause rule : segment.getRules()) {
-                try {
-                  object = (String) getAttrValue(target, rule.getAttribute());
-                } catch (CfClientException e) {
-                  object = "";
-                }
-                if (object != null) {
-                  List<String> values = new ArrayList<>();
-                  values.add(object);
-                  boolean returnValue = compare(values, target, rule);
-                  if (returnValue) {
-                    return returnValue;
-                  }
-                }
-              }
-            }
-          }
-        }
-        return false;
+        return isTargetIncludedBySegment(value, target);
       default:
         return false;
     }
