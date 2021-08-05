@@ -17,7 +17,6 @@ data class WrapperServer(
 
     private val port: Int,
     private val apiKey: String,
-    private val target: Target,
     private val configuration: Config
 
 ) : Initialization, Termination, Status {

@@ -4,7 +4,7 @@ class CfLog {
 
     companion object {
 
-        var OUT: WrapperLogging = FilesystemLogger()
+        var OUT: WrapperLogging = ConsoleLogger()
 
         fun customMode(logging: WrapperLogging) {
 
