@@ -26,7 +26,10 @@ RUN mkdir CFJavaSDK && cd ./CFJavaSDK && \
         > "test_wrapper/wrapper/wrapper.json" && \
         echo "wrapper.json:" && cat "test_wrapper/wrapper/wrapper.json" && \
     cd "test_wrapper" && \
-    ../../gradle-7.0/bin/gradle wrapper --gradle-version 7.0 && ../../gradle-7.0/bin/gradle --stop
+    ../../gradle-7.0/bin/gradle wrapper --gradle-version 7.0 && ../../gradle-7.0/bin/gradle --stop && \
+    mkdir -p "/root/.m2"
+
+COPY maven.settings.xml /root/.m2/settings.xml
 
 EXPOSE $PORT
 
