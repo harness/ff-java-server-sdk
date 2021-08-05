@@ -42,18 +42,18 @@ data class WrapperServer(
         server.executor = Executors.newFixedThreadPool(10)
         server.start()
 
-        serverContextFactories.forEach {
-
-            it.build(this)
-        }
-
         val startTime = System.currentTimeMillis()
         client = WrapperClient(apiKey, configuration)
 
         while (!client.isInitialized &&
-            System.currentTimeMillis() - startTime <= 30_000) {
+            System.currentTimeMillis() - startTime <= 5_000) {
 
             Thread.yield()
+        }
+
+        serverContextFactories.forEach {
+
+            it.build(this)
         }
 
         return client.isInitialized
