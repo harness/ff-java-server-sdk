@@ -23,13 +23,14 @@ RUN mkdir CFJavaSDK && cd ./CFJavaSDK && \
     git checkout "$WRAPPERS_BRANCH" && \
     git submodule init && git submodule update && \
     echo "{\"selfTest\": $SELF_TEST, \"port\": $PORT, \"apiKey\": \"$API_KEY\", \"logger\": \"filesystem\"}" \
-        > "wrapper/wrapper.json" && \
-        echo "wrapper.json:" && cat "wrapper/wrapper.json" && \
-    ../gradle-7.0/bin/gradle wrapper --gradle-version 7.0 && ../gradle-7.0/bin/gradle --stop
+        > "test_wrapper/wrapper/wrapper.json" && \
+        echo "wrapper.json:" && cat "test_wrapper/wrapper/wrapper.json" && \
+    cd "test_wrapper" && \
+    ../../gradle-7.0/bin/gradle wrapper --gradle-version 7.0 && ../../gradle-7.0/bin/gradle --stop
 
 EXPOSE $PORT
 
-CMD cd ./CFJavaSDK && git fetch && git pull && \
+CMD cd ./CFJavaSDK && git fetch && git pull && cd "test_wrapper" && \
     echo "Preparing the build" && \
     ./gradlew --stop && ./gradlew clean --stacktrace && \
     echo "Assembling the build" && \
