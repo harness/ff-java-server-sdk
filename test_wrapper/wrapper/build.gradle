@@ -5,6 +5,7 @@ plugins {
 
 dependencies {
 
+    implementation "io.harness:ff-java-server-sdk:1.0.2-SNAPSHOT"
     implementation project(':Logger:Logger')
 
     implementation fileTree(dir: 'libs', include: ['*.jar'])
@@ -14,6 +15,7 @@ dependencies {
     implementation 'com.squareup.retrofit2:retrofit:2.9.0'
     implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
 
+    testImplementation "io.harness:ff-java-server-sdk:1.0.2-SNAPSHOT"
     testImplementation project(':Logger:Logger')
 
     testImplementation fileTree(dir: 'libs', include: ['*.jar'])
