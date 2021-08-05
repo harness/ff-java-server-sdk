@@ -32,7 +32,7 @@ EXPOSE $PORT
 
 CMD cd ./CFJavaSDK && git fetch && git pull && \
     echo "Building and installing FF Java Server SDK" && \
-    mvn compile && mvn package && mvn install && cd "test_wrapper" && \
+    mvn clean && mvn compile && mvn package && mvn install && cd "test_wrapper" && \
     echo "Preparing the build" && \
     ./gradlew --stop && ./gradlew clean --stacktrace && \
     echo "Assembling the build" && \
