@@ -13,7 +13,7 @@ ENV WRAPPERS_BRANCH "$WRAPPERS_BRANCH"
 RUN dnf group install -y "Development Tools" && \
     sudo dnf install -y https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
         https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm && \
-    dnf install -y wget java java-devel && \
+    dnf install -y wget java java-devel maven && \
     cd / && wget "https://downloads.gradle-dn.com/distributions/gradle-7.0-bin.zip" && \
     unzip "gradle-7.0-bin.zip"
 
@@ -30,7 +30,9 @@ RUN mkdir CFJavaSDK && cd ./CFJavaSDK && \
 
 EXPOSE $PORT
 
-CMD cd ./CFJavaSDK && git fetch && git pull && cd "test_wrapper" && \
+CMD cd ./CFJavaSDK && git fetch && git pull && \
+    echo "Building and installing FF Java Server SDK" && \
+    mvn compile && mvn package && mvn install && cd "test_wrapper" && \
     echo "Preparing the build" && \
     ./gradlew --stop && ./gradlew clean --stacktrace && \
     echo "Assembling the build" && \
