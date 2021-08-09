@@ -13,7 +13,7 @@ ENV WRAPPERS_BRANCH "$WRAPPERS_BRANCH"
 RUN dnf group install -y "Development Tools" && \
     sudo dnf install -y https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
         https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm && \
-    dnf install -y wget java java-devel maven gnupg && \
+    dnf install -y wget java java-devel maven gnupg sed && \
     cd / && wget "https://downloads.gradle-dn.com/distributions/gradle-7.0-bin.zip" && \
     unzip "gradle-7.0-bin.zip"
 
@@ -34,7 +34,7 @@ COPY gpg_gen_key /root/gpg_gen_key
 
 RUN gpg --batch --gen-key /root/gpg_gen_key && \
     gpg --list-keys > /root/gpg_out_keys && \
-    head -4 /root/gpg_out_keys | tail -1 | xargs | cut -c -8 | rev > /root/gpg_out_key
+    head -4 /root/gpg_out_keys | tail -1 | xargs | tail -c 8 > /root/gpg_out_key
 
 # TODO: Populate settings.xml with parameters
 
