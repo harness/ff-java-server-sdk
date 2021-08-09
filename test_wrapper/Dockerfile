@@ -31,6 +31,8 @@ RUN mkdir CFJavaSDK && cd ./CFJavaSDK && \
 
 COPY maven.settings.xml /root/.m2/settings.xml
 
+# TODO: Populate settings.xml with parameters
+
 EXPOSE $PORT
 
 CMD cd ./CFJavaSDK && git fetch && git pull && \
