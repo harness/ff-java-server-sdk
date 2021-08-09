@@ -21,6 +21,14 @@
               <option name="name" value="API_KEY" />
               <option name="value" value="YOUR_API_KEY" />
             </DockerEnvVarImpl>
+            <DockerEnvVarImpl>
+              <option name="name" value="HARNESS_JFROG_INT_USR" />
+              <option name="value" value="YOUR_HARNESS_JFROG_INTERNAL_USRER" />
+            </DockerEnvVarImpl>
+            <DockerEnvVarImpl>
+              <option name="name" value="HARNESS_JFROG_INT_PWD" />
+              <option name="value" value="YOUR_HARNESS_JFROG_INTERNAL_PASSWORD" />
+            </DockerEnvVarImpl>
           </list>
         </option>
         <option name="containerName" value="java_test_wrapper" />
