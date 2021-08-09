@@ -32,7 +32,8 @@ RUN mkdir CFJavaSDK && cd ./CFJavaSDK && \
 COPY maven.settings.xml /root/.m2/settings.xml
 COPY gpg_gen_key /root/gpg_gen_key
 
-RUN gpg --batch --gen-key /root/gpg_gen_key > /root/gpg_out_key
+RUN gpg --batch --gen-key /root/gpg_gen_key && \
+    gpg --list-keys > /root/gpg_out_key
 
 # TODO: Populate settings.xml with parameters
 
