@@ -13,7 +13,7 @@ ENV WRAPPERS_BRANCH "$WRAPPERS_BRANCH"
 RUN dnf group install -y "Development Tools" && \
     sudo dnf install -y https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
         https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm && \
-    dnf install -y wget java java-devel maven && \
+    dnf install -y wget java java-devel maven gnupg && \
     cd / && wget "https://downloads.gradle-dn.com/distributions/gradle-7.0-bin.zip" && \
     unzip "gradle-7.0-bin.zip"
 
@@ -30,17 +30,21 @@ RUN mkdir CFJavaSDK && cd ./CFJavaSDK && \
     mkdir -p "/root/.m2"
 
 COPY maven.settings.xml /root/.m2/settings.xml
+COPY gpg_gen_key /root/gpg_gen_key
+
+RUN gpg --batch --gen-key /root/gpg_gen_key > /root/gpg_out_key
 
 # TODO: Populate settings.xml with parameters
 
 EXPOSE $PORT
 
 CMD cd ./CFJavaSDK && git fetch && git pull && \
-    echo "Building and installing FF Java Server SDK" && \
-    mvn clean && mvn compile && mvn package && mvn install && cd "test_wrapper" && \
-    echo "Preparing the build" && \
-    ./gradlew --stop && ./gradlew clean --stacktrace && \
-    echo "Assembling the build" && \
-    ./gradlew wrapper:assemble --stacktrace && \
-    echo "Running" && \
-    ./gradlew wrapper:test --stacktrace
+    touch anchor && tail -f anchor
+#    echo "Building and installing FF Java Server SDK" && \
+#    mvn clean && mvn compile && mvn package && mvn install && cd "test_wrapper" && \
+#    echo "Preparing the build" && \
+#    ./gradlew --stop && ./gradlew clean --stacktrace && \
+#    echo "Assembling the build" && \
+#    ./gradlew wrapper:assemble --stacktrace && \
+#    echo "Running" && \
+#    ./gradlew wrapper:test --stacktrace
