@@ -33,13 +33,15 @@ COPY maven.settings.xml /root/.m2/settings.xml
 COPY gpg_gen_key /root/gpg_gen_key
 
 RUN gpg --batch --gen-key /root/gpg_gen_key && \
-    gpg --list-keys > /root/gpg_out_key
+    gpg --list-keys > /root/gpg_out_keys && \
+    head -4 /root/gpg_out_keys | tail -1 | xargs | cut -c -8 | rev > /root/gpg_out_key
 
 # TODO: Populate settings.xml with parameters
 
 EXPOSE $PORT
 
-CMD cd ./CFJavaSDK && git fetch && git pull && \
+CMD export GPG_KEY=$(cat /root/gpg_out_key) && echo "GPG key: $GPG_KEY" && \
+    cd ./CFJavaSDK && git fetch && git pull && \
     touch anchor && tail -f anchor
 #    echo "Building and installing FF Java Server SDK" && \
 #    mvn clean && mvn compile && mvn package && mvn install && cd "test_wrapper" && \
