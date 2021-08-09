@@ -1,4 +1,11 @@
-<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+#!/bin/sh
+
+MVN_HOME="/root/.m2"
+SETTINGS="$MVN_HOME/settings.xml"
+
+mkdir -p "$MVN_HOME" && touch "$SETTINGS" &&
+cat >> "$SETTINGS"<< EOF
+echo """<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
                           https://maven.apache.org/xsd/settings-1.0.0.xsd">
@@ -30,8 +37,9 @@
                 <activeByDefault>true</activeByDefault>
             </activation>
             <properties>
-                <gpg.keyname>{{GPG}}</gpg.keyname>
+                <gpg.keyname>$GPG_KEY</gpg.keyname>
             </properties>
         </profile>
     </profiles>
 </settings>
+EOF
