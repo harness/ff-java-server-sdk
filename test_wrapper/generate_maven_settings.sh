@@ -13,8 +13,8 @@ echo """<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
 
         <server>
             <id>harness-jfrog-internal</id>
-            <username>{{HARNESS_JFROG_INT_USR}}</username>
-            <password>{{HARNESS_JFROG_INT_PWD}}</password>
+            <username>$HARNESS_JFROG_INT_USR</username>
+            <password>$HARNESS_JFROG_INT_PWD</password>
             <configuration>
                 <connectionTimeout>240000</connectionTimeout>
                 <readTimeout>240000</readTimeout>

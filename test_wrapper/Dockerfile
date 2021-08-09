@@ -4,11 +4,15 @@ ARG PORT
 ARG API_KEY
 ARG SELF_TEST
 ARG WRAPPERS_BRANCH
+ARG HARNESS_JFROG_INT_USR
+ARG HARNESS_JFROG_INT_PWD
 
 ENV PORT "$PORT"
 ENV API_KEY "$API_KEY"
 ENV SELF_TEST "$SELF_TEST"
 ENV WRAPPERS_BRANCH "$WRAPPERS_BRANCH"
+ENV HARNESS_JFROG_INT_USR "$HARNESS_JFROG_INT_USR"
+ENV HARNESS_JFROG_INT_PWD "$HARNESS_JFROG_INT_PWD"
 
 RUN dnf group install -y "Development Tools" && \
     sudo dnf install -y https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
