@@ -46,12 +46,11 @@ EXPOSE $PORT
 
 CMD export GPG_KEY=$(cat /root/gpg_out_key) && echo "GPG key: $GPG_KEY" && \
     cd ./CFJavaSDK && git fetch && git pull && \
-    touch anchor && tail -f anchor
-#    echo "Building and installing FF Java Server SDK" && \
-#    mvn clean && mvn compile && mvn package && mvn install && cd "test_wrapper" && \
-#    echo "Preparing the build" && \
-#    ./gradlew --stop && ./gradlew clean --stacktrace && \
-#    echo "Assembling the build" && \
-#    ./gradlew wrapper:assemble --stacktrace && \
-#    echo "Running" && \
-#    ./gradlew wrapper:test --stacktrace
+    echo "Building and installing FF Java Server SDK" && \
+    mvn clean && mvn compile && mvn package && mvn install && cd "test_wrapper" && \
+    echo "Preparing the build" && \
+    ./gradlew --stop && ./gradlew clean --stacktrace && \
+    echo "Assembling the build" && \
+    ./gradlew wrapper:assemble --stacktrace && \
+    echo "Running" && \
+    ./gradlew wrapper:test --stacktrace
