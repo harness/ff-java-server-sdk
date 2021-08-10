@@ -45,7 +45,6 @@ RUN gpg --batch --passphrase '' --quick-gen-key sdk@harness.io default default &
 EXPOSE $PORT
 
 CMD export GPG_KEY=$(cat /root/gpg_out_key) && echo "GPG key: $GPG_KEY" && \
-    touch anchor && tail -f anchor
     cd ./CFJavaSDK && git fetch && git pull && \
     echo "Building and installing FF Java Server SDK" && \
     mvn clean && mvn compile && mvn package && mvn install && cd "test_wrapper" && \
