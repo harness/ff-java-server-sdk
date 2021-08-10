@@ -21,6 +21,14 @@ Add the following snippet to your project's `pom.xml` file:
 </dependency>
 ```
 
+## Cloning the SDK repository
+
+In order to clone SDK repository properly perform cloning like in the following example:
+
+```
+git clone --recurse-submodules git@github.com:drone/ff-java-server-sdk.git
+```
+
 After dependency has been added, the SDK elements, primarily `CfClient` should be accessible in the main application.
 
 ## Initialization
