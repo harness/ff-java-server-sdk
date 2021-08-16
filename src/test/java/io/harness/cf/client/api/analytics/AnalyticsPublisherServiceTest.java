@@ -1,7 +1,6 @@
 package io.harness.cf.client.api.analytics;
 
-import static junit.framework.TestCase.assertEquals;
-import static junit.framework.TestCase.assertNull;
+import static junit.framework.TestCase.*;
 
 import io.harness.cf.client.api.Config;
 import io.harness.cf.client.dto.Analytics;
@@ -31,12 +30,19 @@ public class AnalyticsPublisherServiceTest {
 
   @Test
   public void validateSummaryData() {
+
     Metrics metrics = publisherService.prepareSummaryMetricsBody(getAnalyticsData(10, 20));
-    assertEquals(21, metrics.getTargetData().size());
+
+    assertNotNull(metrics.getTargetData());
+    assertTrue(metrics.getTargetData().size() >= 20);
+
+    assertNotNull(metrics.getMetricsData());
     assertEquals(10, metrics.getMetricsData().size());
 
     metrics = publisherService.prepareSummaryMetricsBody(getAnalyticsData(10, 20));
     assertNull(metrics.getTargetData());
+
+    assertNotNull(metrics.getMetricsData());
     assertEquals(10, metrics.getMetricsData().size());
   }
 
