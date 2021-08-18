@@ -39,11 +39,11 @@ RUN gpg --batch --passphrase '' --quick-gen-key sdk@harness.io default default &
 
 EXPOSE $PORT
 
-CMD echo "{\"selfTest\": $SELF_TEST, \"port\": $PORT, \"sdkKey\": \"$SDK_KEY\", \"logger\": \"filesystem\"}" \
-        > "CFJavaSDK/test_wrapper/wrapper/wrapper.json" && \
-    echo "wrapper.json:" && cat "CFJavaSDK/test_wrapper/wrapper/wrapper.json" && \
-    export GPG_KEY=$(cat /root/gpg_out_key) && echo "GPG key: $GPG_KEY" && \
+CMD export GPG_KEY=$(cat /root/gpg_out_key) && echo "GPG key: $GPG_KEY" && \
     cd ./CFJavaSDK && git fetch && git pull && \
+    echo "{\"selfTest\": $SELF_TEST, \"port\": $PORT, \"sdkKey\": \"$SDK_KEY\", \"logger\": \"filesystem\"}" \
+    > "test_wrapper/wrapper/wrapper.json" && \
+    echo "wrapper.json:" && cat "test_wrapper/wrapper/wrapper.json" && \
     echo "Building and installing FF Java Server SDK" && \
     mvn clean && mvn compile && mvn package -DskipTests=true && \
     mvn install -DskipTests=true && cd "test_wrapper" && \
