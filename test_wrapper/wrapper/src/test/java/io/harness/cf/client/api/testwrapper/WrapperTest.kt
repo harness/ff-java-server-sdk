@@ -71,9 +71,21 @@ class WrapperTest {
         var inputStream: InputStream? = null
         try {
 
-            inputStream = File(WrapperTestConfiguration.CONFIGURATION_FILE).inputStream()
+            val file = File(WrapperTestConfiguration.CONFIGURATION_FILE)
+            Assert.assertTrue(file.exists())
+
+            inputStream = file.inputStream()
             val inputString = inputStream.bufferedReader().use { it.readText() }
+
+            Assert.assertNotNull(inputString)
+            Assert.assertTrue(inputString.isNotEmpty())
+
             val config = Gson().fromJson(inputString, WrapperTestConfiguration::class.java)
+
+            Assert.assertNotNull(config)
+            Assert.assertNotNull(config.selfTest)
+            Assert.assertNotNull(config.port)
+            Assert.assertNotNull(config.sdkKey)
 
             selfTest = config.selfTest
             serverPort = config.port
