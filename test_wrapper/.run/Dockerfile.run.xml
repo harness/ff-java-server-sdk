@@ -32,7 +32,19 @@
           <list>
             <DockerEnvVarImpl>
               <option name="name" value="SDK_KEY" />
-              <option name="value" value="YOUR_SDK_KEY" />
+              <option name="value" value="4651718f-8d49-456e-8a66-d02556693add" />
+            </DockerEnvVarImpl>
+            <DockerEnvVarImpl>
+              <option name="name" value="ENABLE_STREAMING" />
+              <option name="value" value="true" />
+            </DockerEnvVarImpl>
+            <DockerEnvVarImpl>
+              <option name="name" value="EVENT_URL" />
+              <option name="value" value="https://events.ff.harness.io/api/1.0" />
+            </DockerEnvVarImpl>
+            <DockerEnvVarImpl>
+              <option name="name" value="SDK_BASE_URL" />
+              <option name="value" value="https://config.ff.harness.io/api/1.0" />
             </DockerEnvVarImpl>
           </list>
         </option>
