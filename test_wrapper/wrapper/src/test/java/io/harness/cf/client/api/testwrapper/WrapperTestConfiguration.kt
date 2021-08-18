@@ -6,7 +6,7 @@ data class WrapperTestConfiguration(
 
     val selfTest: Boolean = true,
     val port: Int = 4000,
-    val apiKey: String,
+    val sdkKey: String,
     val logger: String = LoggerType.DEFAULT.type
 ) {
 

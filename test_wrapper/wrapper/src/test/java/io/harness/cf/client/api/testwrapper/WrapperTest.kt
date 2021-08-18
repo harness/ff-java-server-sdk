@@ -45,7 +45,7 @@ class WrapperTest {
     /**
      * API key used to initialize the SDK.
      */
-    private var apiKey = "YOUR_API_KEY"
+    private var sdkKey = "YOUR_SDK_KEY"
 
     /**
      * Will we write logs to the log ile or to the system console?
@@ -77,7 +77,7 @@ class WrapperTest {
 
             selfTest = config.selfTest
             serverPort = config.port
-            apiKey = config.apiKey
+            sdkKey = config.sdkKey
 
             val loggerType = config.logger
             filesystemLogger = loggerType == LoggerType.FILESYSTEM.type
@@ -124,7 +124,7 @@ class WrapperTest {
         server = WrapperServer(
 
             port = serverPort,
-            apiKey = apiKey,
+            sdkKey = sdkKey,
             configuration = configuration
         )
     }

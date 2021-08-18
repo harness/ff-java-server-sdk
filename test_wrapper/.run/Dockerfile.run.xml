@@ -18,8 +18,8 @@
               <option name="value" value="main" />
             </DockerEnvVarImpl>
             <DockerEnvVarImpl>
-              <option name="name" value="API_KEY" />
-              <option name="value" value="YOUR_API_KEY" />
+              <option name="name" value="SDK_KEY" />
+              <option name="value" value="YOUR_SDK_KEY" />
             </DockerEnvVarImpl>
             <DockerEnvVarImpl>
               <option name="name" value="HARNESS_JFROG_INT_USR" />

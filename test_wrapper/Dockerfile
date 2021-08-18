@@ -1,14 +1,14 @@
 FROM fedora:34
 
 ARG PORT
-ARG API_KEY
+ARG SDK_KEY
 ARG SELF_TEST
 ARG WRAPPERS_BRANCH
 ARG HARNESS_JFROG_INT_USR
 ARG HARNESS_JFROG_INT_PWD
 
 ENV PORT "$PORT"
-ENV API_KEY "$API_KEY"
+ENV SDK_KEY "$SDK_KEY"
 ENV SELF_TEST "$SELF_TEST"
 ENV WRAPPERS_BRANCH "$WRAPPERS_BRANCH"
 ENV HARNESS_JFROG_INT_USR "$HARNESS_JFROG_INT_USR"
@@ -26,7 +26,7 @@ RUN mkdir CFJavaSDK && cd ./CFJavaSDK && \
     echo "Wrappers branch: $WRAPPERS_BRANCH" && \
     git checkout "$WRAPPERS_BRANCH" && \
     git submodule init && git submodule update && \
-    echo "{\"selfTest\": $SELF_TEST, \"port\": $PORT, \"apiKey\": \"$API_KEY\", \"logger\": \"filesystem\"}" \
+    echo "{\"selfTest\": $SELF_TEST, \"port\": $PORT, \"sdkKey\": \"$SDK_KEY\", \"logger\": \"filesystem\"}" \
         > "test_wrapper/wrapper/wrapper.json" && \
         echo "wrapper.json:" && cat "test_wrapper/wrapper/wrapper.json" && \
     cd "test_wrapper" && \

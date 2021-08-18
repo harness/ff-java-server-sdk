@@ -7,9 +7,8 @@ services:
     args:
       PORT: 4000
       SELF_TEST: false
-      WRAPPERS_BRANCH: FFM-1276
       # TODO: Switch back to 'main' branch
-      API_KEY: YOUR_API_KEY
+      WRAPPERS_BRANCH: FFM-1276
       HARNESS_JFROG_INT_USR: YOUR_HARNESS_JFROG_INTERNAL_USER
       HARNESS_JFROG_INT_PWD: YOUR_HARNESS_JFROG_INTERNAL_PASSWORD
     container_name:

@@ -3,4 +3,4 @@ package io.harness.cf.client.api.testwrapper.client
 import io.harness.cf.client.api.CfClient
 import io.harness.cf.client.api.Config
 
-class WrapperClient(apiKey: String, config: Config) : CfClient(apiKey, config)
+class WrapperClient(sdkKey: String, config: Config) : CfClient(sdkKey, config)

@@ -8,7 +8,7 @@ Make sure that the configuration file is defined (`wrapper.json`):
 {
   "selfTest": false,
   "port": 4000,
-  "apiKey": "YOUR_API_KEY",
+  "sdkKey": "YOUR_SDK_KEY",
   "logger": "default"
 }
 ```
@@ -19,7 +19,7 @@ Or, to run test wrapper inside the Docker container execute the following sample
 
 ```
 docker build --build-arg PORT=4000; SELF_TEST=false; WRAPPERS_BRANCH=main; \  
-API_KEY=YOUR_API_KEY; HARNESS_JFROG_INT_USR=USERNAME; HARNESS_JFROG_INT_PWD=PASSWORD \  
+SDK_KEY=YOUR_SDK_KEY; HARNESS_JFROG_INT_USR=USERNAME; HARNESS_JFROG_INT_PWD=PASSWORD \  
 -t <image_tag> . && \ 
     docker run -p 0.0.0.0:4000:4000 --name android_test_wrapper <image_tag> 
 ```
@@ -27,7 +27,7 @@ API_KEY=YOUR_API_KEY; HARNESS_JFROG_INT_USR=USERNAME; HARNESS_JFROG_INT_PWD=PASS
 Where the following arguments must be provided:
 
 - `PORT` represents the port that will be used
-- `API_KEY` represents your FF API KEY
+- `SDK_KEY` represents your FF SDK KEY
 - `HARNESS_JFROG_INT_USR` represents Harness JFrog username
 - `HARNESS_JFROG_INT_PWD` represents Harness JFrog password
 - `<image_tag>` Docker image tag name.
