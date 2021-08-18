@@ -11,7 +11,7 @@
             </DockerEnvVarImpl>
             <DockerEnvVarImpl>
               <option name="name" value="WRAPPERS_BRANCH" />
-              <option name="value" value="FFM-1276" />
+              <option name="value" value="main" />
             </DockerEnvVarImpl>
             <DockerEnvVarImpl>
               <option name="name" value="HARNESS_JFROG_INT_USR" />
@@ -32,7 +32,7 @@
           <list>
             <DockerEnvVarImpl>
               <option name="name" value="SDK_KEY" />
-              <option name="value" value="4651718f-8d49-456e-8a66-d02556693add" />
+              <option name="value" value="YOUR_SDK_KEY" />
             </DockerEnvVarImpl>
             <DockerEnvVarImpl>
               <option name="name" value="ENABLE_STREAMING" />

@@ -4,13 +4,12 @@ services:
   java_test_wrapper:
     build:
       context: .
-    args:
-      PORT: 4000
-      SELF_TEST: false
-      # TODO: Switch back to 'main' branch
-      WRAPPERS_BRANCH: FFM-1276
-      HARNESS_JFROG_INT_USR: YOUR_HARNESS_JFROG_INTERNAL_USER
-      HARNESS_JFROG_INT_PWD: YOUR_HARNESS_JFROG_INTERNAL_PASSWORD
+      args:
+        PORT: 4000
+        SELF_TEST: false
+        WRAPPERS_BRANCH: main
+        HARNESS_JFROG_INT_USR: YOUR_HARNESS_JFROG_INTERNAL_USER
+        HARNESS_JFROG_INT_PWD: YOUR_HARNESS_JFROG_INTERNAL_PASSWORD
     container_name:
       java_test_wrapper
     restart: always
