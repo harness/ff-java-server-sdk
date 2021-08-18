@@ -41,7 +41,7 @@ EXPOSE $PORT
 
 CMD export GPG_KEY=$(cat /root/gpg_out_key) && echo "GPG key: $GPG_KEY" && \
     cd ./CFJavaSDK && git fetch && git pull && \
-    echo "{\"selfTest\": $SELF_TEST, \"port\": $PORT, \"sdkKey\": \"$SDK_KEY\", \"logger\": \"filesystem\"}" \
+    echo "{\"selfTest\": $SELF_TEST, \"port\": $PORT, \"sdkKey\": \"$SDK_KEY\", \"logger\": \"filesystem\", \"enableStreaming\": $ENABLE_STREAMING, \"eventUrl\": \"$EVENT_URL\", \"sdkBaseUrl\": \"$SDK_BASE_URL\"}" \
     > "test_wrapper/wrapper/wrapper.json" && \
     echo "wrapper.json:" && cat "test_wrapper/wrapper/wrapper.json" && \
     echo "Building and installing FF Java Server SDK" && \
