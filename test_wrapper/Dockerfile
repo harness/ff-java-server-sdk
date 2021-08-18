@@ -1,14 +1,12 @@
 FROM fedora:34
 
 ARG PORT
-ARG SDK_KEY
 ARG SELF_TEST
 ARG WRAPPERS_BRANCH
 ARG HARNESS_JFROG_INT_USR
 ARG HARNESS_JFROG_INT_PWD
 
 ENV PORT "$PORT"
-ENV SDK_KEY "$SDK_KEY"
 ENV SELF_TEST "$SELF_TEST"
 ENV WRAPPERS_BRANCH "$WRAPPERS_BRANCH"
 ENV HARNESS_JFROG_INT_USR "$HARNESS_JFROG_INT_USR"
@@ -26,9 +24,6 @@ RUN mkdir CFJavaSDK && cd ./CFJavaSDK && \
     echo "Wrappers branch: $WRAPPERS_BRANCH" && \
     git checkout "$WRAPPERS_BRANCH" && \
     git submodule init && git submodule update && \
-    echo "{\"selfTest\": $SELF_TEST, \"port\": $PORT, \"sdkKey\": \"$SDK_KEY\", \"logger\": \"filesystem\"}" \
-        > "test_wrapper/wrapper/wrapper.json" && \
-        echo "wrapper.json:" && cat "test_wrapper/wrapper/wrapper.json" && \
     cd "test_wrapper" && \
     ../../gradle-7.0/bin/gradle wrapper --gradle-version 7.0 && ../../gradle-7.0/bin/gradle --stop
 
@@ -44,7 +39,10 @@ RUN gpg --batch --passphrase '' --quick-gen-key sdk@harness.io default default &
 
 EXPOSE $PORT
 
-CMD export GPG_KEY=$(cat /root/gpg_out_key) && echo "GPG key: $GPG_KEY" && \
+CMD echo "{\"selfTest\": $SELF_TEST, \"port\": $PORT, \"sdkKey\": \"$SDK_KEY\", \"logger\": \"filesystem\"}" \
+        > "CFJavaSDK/test_wrapper/wrapper/wrapper.json" && \
+    echo "wrapper.json:" && cat "CFJavaSDK/test_wrapper/wrapper/wrapper.json" && \
+    export GPG_KEY=$(cat /root/gpg_out_key) && echo "GPG key: $GPG_KEY" && \
     cd ./CFJavaSDK && git fetch && git pull && \
     echo "Building and installing FF Java Server SDK" && \
     mvn clean && mvn compile && mvn package -DskipTests=true && \
