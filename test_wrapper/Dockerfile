@@ -1,14 +1,12 @@
 FROM fedora:34
 
 ARG PORT
-ARG API_KEY
 ARG SELF_TEST
 ARG WRAPPERS_BRANCH
 ARG HARNESS_JFROG_INT_USR
 ARG HARNESS_JFROG_INT_PWD
 
 ENV PORT "$PORT"
-ENV API_KEY "$API_KEY"
 ENV SELF_TEST "$SELF_TEST"
 ENV WRAPPERS_BRANCH "$WRAPPERS_BRANCH"
 ENV HARNESS_JFROG_INT_USR "$HARNESS_JFROG_INT_USR"
@@ -26,9 +24,6 @@ RUN mkdir CFJavaSDK && cd ./CFJavaSDK && \
     echo "Wrappers branch: $WRAPPERS_BRANCH" && \
     git checkout "$WRAPPERS_BRANCH" && \
     git submodule init && git submodule update && \
-    echo "{\"selfTest\": $SELF_TEST, \"port\": $PORT, \"apiKey\": \"$API_KEY\", \"logger\": \"filesystem\"}" \
-        > "test_wrapper/wrapper/wrapper.json" && \
-        echo "wrapper.json:" && cat "test_wrapper/wrapper/wrapper.json" && \
     cd "test_wrapper" && \
     ../../gradle-7.0/bin/gradle wrapper --gradle-version 7.0 && ../../gradle-7.0/bin/gradle --stop
 
@@ -46,6 +41,9 @@ EXPOSE $PORT
 
 CMD export GPG_KEY=$(cat /root/gpg_out_key) && echo "GPG key: $GPG_KEY" && \
     cd ./CFJavaSDK && git fetch && git pull && \
+    echo "{\"selfTest\": $SELF_TEST, \"port\": $PORT, \"sdkKey\": \"$SDK_KEY\", \"logger\": \"filesystem\", \"enableStreaming\": $ENABLE_STREAMING, \"eventUrl\": \"$EVENT_URL\", \"sdkBaseUrl\": \"$SDK_BASE_URL\"}" \
+    > "test_wrapper/wrapper/wrapper.json" && \
+    echo "wrapper.json:" && cat "test_wrapper/wrapper/wrapper.json" && \
     echo "Building and installing FF Java Server SDK" && \
     mvn clean && mvn compile && mvn package -DskipTests=true && \
     mvn install -DskipTests=true && cd "test_wrapper" && \

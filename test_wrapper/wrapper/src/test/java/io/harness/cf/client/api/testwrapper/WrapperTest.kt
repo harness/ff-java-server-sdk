@@ -45,7 +45,22 @@ class WrapperTest {
     /**
      * API key used to initialize the SDK.
      */
-    private var apiKey = "YOUR_API_KEY"
+    private var sdkKey = "YOUR_SDK_KEY"
+
+    /**
+     * Enable SSE streaming.
+     */
+    private var enableStreaming = true
+
+    /**
+     * SDK event URL to be used.
+     */
+    private var eventUrl = ""
+
+    /**
+     * SDK base URL to be used.
+     */
+    private var sdkBaseUrl = ""
 
     /**
      * Will we write logs to the log ile or to the system console?
@@ -71,13 +86,31 @@ class WrapperTest {
         var inputStream: InputStream? = null
         try {
 
-            inputStream = File(WrapperTestConfiguration.CONFIGURATION_FILE).inputStream()
+            val file = File(WrapperTestConfiguration.CONFIGURATION_FILE)
+            Assert.assertTrue(file.exists())
+
+            inputStream = file.inputStream()
             val inputString = inputStream.bufferedReader().use { it.readText() }
+
+            Assert.assertNotNull(inputString)
+            Assert.assertTrue(inputString.isNotEmpty())
+
             val config = Gson().fromJson(inputString, WrapperTestConfiguration::class.java)
+
+            Assert.assertNotNull(config)
+            Assert.assertNotNull(config.selfTest)
+            Assert.assertNotNull(config.port)
+            Assert.assertNotNull(config.sdkKey)
+            Assert.assertNotNull(config.enableStreaming)
+            Assert.assertNotNull(config.eventUrl)
+            Assert.assertNotNull(config.sdkBaseUrl)
 
             selfTest = config.selfTest
             serverPort = config.port
-            apiKey = config.apiKey
+            sdkKey = config.sdkKey
+            enableStreaming = config.enableStreaming
+            eventUrl = config.eventUrl
+            sdkBaseUrl = config.sdkBaseUrl
 
             val loggerType = config.logger
             filesystemLogger = loggerType == LoggerType.FILESYSTEM.type
@@ -117,14 +150,16 @@ class WrapperTest {
 
         val configuration = Config.builder()
             .analyticsEnabled(true)
-            .streamEnabled(true)
+            .configUrl(sdkBaseUrl)
+            .eventUrl(eventUrl)
+            .streamEnabled(enableStreaming)
             .pollIntervalInSeconds(60)
             .build()
 
         server = WrapperServer(
 
             port = serverPort,
-            apiKey = apiKey,
+            sdkKey = sdkKey,
             configuration = configuration
         )
     }

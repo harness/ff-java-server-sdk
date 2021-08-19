@@ -16,7 +16,7 @@ import java.util.concurrent.Executors
 data class WrapperServer(
 
     private val port: Int,
-    private val apiKey: String,
+    private val sdkKey: String,
     private val configuration: Config
 
 ) : Initialization, Termination, Status {
@@ -43,7 +43,7 @@ data class WrapperServer(
         server.start()
 
         val startTime = System.currentTimeMillis()
-        client = WrapperClient(apiKey, configuration)
+        client = WrapperClient(sdkKey, configuration)
 
         while (!client.isInitialized &&
             System.currentTimeMillis() - startTime <= 5_000) {

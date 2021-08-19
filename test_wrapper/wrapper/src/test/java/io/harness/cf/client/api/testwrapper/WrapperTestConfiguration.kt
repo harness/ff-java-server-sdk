@@ -6,8 +6,11 @@ data class WrapperTestConfiguration(
 
     val selfTest: Boolean = true,
     val port: Int = 4000,
-    val apiKey: String,
-    val logger: String = LoggerType.DEFAULT.type
+    val sdkKey: String,
+    val logger: String = LoggerType.DEFAULT.type,
+    val enableStreaming: Boolean = true,
+    val eventUrl: String = "https://events.ff.harness.io/api/1.0",
+    val sdkBaseUrl: String = "https://config.ff.harness.io/api/1.0"
 ) {
 
     companion object {
