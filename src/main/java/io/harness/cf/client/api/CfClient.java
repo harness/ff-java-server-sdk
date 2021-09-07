@@ -14,6 +14,7 @@ import io.harness.cf.ApiException;
 import io.harness.cf.api.DefaultApi;
 import io.harness.cf.client.Evaluation;
 import io.harness.cf.client.api.analytics.AnalyticsManager;
+import io.harness.cf.client.api.analytics.MetricsApiFactory;
 import io.harness.cf.client.common.Destroyable;
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.FeatureConfig;
@@ -33,7 +34,6 @@ import lombok.extern.slf4j.Slf4j;
 import okhttp3.Request;
 import org.apache.commons.collections4.CollectionUtils;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 @Slf4j
 public class CfClient implements Destroyable {
@@ -43,14 +43,15 @@ public class CfClient implements Destroyable {
   protected Evaluation evaluator;
   protected String environmentID;
   protected final DefaultApi defaultApi;
+  protected final io.harness.cf.metrics.api.DefaultApi metricsApi;
   protected final boolean isAnalyticsEnabled;
-  protected AnalyticsManager analyticsManager;
+  protected AnalyticsManager analyticsManager = null;
   protected final Cache<String, Segment> segmentCache;
   protected final Cache<String, FeatureConfig> featureCache;
 
   @Setter protected String jwtToken;
 
-  @Getter protected boolean isInitialized;
+  @Getter protected boolean isInitialized = false;
 
   private Poller poller;
   private Request sseRequest;
@@ -59,7 +60,6 @@ public class CfClient implements Destroyable {
   private SSEListener listener;
 
   public CfClient(String apiKey) {
-
     this(apiKey, Config.builder().build());
   }
 
@@ -80,7 +80,15 @@ public class CfClient implements Destroyable {
             config.getWriteTimeout(),
             config.isDebug());
 
-    isInitialized = false;
+    // Create the metrics API client -
+    // we only use this if analytics is actually enabled
+    metricsApi =
+        MetricsApiFactory.create(
+            config.getEventUrl(),
+            config.getConnectionTimeout(),
+            config.getReadTimeout(),
+            config.getWriteTimeout(),
+            config.isDebug());
 
     // Try to authenticate:
     final AuthService authService = getAuthService(apiKey, config);
@@ -101,7 +109,10 @@ public class CfClient implements Destroyable {
   protected void doInit() throws ApiException, CfClientException {
 
     log.info("Initializing CF client..");
+
+    // add auth token to the client and metrics API clients
     addAuthHeader(defaultApi, jwtToken);
+    io.harness.cf.client.api.analytics.MetricsApiFactory.addAuthHeader(metricsApi, jwtToken);
     environmentID = getEnvironmentID(jwtToken);
     cluster = getCluster(jwtToken);
     evaluator = getEvaluator();
@@ -109,32 +120,30 @@ public class CfClient implements Destroyable {
     initCache(environmentID);
 
     if (!config.isStreamEnabled()) {
-
       startPollingMode();
       log.info("Running in polling mode.");
     } else {
-
       initStreamingMode();
       startSSE();
       log.info("Running in streaming mode.");
     }
 
-    analyticsManager = getAnalyticsManager();
+    if (config.isAnalyticsEnabled()) {
+      log.info("Starting analytics service");
+      analyticsManager = getAnalyticsManager();
+    }
+
     isInitialized = true;
+  }
+
+  protected AnalyticsManager getAnalyticsManager() throws CfClientException {
+    return new AnalyticsManager(metricsApi, environmentID, cluster, config);
   }
 
   @NotNull
   protected Evaluation getEvaluator() {
 
     return new Evaluator(segmentCache);
-  }
-
-  @Nullable
-  protected AnalyticsManager getAnalyticsManager() throws CfClientException {
-
-    return config.isAnalyticsEnabled()
-        ? new AnalyticsManager(environmentID, cluster, apiKey, config)
-        : null;
   }
 
   protected void initCache(String environmentID) throws io.harness.cf.ApiException {

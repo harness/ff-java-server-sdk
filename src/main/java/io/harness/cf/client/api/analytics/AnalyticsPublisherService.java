@@ -55,9 +55,13 @@ public class AnalyticsPublisherService {
   private final Config config;
 
   public AnalyticsPublisherService(
-      String apiKey, Config config, String environmentID, String cluster, Cache analyticsCache) {
+      DefaultApi metricsAPI,
+      Config config,
+      String environmentID,
+      String cluster,
+      Cache analyticsCache) {
 
-    metricsAPI = MetricsApiFactory.create(apiKey, config);
+    this.metricsAPI = metricsAPI;
     this.analyticsCache = analyticsCache;
     this.environmentID = environmentID;
     this.cluster = cluster;

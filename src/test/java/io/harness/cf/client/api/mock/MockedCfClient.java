@@ -32,7 +32,7 @@ public class MockedCfClient extends CfClient {
 
     if (analyticsManager == null) {
 
-      analyticsManager = new MockedAnalyticsManager(environmentID, "", config);
+      analyticsManager = new MockedAnalyticsManager(environmentID, config);
     }
     return analyticsManager;
   }
