@@ -5,7 +5,7 @@ plugins {
 
 dependencies {
 
-    implementation "io.harness:ff-java-server-sdk:1.0.4-SNAPSHOT"
+    implementation "io.harness:ff-java-server-sdk:1.0.5-SNAPSHOT"
     implementation project(':Logger:Logger')
 
     implementation fileTree(dir: 'libs', include: ['*.jar'])
