@@ -46,7 +46,8 @@ public class Evaluator implements Evaluation {
     return getVariation(featureConfig.getVariations(), servedVariation);
   }
 
-  private String processVariationMap(Target target, List<VariationMap> variationMaps) {
+  private String processVariationMap(Target target, List<VariationMap> variationMaps)
+      throws CfClientException {
 
     if (variationMaps == null) {
       return null;
@@ -67,20 +68,8 @@ public class Evaluator implements Evaluation {
 
       List<String> segmentIdentifiers = variationMap.getTargetSegments();
       if (segmentIdentifiers != null) {
-        for (String segmentIdentifier : segmentIdentifiers) {
-          Segment segment = segmentCache.getIfPresent(segmentIdentifier);
-          if (segment != null) {
-            List<io.harness.cf.model.Target> includedTargets = segment.getIncluded();
-            if (includedTargets != null) {
-              Iterator<io.harness.cf.model.Target> iterator = includedTargets.iterator();
-              while (iterator.hasNext()) {
-                io.harness.cf.model.Target includedTarget = iterator.next();
-                if (includedTarget.getIdentifier().contains(target.getIdentifier())) {
-                  return variationMap.getVariation();
-                }
-              }
-            }
-          }
+        if (isTargetIncludedBySegment(segmentIdentifiers, target)) {
+          return variationMap.getVariation();
         }
       }
     }
