@@ -5,20 +5,12 @@ import io.harness.cf.ApiClient;
 import io.harness.cf.api.DefaultApi;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @UtilityClass
 public class DefaultApiFactory {
-
-  @SneakyThrows
-  public static DefaultApi create(
-      String basePath, int connectionTimeout, int readTimeout, int writeTimeout) {
-    DefaultApi defaultApi = new DefaultApi();
-    return create(basePath, connectionTimeout, readTimeout, writeTimeout, false);
-  }
 
   public static DefaultApi create(
       String basePath, int connectionTimeout, int readTimeout, int writeTimeout, boolean debug) {

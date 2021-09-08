@@ -11,10 +11,8 @@ public class MockedAnalyticsManager extends AnalyticsManager {
 
   private MockedAnalyticsHandler analyticsEventHandler;
 
-  public MockedAnalyticsManager(String environmentID, String authToken, Config config)
-      throws CfClientException {
-
-    super(environmentID, "", authToken, config);
+  public MockedAnalyticsManager(String environmentID, Config config) throws CfClientException {
+    super(new io.harness.cf.metrics.api.DefaultApi(), environmentID, "", config);
   }
 
   @Nonnull

@@ -10,6 +10,7 @@ import io.harness.cf.client.common.Destroyable;
 import io.harness.cf.client.dto.Analytics;
 import io.harness.cf.client.dto.EventType;
 import io.harness.cf.client.dto.Target;
+import io.harness.cf.metrics.api.DefaultApi;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Variation;
 import java.util.concurrent.Executors;
@@ -38,12 +39,13 @@ public class AnalyticsManager implements Destroyable {
     timerExecutorService = Executors.newSingleThreadScheduledExecutor();
   }
 
-  public AnalyticsManager(String environmentID, String cluster, String apiKey, Config config)
+  public AnalyticsManager(
+      DefaultApi metricsApi, String environmentID, String cluster, Config config)
       throws CfClientException {
 
     this.analyticsCache = AnalyticsCacheFactory.create(config.getAnalyticsCacheType());
     AnalyticsPublisherService analyticsPublisherService =
-        new AnalyticsPublisherService(apiKey, config, environmentID, cluster, analyticsCache);
+        new AnalyticsPublisherService(metricsApi, config, environmentID, cluster, analyticsCache);
     ringBuffer = createRingBuffer(config.getBufferSize(), analyticsPublisherService);
 
     TimerTask timerTask = new TimerTask(ringBuffer);
