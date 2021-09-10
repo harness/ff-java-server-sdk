@@ -41,10 +41,12 @@ public final class VariationMapBuilder {
 
   private List<TargetMap> makeTargetMap(List<String> targets) {
     List<TargetMap> targetMapList = new ArrayList<>();
-    for (String name : targets) {
-      TargetMap targetMap = new TargetMap();
-      targetMap.name(name);
-      targetMapList.add(targetMap);
+    if (targets != null) {
+      for (String identifier : targets) {
+        TargetMap targetMap = new TargetMap();
+        targetMap.identifier(identifier);
+        targetMapList.add(targetMap);
+      }
     }
     return targetMapList;
   }

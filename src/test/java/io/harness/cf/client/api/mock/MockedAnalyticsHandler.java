@@ -33,15 +33,11 @@ public class MockedAnalyticsHandler extends AnalyticsEventHandler {
 
   @Override
   protected void onMetricsEvent(Analytics analytics) {
-
-    super.onMetricsEvent(analytics);
     notifyMetrics();
   }
 
   @Override
   protected void onTimerEvent() {
-
-    super.onTimerEvent();
     notifyTimer();
   }
 
