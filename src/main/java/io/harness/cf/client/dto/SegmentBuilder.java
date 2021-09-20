@@ -89,10 +89,12 @@ public final class SegmentBuilder {
 
   private List<Target> makeSegmentList(List<String> targets) {
     List<Target> targetList = new ArrayList<>();
-    for (String name : targets) {
-      Target target = new Target();
-      target.name(name);
-      targetList.add(target);
+    if (targets != null) {
+      for (String identifier : targets) {
+        Target target = new Target();
+        target.identifier(identifier);
+        targetList.add(target);
+      }
     }
     return targetList;
   }
