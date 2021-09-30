@@ -90,7 +90,7 @@ boolean result = cfClient.boolVariation("sample_boolean_flag", target, false);
 ### Number variation
 
 ```
-boolean result = cfClient.numberVariation("sample_number_flag", target, 0);  
+double result = cfClient.numberVariation("sample_number_flag", target, 0);  
 ```
 
 ### String variation
