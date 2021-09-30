@@ -5,11 +5,11 @@ import static org.junit.Assert.*;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.harness.cf.client.dto.*;
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.*;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -18,6 +18,30 @@ public class EvaluatorTest {
 
   private static Evaluator evaluator;
   private static Cache<String, Segment> cache;
+
+  private static Target target1 =
+      Target.builder()
+          .identifier("bob")
+          .name("Bob")
+          .attributes(
+              new ImmutableMap.Builder<String, Object>()
+                  .put("company", "harness")
+                  .put("age", 56)
+                  .put("happy", true)
+                  .build())
+          .build();
+
+  private static Target target2 =
+      Target.builder()
+          .identifier("joe")
+          .name("Joe")
+          .attributes(
+              new ImmutableMap.Builder<String, Object>()
+                  .put("company", "ACME")
+                  .put("age", 22)
+                  .put("happy", false)
+                  .build())
+          .build();
 
   @BeforeClass
   public static void beforeClass() {
@@ -32,12 +56,10 @@ public class EvaluatorTest {
    */
   @Test
   public void testBooleanFlagStates() throws CfClientException {
-    Target target = target("Bob", "bob");
-
-    Variation result = evaluator.evaluate(booleanFlag(FeatureState.ON), target);
+    Variation result = evaluator.evaluate(booleanFlag(FeatureState.ON), target1);
     assertEquals("true", result.getValue());
 
-    result = evaluator.evaluate(booleanFlag(FeatureState.OFF), target);
+    result = evaluator.evaluate(booleanFlag(FeatureState.OFF), target1);
     assertEquals("false", result.getValue());
   }
 
@@ -49,12 +71,10 @@ public class EvaluatorTest {
    */
   @Test
   public void testTarget() throws CfClientException {
-    Target target = target("Bob", "bob");
-
     FeatureConfig fc = booleanFlag(FeatureState.ON);
-    addTargetMappingRule(fc, target.getIdentifier(), "false");
+    addTargetMappingRule(fc, target1.getIdentifier(), "false");
 
-    Variation result = evaluator.evaluate(fc, target);
+    Variation result = evaluator.evaluate(fc, target1);
     assertEquals("false", result.getValue());
   }
 
@@ -66,17 +86,12 @@ public class EvaluatorTest {
    */
   @Test
   public void testSegmentIncludeList() throws CfClientException {
-    // Create two targets, one will be a member of the segment
-    // the other wont
-    Target segmentMember = target("Bob", "bob");
-    Target nonSegmentMember = target("Joe", "joe");
-
     // Create Segment and add it to the evaluator cache
     Segment segment =
         SegmentBuilder.aTargetSegment()
             .withIdentifier("Alpha")
             .withName("alpha")
-            .withIncluded(Arrays.asList(segmentMember.getIdentifier()))
+            .withIncluded(Arrays.asList(target1.getIdentifier()))
             .build();
 
     addSegmentToCache(segment);
@@ -86,11 +101,11 @@ public class EvaluatorTest {
     addSegmentMappingRule(fc, segment.getIdentifier(), "false");
 
     // Serve false to segment member
-    Variation result = evaluator.evaluate(fc, segmentMember);
+    Variation result = evaluator.evaluate(fc, target1);
     assertEquals("false", result.getValue());
 
     // Serve default serve (true) to non segment member
-    result = evaluator.evaluate(fc, nonSegmentMember);
+    result = evaluator.evaluate(fc, target2);
     assertEquals("true", result.getValue());
 
     removeSegmentFromCache(segment);
@@ -105,17 +120,11 @@ public class EvaluatorTest {
    */
   @Test
   public void testSegmentExcludeList() throws CfClientException {
-    // Create two targets, one will be a member of the segment
-    // the other wont
-    Target segmentMember1 = target("Bob", "bob");
-    Target segmentMember2 = target("Joe", "joe");
-
     // Create Include List
-    List<String> included =
-        Arrays.asList(segmentMember1.getIdentifier(), segmentMember2.getIdentifier());
+    List<String> included = Arrays.asList(target1.getIdentifier(), target2.getIdentifier());
 
     // Create Exclude List - exclude segmentMember1
-    List<String> excluded = Arrays.asList(segmentMember1.getIdentifier());
+    List<String> excluded = Arrays.asList(target1.getIdentifier());
 
     // Create Segment and add it to the evaluator cache
     Segment segment =
@@ -133,11 +142,11 @@ public class EvaluatorTest {
     addSegmentMappingRule(fc, segment.getIdentifier(), "false");
 
     // Serve false to segment member
-    Variation result = evaluator.evaluate(fc, segmentMember1);
+    Variation result = evaluator.evaluate(fc, target1);
     assertEquals("true", result.getValue());
 
     // Serve default serve (true) to non segment member
-    result = evaluator.evaluate(fc, segmentMember2);
+    result = evaluator.evaluate(fc, target2);
     assertEquals("false", result.getValue());
 
     removeSegmentFromCache(segment);
@@ -151,22 +160,17 @@ public class EvaluatorTest {
    */
   @Test
   public void testSegmentRules() throws CfClientException {
-    // Create two targets, one will be a member of the segment
-    // the other wont
-    Target segmentMember1 = target("Bob", "bob");
-    Target segmentMember2 = target("Joe", "joe");
-
     List<Clause> clauses =
         Arrays.asList(
             ClauseBuilder.aClause()
                 .withAttribute("identifier")
                 .withOp(Operators.EQUAL)
-                .withValue(Arrays.asList(segmentMember1.getIdentifier()))
+                .withValue(Arrays.asList(target1.getIdentifier()))
                 .build(),
             ClauseBuilder.aClause()
                 .withAttribute("name")
                 .withOp(Operators.EQUAL)
-                .withValue(Arrays.asList(segmentMember2.getName()))
+                .withValue(Arrays.asList(target2.getName()))
                 .build());
 
     // Create Segment and add it to the evaluator cache
@@ -184,28 +188,97 @@ public class EvaluatorTest {
     addSegmentMappingRule(fc, segment.getIdentifier(), "false");
 
     // Serve false to segment member
-    Variation result = evaluator.evaluate(fc, segmentMember1);
+    Variation result = evaluator.evaluate(fc, target1);
     assertEquals("false", result.getValue());
 
     // Serve default serve (true) to non segment member
-    result = evaluator.evaluate(fc, segmentMember2);
+    result = evaluator.evaluate(fc, target2);
     assertEquals("false", result.getValue());
 
     removeSegmentFromCache(segment);
   }
 
-  /** * The functions below are helpers for running the tests */
+  /**
+   * Test that boolean values are correctly evaluated in segment rules
+   *
+   * @throws CfClientException
+   */
+  @Test
+  public void testSegmentBooleanRules() throws CfClientException {
+    List<Clause> clauses =
+        Arrays.asList(
+            ClauseBuilder.aClause()
+                .withAttribute("happy")
+                .withOp(Operators.EQUAL)
+                .withValue(Arrays.asList(new Boolean(true).toString()))
+                .build());
+
+    // Create Segment and add it to the evaluator cache
+    Segment segment =
+        SegmentBuilder.aTargetSegment()
+            .withIdentifier("Alpha")
+            .withName("alpha")
+            .withRules(clauses)
+            .build();
+
+    addSegmentToCache(segment);
+
+    // Create the flag configuration and add the segment
+    FeatureConfig fc = booleanFlag(FeatureState.ON);
+    addSegmentMappingRule(fc, segment.getIdentifier(), "false");
+
+    // Serve false to segment member (included by happy)
+    Variation result = evaluator.evaluate(fc, target1);
+    assertEquals("false", result.getValue());
+
+    // Serve true to non segment member
+    result = evaluator.evaluate(fc, target2);
+    assertEquals("true", result.getValue());
+
+    removeSegmentFromCache(segment);
+  }
 
   /**
-   * Create a Target
+   * Test that boolean values are correctly evaluated in segment rules
    *
-   * @param name
-   * @param identifier
-   * @return
+   * @throws CfClientException
    */
-  private static Target target(String name, String identifier) {
-    return Target.builder().identifier(identifier).name(name).build();
+  @Test
+  public void testSegmentIntegerRules() throws CfClientException {
+    List<Clause> clauses =
+        Arrays.asList(
+            ClauseBuilder.aClause()
+                .withAttribute("age")
+                .withOp(Operators.EQUAL)
+                .withValue(Arrays.asList(new Integer(22).toString()))
+                .build());
+
+    // Create Segment and add it to the evaluator cache
+    Segment segment =
+        SegmentBuilder.aTargetSegment()
+            .withIdentifier("Alpha")
+            .withName("alpha")
+            .withRules(clauses)
+            .build();
+
+    addSegmentToCache(segment);
+
+    // Create the flag configuration and add the segment
+    FeatureConfig fc = booleanFlag(FeatureState.ON);
+    addSegmentMappingRule(fc, segment.getIdentifier(), "false");
+
+    // Serve false to segment member (included by age 22)
+    Variation result = evaluator.evaluate(fc, target2);
+    assertEquals("false", result.getValue());
+
+    // Serve true to non segment member
+    result = evaluator.evaluate(fc, target1);
+    assertEquals("true", result.getValue());
+
+    removeSegmentFromCache(segment);
   }
+
+  /** * The functions below are helpers for running the tests */
 
   /**
    * Add a Target Mapping rule to the flag configuration. The target should be served the specified
