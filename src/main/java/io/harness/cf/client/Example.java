@@ -11,7 +11,9 @@ class Example {
   public static final String API_KEY = "dummyKey";
 
   public static void main(String... args) {
-    CfClient cfClient = new CfClient(API_KEY);
+
+    final CfClient cfClient = CfClient.getInstance(API_KEY);
+
     Target target =
         Target.builder()
             .identifier("target1")
@@ -19,6 +21,7 @@ class Example {
             .attribute("testKey", "TestValue")
             .name("target1")
             .build();
+
     boolean result = cfClient.boolVariation(FEATURE_FLAG_KEY, target, false);
     log.info("Boolean variation: {}", result);
   }
