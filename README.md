@@ -41,7 +41,7 @@ After dependency has been added, the SDK elements, primarily `CfClient` should b
  */
 String apiKey = "YOUR_API_KEY";
 
-CfClient cfClient = new CfClient(apiKey, Config.builder().build());
+CfClient cfClient = CfClient.getInstance(apiKey, Config.builder().build());
 
 /**
  * Define you target on which you would like to evaluate 
