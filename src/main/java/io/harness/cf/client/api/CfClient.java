@@ -62,13 +62,34 @@ public class CfClient implements Destroyable {
     private ServerSentEvent sse;
     private final String apiKey;
     private SSEListener listener;
+    private static CfClient instance;
 
-    public CfClient(String apiKey) {
+    public static CfClient getInstance(final String apiKey) {
+
+        return getInstance(apiKey, Config.builder().build());
+    }
+
+    public static CfClient getInstance(final String apiKey, final Config config) {
+
+        if (instance == null) {
+
+            synchronized (CfClient.class) {
+
+                if (instance == null) {
+
+                    instance = new CfClient(apiKey, config);
+                }
+            }
+        }
+        return instance;
+    }
+
+    private CfClient(final String apiKey) {
 
         this(apiKey, Config.builder().build());
     }
 
-    public CfClient(String apiKey, Config config) {
+    private CfClient(final String apiKey, final Config config) {
 
         this.apiKey = apiKey;
         this.config = config;
