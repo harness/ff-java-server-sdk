@@ -35,6 +35,9 @@ After dependency has been added, the SDK elements, primarily `CfClient` should b
 
 `CfClient` is a base class that provides all features of SDK.
 
+We can instantiate by calling the `getInstance(...)` method or by using public
+constructors (making multiple instances).
+
 ```
 /**
  * Put the API Key here from your environment

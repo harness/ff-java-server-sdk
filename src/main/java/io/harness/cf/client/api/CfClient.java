@@ -81,12 +81,12 @@ public class CfClient implements Destroyable {
         return instance;
     }
 
-    protected CfClient(final String apiKey) {
+    public CfClient(final String apiKey) {
 
         this(apiKey, Config.builder().build());
     }
 
-    protected CfClient(final String apiKey, final Config config) {
+    public CfClient(final String apiKey, final Config config) {
 
         this.apiKey = apiKey;
         this.config = config;
