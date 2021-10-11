@@ -5,6 +5,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import io.harness.cf.client.dto.Analytics;
 import java.util.Map;
+import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -24,7 +25,8 @@ public class GuavaCache implements Cache {
           .build(
               new CacheLoader<Analytics, Integer>() {
                 @Override
-                public Integer load(Analytics analytics) throws Exception {
+                @NonNull
+                public Integer load(@NonNull Analytics analytics) {
                   return 0;
                 }
               });
@@ -48,11 +50,6 @@ public class GuavaCache implements Cache {
   @Override
   public void resetCache() {
     cache.invalidateAll();
-  }
-
-  @Override
-  public void printCache() {
-    log.info(toString());
   }
 
   @Override

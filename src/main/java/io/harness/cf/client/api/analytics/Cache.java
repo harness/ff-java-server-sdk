@@ -19,6 +19,4 @@ public interface Cache {
   void put(Analytics a, Integer i);
 
   void resetCache();
-
-  void printCache();
 }

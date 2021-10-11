@@ -18,8 +18,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @UtilityClass
 public class MetricsApiFactory {
-  private static final long AUTH_RETRY_INTERNAL_MILLIS = 1000;
-  private static final int AUTH_RETRY_MAX_RETRY_COUNT = 3;
 
   public static MetricsApi create(
       String basePath, int connectionTimeout, int readTimeout, int writeTimeout, boolean debug) {
