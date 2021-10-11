@@ -23,7 +23,6 @@ import io.harness.cf.model.Prerequisite;
 import io.harness.cf.model.Segment;
 import io.harness.cf.model.Variation;
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Header;
 import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.Jwts;
 import java.util.List;
@@ -387,7 +386,7 @@ public class CfClient implements Destroyable {
 
     int i = jwtToken.lastIndexOf('.');
     String unsignedJwt = jwtToken.substring(0, i + 1);
-    Jwt<Header, Claims> untrusted = Jwts.parser().parseClaimsJwt(unsignedJwt);
+    Jwt<?, Claims> untrusted = Jwts.parserBuilder().build().parseClaimsJwt(unsignedJwt);
     jwtToken = (String) untrusted.getBody().get("environment");
     return jwtToken;
   }
@@ -396,7 +395,7 @@ public class CfClient implements Destroyable {
 
     int i = jwtToken.lastIndexOf('.');
     String unsignedJwt = jwtToken.substring(0, i + 1);
-    Jwt<Header, Claims> untrusted = Jwts.parser().parseClaimsJwt(unsignedJwt);
+    Jwt<?, Claims> untrusted = Jwts.parserBuilder().build().parseClaimsJwt(unsignedJwt);
     jwtToken = (String) untrusted.getBody().get("clusterIdentifier");
     return jwtToken;
   }

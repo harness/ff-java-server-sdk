@@ -6,6 +6,7 @@ import io.harness.cf.api.ClientApi;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Segment;
 import java.util.concurrent.TimeUnit;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -62,6 +63,7 @@ public class Poller extends AbstractScheduledService {
   }
 
   @Override
+  @NonNull
   protected Scheduler scheduler() {
     return Scheduler.newFixedDelaySchedule(pollIntervalInSec, pollIntervalInSec, TimeUnit.SECONDS);
   }

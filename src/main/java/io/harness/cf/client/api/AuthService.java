@@ -8,6 +8,7 @@ import io.harness.cf.api.ClientApi;
 import io.harness.cf.client.dto.AuthenticationRequestBuilder;
 import io.harness.cf.model.AuthenticationResponse;
 import java.util.concurrent.TimeUnit;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -60,6 +61,7 @@ public class AuthService extends AbstractScheduledService {
   }
 
   @Override
+  @NonNull
   protected Scheduler scheduler() {
 
     return Scheduler.newFixedDelaySchedule(0L, pollIntervalInSec, TimeUnit.SECONDS);

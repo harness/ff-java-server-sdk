@@ -15,6 +15,7 @@ public class DistributionProcessor {
 
   public DistributionProcessor(Serve serve) {
     this.distribution = serve.getDistribution();
+    Preconditions.checkNotNull(distribution);
     Preconditions.checkNotNull(distribution.getVariations());
   }
 

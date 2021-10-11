@@ -19,6 +19,7 @@ public class Evaluator implements Evaluation {
   private final Cache<String, Segment> segmentCache;
 
   public Evaluator(Cache<String, Segment> segmentCache) {
+
     this.segmentCache = segmentCache;
   }
 
@@ -57,10 +58,9 @@ public class Evaluator implements Evaluation {
       List<TargetMap> targets = variationMap.getTargets();
 
       if (targets != null) {
-        Iterator<TargetMap> iterator = targets.iterator();
-        while (iterator.hasNext()) {
-          TargetMap targetMap = iterator.next();
-          if (targetMap.getIdentifier().contains(target.getIdentifier())) {
+        for (TargetMap targetMap : targets) {
+          if (targetMap.getIdentifier() != null
+              && targetMap.getIdentifier().contains(target.getIdentifier())) {
             return variationMap.getVariation();
           }
         }
@@ -82,9 +82,8 @@ public class Evaluator implements Evaluation {
     ArrayList<ServingRule> servingRules =
         new ArrayList<>(Optional.ofNullable(originalServingRules).orElse(new ArrayList<>()));
     servingRules.sort(Comparator.comparing(ServingRule::getPriority));
-    String servedVariation = null;
     for (ServingRule servingRule : Objects.requireNonNull(servingRules)) {
-      servedVariation = processServingRule(servingRule, target);
+      String servedVariation = processServingRule(servingRule, target);
       if (servedVariation != null) {
         return servedVariation;
       }
@@ -115,7 +114,7 @@ public class Evaluator implements Evaluation {
 
   private boolean process(Clause clause, Target target) throws CfClientException {
     boolean result = compare(clause.getValues(), target, clause);
-    return Optional.ofNullable(clause.getNegate()).orElse(false) != result;
+    return Optional.of(clause.getNegate()).orElse(false) != result;
   }
 
   /**
@@ -127,9 +126,7 @@ public class Evaluator implements Evaluation {
    */
   private boolean isTargetInList(Target target, List<io.harness.cf.model.Target> listOfTargets) {
     if (listOfTargets != null) {
-      Iterator<io.harness.cf.model.Target> iterator = listOfTargets.iterator();
-      while (iterator.hasNext()) {
-        io.harness.cf.model.Target includedTarget = iterator.next();
+      for (io.harness.cf.model.Target includedTarget : listOfTargets) {
         if (includedTarget.getIdentifier().contains(target.getIdentifier())) {
           return true;
         }
@@ -144,16 +141,16 @@ public class Evaluator implements Evaluation {
    * @param segmentList a list of segments
    * @param target the target to check if its included
    * @return true if the target is included in the segment via rules
-   * @throws CfClientException
    */
-  private boolean isTargetIncludedBySegment(List segmentList, Target target)
+  private boolean isTargetIncludedBySegment(List<String> segmentList, Target target)
       throws CfClientException {
-    for (String segmentIdentifier : (List<String>) segmentList) {
+
+    for (String segmentIdentifier : segmentList) {
       Segment segment = segmentCache.getIfPresent(segmentIdentifier);
       if (segment != null) {
 
         // Should Target be excluded - if in excluded list we return false
-        if (isTargetInList(target, segment.getExcluded()) == true) {
+        if (isTargetInList(target, segment.getExcluded())) {
           log.debug(
               format(
                   "Target %s excluded from segment %s via exclude list",
@@ -162,7 +159,7 @@ public class Evaluator implements Evaluation {
         }
 
         // Should Target be included - if in included list we return true
-        if (isTargetInList(target, segment.getIncluded()) == true) {
+        if (isTargetInList(target, segment.getIncluded())) {
           log.debug(
               format(
                   "Target %s included in segment %s via include list",
@@ -173,7 +170,7 @@ public class Evaluator implements Evaluation {
         // Should Target be included via segment rules
         if ((segment.getRules() != null) && !segment.getRules().isEmpty()) {
           for (Clause rule : segment.getRules()) {
-            if (compare(rule.getValues(), target, rule) == true) {
+            if (compare(rule.getValues(), target, rule)) {
               log.debug(
                   format(
                       "Target %s included in segment %s via rules",
@@ -187,22 +184,20 @@ public class Evaluator implements Evaluation {
     return false;
   }
 
-  private boolean compare(List value, Target target, Clause clause) throws CfClientException {
+  private boolean compare(List<String> value, Target target, Clause clause)
+      throws CfClientException {
     String operator = clause.getOp();
-    String object = null;
-    Object attrValue = null;
+    String object;
+    Object attrValue;
     try {
       attrValue = getAttrValue(target, clause.getAttribute());
     } catch (CfClientException e) {
       attrValue = "";
     }
+
     object = attrValue.toString();
 
-    if (clause.getValues() == null) {
-      throw new CfClientException("The clause is missing values");
-    }
-
-    String v = (String) (value).get(0);
+    String v = (value).get(0);
     switch (operator) {
       case STARTS_WITH:
         return object.startsWith(v);
@@ -223,15 +218,6 @@ public class Evaluator implements Evaluation {
       default:
         return false;
     }
-  }
-
-  private boolean in(String[] conditions, String object) {
-    for (String condition : conditions) {
-      if (object.equalsIgnoreCase(condition)) {
-        return true;
-      }
-    }
-    return false;
   }
 
   private String processDefaultServe(Serve defaultServe, Target target) throws CfClientException {
