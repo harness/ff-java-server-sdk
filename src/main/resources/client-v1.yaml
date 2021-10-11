@@ -11,12 +11,17 @@ servers:
     description: no host specified
   - url: 'http://localhost:3000/api/1.0'
     description: CfClient description
+tags:
+  - name: client
+  - name: metrics
 paths:
   '/client/env/{environmentUUID}/feature-configs':
     get:
       summary: Get all feature flags activations
       description: All feature flags with activations in project environment
       operationId: GetFeatureConfig
+      tags:
+        - client
       parameters:
         - name: environmentUUID
           in: path
@@ -24,7 +29,7 @@ paths:
           description: Unique identifier for the environment object in the API.
           schema:
             type: string
-        - $ref: '#/components/parameters/clusterQueryParam'
+        - $ref: '#/components/parameters/clusterQueryOptionalParam'
       security:
         - BearerAuth: []
       responses:
@@ -40,6 +45,8 @@ paths:
     get:
       summary: Get feature config
       operationId: GetFeatureConfigByIdentifier
+      tags:
+        - client
       parameters:
         - name: identifier
           in: path
@@ -53,7 +60,7 @@ paths:
           description: Unique identifier for the environment object in the API.
           schema:
             type: string
-        - $ref: '#/components/parameters/clusterQueryParam'
+        - $ref: '#/components/parameters/clusterQueryOptionalParam'
       security:
         - BearerAuth: []
       responses:
@@ -68,6 +75,8 @@ paths:
       summary: Retrieve all segments.
       description: Used to retrieve all segments for certain account id.
       operationId: GetAllSegments
+      tags:
+        - client
       parameters:
         - name: environmentUUID
           in: path
@@ -75,7 +84,7 @@ paths:
           description: Unique identifier for the environment object in the API.
           schema:
             type: string
-        - $ref: '#/components/parameters/clusterQueryParam'
+        - $ref: '#/components/parameters/clusterQueryOptionalParam'
       security:
         - BearerAuth: []
       responses:
@@ -100,6 +109,8 @@ paths:
       summary: Retrieve a segment by identifier
       description: Used to retrieve a segment for a certain account id by identifier
       operationId: GetSegmentByIdentifier
+      tags:
+        - client
       parameters:
         - name: identifier
           in: path
@@ -113,7 +124,7 @@ paths:
           description: Unique identifier for the environment object in the API
           schema:
             type: string
-        - $ref: '#/components/parameters/clusterQueryParam'
+        - $ref: '#/components/parameters/clusterQueryOptionalParam'
       security:
         - BearerAuth: []
       responses:
@@ -136,6 +147,8 @@ paths:
       summary: Authenticate with the admin server.
       description: Used to retrieve all target segments for certain account id.
       operationId: Authenticate
+      tags:
+        - client
       requestBody:
         content:
           application/json:
@@ -160,6 +173,8 @@ paths:
     get:
       summary: Get feature evaluations for target
       operationId: GetEvaluations
+      tags:
+        - client
       parameters:
         - name: environmentUUID
           in: path
@@ -173,7 +188,9 @@ paths:
           description: Unique identifier for the target object in the API.
           schema:
             type: string
-        - $ref: '#/components/parameters/clusterQueryParam'
+        - $ref: '#/components/parameters/clusterQueryOptionalParam'
+      security:
+        - BearerAuth: []
       responses:
         '200':
           description: OK
@@ -187,6 +204,8 @@ paths:
     get:
       summary: Get feature evaluations for target
       operationId: GetEvaluationByIdentifier
+      tags:
+        - client
       parameters:
         - name: environmentUUID
           in: path
@@ -206,7 +225,9 @@ paths:
           description: Unique identifier for the target object in the API.
           schema:
             type: string
-        - $ref: '#/components/parameters/clusterQueryParam'
+        - $ref: '#/components/parameters/clusterQueryOptionalParam'
+      security:
+        - BearerAuth: []
       responses:
         '200':
           description: OK
@@ -214,17 +235,45 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Evaluation'
+  '/metrics/{environment}':
+    post:
+      tags:
+        - metrics
+      summary: Send metrics to the Analytics server.
+      description: Send metrics to Analytics server
+      operationId: postMetrics
+      parameters:
+        - $ref: '#/components/parameters/environmentPathParam'
+        - $ref: '#/components/parameters/clusterQueryOptionalParam'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Metrics'
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /stream:
     get:
       summary: Stream endpoint.
       operationId: Stream
+      tags:
+        - client
       parameters:
         - in: header
           name: API-Key
           schema:
             type: string
           required: true
-        - $ref: '#/components/parameters/clusterQueryParam'
+        - $ref: '#/components/parameters/clusterQueryOptionalParam'
       security:
         - BearerAuth: []
       responses:
@@ -572,7 +621,6 @@ components:
         - itemCount
         - pageSize
         - pageIndex
-        - pageIndex
     Evaluation:
       type: object
       properties:
@@ -592,17 +640,84 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/Evaluation'
+    KeyValue:
+      type: object
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+      required:
+        - key
+        - value
+    TargetData:
+      type: object
+      properties:
+        identifier:
+          type: string
+        name:
+          type: string
+        attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/KeyValue'
+      required:
+        - name
+        - identifier
+        - attributes
+    MetricsData:
+      type: object
+      properties:
+        timestamp:
+          type: integer
+          format: int64
+          example: 1608175465
+          description: time at when this data was recorded
+        count:
+          type: integer
+        metricsType:
+          type: string
+          enum:
+            - FFMETRICS
+          description: This can be of type FeatureMetrics
+        attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/KeyValue'
+      required:
+        - attributes
+        - count
+        - timestamp
+        - metricsType
+    Metrics:
+      type: object
+      properties:
+        targetData:
+          type: array
+          items:
+            $ref: '#/components/schemas/TargetData'
+        metricsData:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetricsData'
   securitySchemes:
     BearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
   parameters:
-    clusterQueryParam:
+    clusterQueryOptionalParam:
       name: cluster
       in: query
       required: false
       description: Unique identifier for the cluster for the account
+      schema:
+        type: string
+    environmentPathParam:
+      name: environment
+      in: path
+      required: true
+      description: environment parameter in query.
       schema:
         type: string
   responses:
@@ -630,4 +745,3 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
-

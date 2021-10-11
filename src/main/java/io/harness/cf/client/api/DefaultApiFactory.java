@@ -2,7 +2,7 @@ package io.harness.cf.client.api;
 
 import com.google.common.base.Strings;
 import io.harness.cf.ApiClient;
-import io.harness.cf.api.DefaultApi;
+import io.harness.cf.api.ClientApi;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import lombok.experimental.UtilityClass;
@@ -12,9 +12,10 @@ import lombok.extern.slf4j.Slf4j;
 @UtilityClass
 public class DefaultApiFactory {
 
-  public static DefaultApi create(
+  public static ClientApi create(
       String basePath, int connectionTimeout, int readTimeout, int writeTimeout, boolean debug) {
-    DefaultApi defaultApi = new DefaultApi();
+
+    ClientApi defaultApi = new ClientApi();
     if (!Strings.isNullOrEmpty(basePath)) {
       ApiClient apiClient = defaultApi.getApiClient();
       apiClient.setConnectTimeout(connectionTimeout);
@@ -36,7 +37,7 @@ public class DefaultApiFactory {
     return defaultApi;
   }
 
-  public static void addAuthHeader(DefaultApi defaultApi, String jwtToken) {
+  public static void addAuthHeader(ClientApi defaultApi, String jwtToken) {
     ApiClient apiClient = defaultApi.getApiClient();
     apiClient.addDefaultHeader("Authorization", "Bearer " + jwtToken);
     defaultApi.setApiClient(apiClient);

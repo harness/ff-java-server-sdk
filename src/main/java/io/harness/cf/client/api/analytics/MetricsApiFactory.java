@@ -1,8 +1,8 @@
 package io.harness.cf.client.api.analytics;
 
 import com.google.common.base.Strings;
-import io.harness.cf.metrics.ApiClient;
-import io.harness.cf.metrics.api.DefaultApi;
+import io.harness.cf.ApiClient;
+import io.harness.cf.api.MetricsApi;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import lombok.experimental.UtilityClass;
@@ -21,10 +21,10 @@ public class MetricsApiFactory {
   private static final long AUTH_RETRY_INTERNAL_MILLIS = 1000;
   private static final int AUTH_RETRY_MAX_RETRY_COUNT = 3;
 
-  public static DefaultApi create(
+  public static MetricsApi create(
       String basePath, int connectionTimeout, int readTimeout, int writeTimeout, boolean debug) {
 
-    DefaultApi metricsAPI = new DefaultApi();
+    MetricsApi metricsAPI = new MetricsApi();
     if (!Strings.isNullOrEmpty(basePath)) {
       ApiClient apiClient = metricsAPI.getApiClient();
       apiClient.setConnectTimeout(connectionTimeout);
@@ -46,7 +46,7 @@ public class MetricsApiFactory {
     return metricsAPI;
   }
 
-  public static void addAuthHeader(DefaultApi defaultApi, String jwtToken) {
+  public static void addAuthHeader(MetricsApi defaultApi, String jwtToken) {
     ApiClient apiClient = defaultApi.getApiClient();
     apiClient.addDefaultHeader("Authorization", "Bearer " + jwtToken);
     defaultApi.setApiClient(apiClient);

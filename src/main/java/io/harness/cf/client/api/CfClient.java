@@ -11,7 +11,8 @@ import com.google.gson.JsonObject;
 import com.here.oksse.OkSse;
 import com.here.oksse.ServerSentEvent;
 import io.harness.cf.ApiException;
-import io.harness.cf.api.DefaultApi;
+import io.harness.cf.api.ClientApi;
+import io.harness.cf.api.MetricsApi;
 import io.harness.cf.client.Evaluation;
 import io.harness.cf.client.api.analytics.AnalyticsManager;
 import io.harness.cf.client.api.analytics.MetricsApiFactory;
@@ -42,8 +43,8 @@ public class CfClient implements Destroyable {
   protected final Config config;
   protected Evaluation evaluator;
   protected String environmentID;
-  protected final DefaultApi defaultApi;
-  protected final io.harness.cf.metrics.api.DefaultApi metricsApi;
+  protected final ClientApi defaultApi;
+  protected final MetricsApi metricsApi;
   protected final boolean isAnalyticsEnabled;
   protected AnalyticsManager analyticsManager = null;
   protected final Cache<String, Segment> segmentCache;
@@ -150,20 +151,29 @@ public class CfClient implements Destroyable {
 
     if (!Strings.isNullOrEmpty(environmentID)) {
 
-      List<FeatureConfig> featureConfigs = defaultApi.getFeatureConfig(environmentID, cluster);
-      if (featureConfigs != null) {
-        featureCache.putAll(
-            featureConfigs.stream()
-                .collect(
-                    Collectors.toMap(FeatureConfig::getFeature, featureConfig -> featureConfig)));
-      }
+      configs(environmentID, defaultApi, cluster, featureCache, segmentCache);
+    }
+  }
 
-      List<Segment> segments = defaultApi.getAllSegments(environmentID, cluster);
-      if (segments != null) {
-        segmentCache.putAll(
-            segments.stream()
-                .collect(Collectors.toMap(Segment::getIdentifier, segment -> segment)));
-      }
+  static void configs(
+      String environmentID,
+      ClientApi defaultApi,
+      String cluster,
+      Cache<String, FeatureConfig> featureCache,
+      Cache<String, Segment> segmentCache)
+      throws ApiException {
+    List<FeatureConfig> featureConfigs = defaultApi.getFeatureConfig(environmentID, cluster);
+    if (featureConfigs != null) {
+      featureCache.putAll(
+          featureConfigs.stream()
+              .collect(
+                  Collectors.toMap(FeatureConfig::getFeature, featureConfig -> featureConfig)));
+    }
+
+    List<Segment> segments = defaultApi.getAllSegments(environmentID, cluster);
+    if (segments != null) {
+      segmentCache.putAll(
+          segments.stream().collect(Collectors.toMap(Segment::getIdentifier, segment -> segment)));
     }
   }
 
@@ -205,7 +215,6 @@ public class CfClient implements Destroyable {
 
   public boolean boolVariation(String key, Target target, boolean defaultValue) {
 
-    boolean servedVariation = defaultValue;
     Variation variation = null;
     FeatureConfig featureConfig = featureCache.getIfPresent(key);
     try {
@@ -213,24 +222,20 @@ public class CfClient implements Destroyable {
         return defaultValue;
       }
 
-      // If pre requisite exists, go ahead till the last dependency else return
+      // If prerequisite exists, go ahead till the last dependency else return
       if (!CollectionUtils.isEmpty(featureConfig.getPrerequisites())) {
         boolean result = checkPreRequisite(featureConfig, target);
         if (!result) {
-          servedVariation = Boolean.parseBoolean(featureConfig.getOffVariation());
-          return servedVariation;
+          return Boolean.parseBoolean(featureConfig.getOffVariation());
         }
       }
       variation = evaluator.evaluate(featureConfig, target);
-      servedVariation = Boolean.parseBoolean(variation.getValue());
-      return servedVariation;
+      return Boolean.parseBoolean(variation.getValue());
     } catch (Exception e) {
-
       log.error("err", e);
       return defaultValue;
     } finally {
       if (canPushToMetrics(target, variation, featureConfig)) {
-
         analyticsManager.pushToQueue(target, featureConfig, variation);
       }
     }
@@ -238,7 +243,6 @@ public class CfClient implements Destroyable {
 
   public String stringVariation(String key, Target target, String defaultValue) {
 
-    String stringVariation = defaultValue;
     Variation variation = null;
     FeatureConfig featureConfig = featureCache.getIfPresent(key);
     try {
@@ -250,15 +254,12 @@ public class CfClient implements Destroyable {
       if (!CollectionUtils.isEmpty(featureConfig.getPrerequisites())) {
         boolean result = checkPreRequisite(featureConfig, target);
         if (!result) {
-          stringVariation = featureConfig.getOffVariation();
-          return stringVariation;
+          return featureConfig.getOffVariation();
         }
       }
       variation = evaluator.evaluate(featureConfig, target);
-      stringVariation = (String) variation.getValue();
-      return stringVariation;
+      return variation.getValue();
     } catch (Exception e) {
-
       log.error("err", e);
       return defaultValue;
     } finally {
@@ -270,7 +271,6 @@ public class CfClient implements Destroyable {
 
   public double numberVariation(String key, Target target, int defaultValue) {
 
-    double numberVariation = defaultValue;
     Variation variation = null;
     FeatureConfig featureConfig = featureCache.getIfPresent(key);
     if (featureConfig == null || featureConfig.getKind() != INT) {
@@ -278,19 +278,16 @@ public class CfClient implements Destroyable {
     }
 
     try {
-      // If pre requisite exists, go ahead till the last dependency else return
+      // If prerequisite exists, go ahead till the last dependency else return
       if (!CollectionUtils.isEmpty(featureConfig.getPrerequisites())) {
         boolean result = checkPreRequisite(featureConfig, target);
         if (!result) {
-          numberVariation = Integer.parseInt(featureConfig.getOffVariation());
-          return numberVariation;
+          return Integer.parseInt(featureConfig.getOffVariation());
         }
       }
       variation = evaluator.evaluate(featureConfig, target);
-      numberVariation = Integer.parseInt((String) variation.getValue());
-      return numberVariation;
+      return Integer.parseInt(variation.getValue());
     } catch (Exception e) {
-
       log.error("err", e);
       return defaultValue;
     } finally {
@@ -304,7 +301,6 @@ public class CfClient implements Destroyable {
 
   public JsonObject jsonVariation(String key, Target target, JsonObject defaultValue) {
 
-    JsonObject jsonObject = defaultValue;
     Variation variation = null;
     FeatureConfig featureConfig = featureCache.getIfPresent(key);
     try {
@@ -312,26 +308,21 @@ public class CfClient implements Destroyable {
         return defaultValue;
       }
 
-      // If pre requisite exists, go ahead till the last dependency else return
+      // If prerequisite exists, go ahead till the last dependency else return
       if (!CollectionUtils.isEmpty(featureConfig.getPrerequisites())) {
         boolean result = checkPreRequisite(featureConfig, target);
         if (!result) {
           JsonObject obj = new JsonObject();
-          jsonObject = obj.getAsJsonObject(featureConfig.getOffVariation());
-          return jsonObject;
+          return obj.getAsJsonObject(featureConfig.getOffVariation());
         }
       }
       variation = evaluator.evaluate(featureConfig, target);
-      jsonObject = new Gson().fromJson((String) variation.getValue(), JsonObject.class);
-      return jsonObject;
+      return new Gson().fromJson(variation.getValue(), JsonObject.class);
     } catch (Exception e) {
-
       log.error("err", e);
       return defaultValue;
     } finally {
-
       if (canPushToMetrics(target, variation, featureConfig)) {
-
         analyticsManager.pushToQueue(target, featureConfig, variation);
       }
     }
@@ -362,8 +353,8 @@ public class CfClient implements Destroyable {
         FeatureConfig preReqFeatureConfig = featureCache.getIfPresent(preReqFeature);
         if (preReqFeatureConfig == null) {
           log.error(
-              "Could not retrieve the pre requisite details of feature flag :{}",
-              preReqFeatureConfig.getFeature());
+              "Could not retrieve the pre requisite details of feature flag :{}", preReqFeature);
+          return result;
         }
 
         // Pre requisite variation value evaluated below

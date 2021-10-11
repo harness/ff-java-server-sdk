@@ -4,7 +4,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.google.common.util.concurrent.AbstractScheduledService;
 import io.harness.cf.ApiException;
-import io.harness.cf.api.DefaultApi;
+import io.harness.cf.api.ClientApi;
 import io.harness.cf.client.dto.AuthenticationRequestBuilder;
 import io.harness.cf.model.AuthenticationResponse;
 import java.util.concurrent.TimeUnit;
@@ -15,11 +15,11 @@ public class AuthService extends AbstractScheduledService {
 
   protected final String apiKey;
   protected final CfClient cfClient;
-  protected final DefaultApi defaultApi;
+  protected final ClientApi defaultApi;
   protected final int pollIntervalInSec;
 
   public AuthService(
-      DefaultApi defaultApi, String apiKey, CfClient cfClient, int pollIntervalInSec) {
+      ClientApi defaultApi, String apiKey, CfClient cfClient, int pollIntervalInSec) {
 
     this.defaultApi = defaultApi;
     this.apiKey = apiKey;

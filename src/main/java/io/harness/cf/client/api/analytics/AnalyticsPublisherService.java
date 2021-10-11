@@ -1,18 +1,13 @@
 package io.harness.cf.client.api.analytics;
 
 import com.google.common.base.Strings;
+import io.harness.cf.ApiException;
+import io.harness.cf.api.MetricsApi;
 import io.harness.cf.client.api.CfClientException;
 import io.harness.cf.client.api.Config;
 import io.harness.cf.client.dto.Analytics;
 import io.harness.cf.client.dto.Target;
-import io.harness.cf.metrics.ApiException;
-import io.harness.cf.metrics.api.DefaultApi;
-import io.harness.cf.metrics.model.KeyValue;
-import io.harness.cf.metrics.model.Metrics;
-import io.harness.cf.metrics.model.MetricsData;
-import io.harness.cf.metrics.model.TargetData;
-import io.harness.cf.model.FeatureConfig;
-import io.harness.cf.model.Variation;
+import io.harness.cf.model.*;
 import io.jsonwebtoken.lang.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,9 +29,7 @@ public class AnalyticsPublisherService {
   private static final String TARGET_ATTRIBUTE = "target";
   private static final Set<Target> globalTargetSet = new HashSet<>();
   private static final Set<Target> stagingTargetSet = new HashSet<>();
-  private static final String JAR_VERSION = "JAR_VERSION";
   private static final String SDK_TYPE = "SDK_TYPE";
-  private static final String ANONYMOUS_TARGET = "anonymous";
   /** This target identifier is used to aggregate and send data for all targets as a summary */
   private static final String GLOBAL_TARGET = "__global__cf_target";
 
@@ -48,14 +41,14 @@ public class AnalyticsPublisherService {
 
   private String jarVerion = "";
 
-  private final DefaultApi metricsAPI;
+  private final MetricsApi metricsAPI;
   private final Cache analyticsCache;
   private final String environmentID;
   private final String cluster;
   private final Config config;
 
   public AnalyticsPublisherService(
-      DefaultApi metricsAPI,
+      MetricsApi metricsAPI,
       Config config,
       String environmentID,
       String cluster,
@@ -68,11 +61,7 @@ public class AnalyticsPublisherService {
     this.config = config;
   }
 
-  /**
-   * This method sends the metrics data to the analytics server and resets the cache
-   *
-   * @throws CfClientException
-   */
+  /** This method sends the metrics data to the analytics server and resets the cache */
   public void sendDataAndResetCache() throws CfClientException {
     log.debug("Reading from queue and building cache");
     jarVerion = getVersion();
@@ -80,7 +69,7 @@ public class AnalyticsPublisherService {
     final Map<Analytics, Integer> all = analyticsCache.getAll();
     if (!all.isEmpty()) {
       try {
-        /** * We will only submit summary metrics to the event server */
+        // We will only submit summary metrics to the event server
         Metrics metrics = prepareSummaryMetricsBody(all);
         if (!Collections.isEmpty(metrics.getMetricsData())
             || !Collections.isEmpty(metrics.getTargetData())) {
@@ -113,11 +102,11 @@ public class AnalyticsPublisherService {
       addTargetData(metrics, target);
       SummaryMetrics summaryMetrics = prepareSummaryMetricsKey(entry.getKey());
       final Integer summaryCount = summaryMetricsData.get(summaryMetrics);
-      if (summaryCount == null) {
-        summaryMetricsData.put(summaryMetrics, entry.getValue());
-      } else {
-        summaryMetricsData.put(summaryMetrics, summaryCount + entry.getValue());
+      Integer total = entry.getValue();
+      if (summaryCount != null) {
+        total = summaryCount + entry.getValue();
       }
+      summaryMetricsData.put(summaryMetrics, total);
     }
 
     for (Map.Entry<SummaryMetrics, Integer> entry : summaryMetricsData.entrySet()) {
@@ -144,41 +133,6 @@ public class AnalyticsPublisherService {
         .variationIdentifier(key.getVariation().getIdentifier())
         .variationValue(key.getVariation().getValue())
         .build();
-  }
-
-  private Metrics prepareMessageBody(Map<Analytics, Integer> all) {
-    Metrics metrics = new Metrics();
-
-    // using for-each loop for iteration over Map.entrySet()
-    for (Map.Entry<Analytics, Integer> entry : all.entrySet()) {
-      // Set target data
-      // Set Metrics data
-      MetricsData metricsData = new MetricsData();
-
-      Analytics analytics = entry.getKey();
-      FeatureConfig featureConfig = analytics.getFeatureConfig();
-      Variation variation = analytics.getVariation();
-      Target target = analytics.getTarget();
-      addTargetData(metrics, target);
-      metricsData.setTimestamp(System.currentTimeMillis());
-      metricsData.count(entry.getValue());
-      metricsData.setMetricsType(MetricsData.MetricsTypeEnum.FFMETRICS);
-      setMetricsAttriutes(metricsData, FEATURE_NAME_ATTRIBUTE, featureConfig.getFeature());
-      setMetricsAttriutes(metricsData, VARIATION_IDENTIFIER_ATTRIBUTE, variation.getIdentifier());
-      if (target.isPrivate()) {
-        setMetricsAttriutes(metricsData, TARGET_ATTRIBUTE, ANONYMOUS_TARGET);
-      } else {
-        setMetricsAttriutes(metricsData, TARGET_ATTRIBUTE, target.getIdentifier());
-      }
-      setMetricsAttriutes(metricsData, JAR_VERSION, jarVerion);
-      setMetricsAttriutes(metricsData, SDK_TYPE, SERVER);
-
-      setMetricsAttriutes(metricsData, SDK_LANGUAGE, "java");
-      setMetricsAttriutes(metricsData, SDK_VERSION, jarVerion);
-      metrics.addMetricsDataItem(metricsData);
-    }
-
-    return metrics;
   }
 
   private void addTargetData(Metrics metrics, Target target) {
