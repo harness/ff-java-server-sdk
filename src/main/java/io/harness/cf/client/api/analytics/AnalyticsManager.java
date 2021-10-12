@@ -4,13 +4,13 @@ import com.lmax.disruptor.InsufficientCapacityException;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.util.DaemonThreadFactory;
+import io.harness.cf.api.MetricsApi;
 import io.harness.cf.client.api.CfClientException;
 import io.harness.cf.client.api.Config;
 import io.harness.cf.client.common.Destroyable;
 import io.harness.cf.client.dto.Analytics;
 import io.harness.cf.client.dto.EventType;
 import io.harness.cf.client.dto.Target;
-import io.harness.cf.metrics.api.DefaultApi;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Variation;
 import java.util.concurrent.Executors;
@@ -40,7 +40,7 @@ public class AnalyticsManager implements Destroyable {
   }
 
   public AnalyticsManager(
-      DefaultApi metricsApi, String environmentID, String cluster, Config config)
+      MetricsApi metricsApi, String environmentID, String cluster, Config config)
       throws CfClientException {
 
     this.analyticsCache = AnalyticsCacheFactory.create(config.getAnalyticsCacheType());

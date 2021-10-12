@@ -127,7 +127,7 @@ public class CfClientTest {
     IntStream.range(0, 50)
         .forEach(
             i -> {
-              String color = cfClient.stringVariation(COUNT_FEATURE_KEY, target, "black");
+              double color = cfClient.numberVariation(COUNT_FEATURE_KEY, target, 0);
               log.info("String variation: {}", color);
               try {
                 Thread.sleep(2000);

@@ -6,7 +6,7 @@
 
     <groupId>io.harness</groupId>
     <artifactId>ff-java-server-sdk</artifactId>
-    <version>1.0.6-SNAPSHOT</version>
+    <version>1.0.7-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>Harness Feature Flag Java Server SDK</name>
     <description>Harness Feature Flag Java Server SDK</description>
@@ -73,11 +73,25 @@
 
     <repositories>
         <repository>
+            <id>central</id>
+            <name>Maven Central</name>
+            <layout>default</layout>
+            <url>https://repo1.maven.org/maven2</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <repository>
             <id>mulesoft</id>
             <name>mulesoft</name>
             <url>https://repository.mulesoft.org/nexus/content/repositories/public/</url>
         </repository>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
     </repositories>
+
     <dependencies>
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
@@ -135,18 +149,25 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>28.0-jre</version>
+            <version>31.0.1-jre</version>
         </dependency>
 
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.12</version>
+            <version>1.18.20</version>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
+            <version>1.7.30</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
             <version>1.7.30</version>
         </dependency>
 
@@ -202,7 +223,7 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-all</artifactId>
-            <version>2.0.2-beta</version>
+            <version>1.10.19</version>
             <scope>test</scope>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-collections4 -->
@@ -222,11 +243,10 @@
 
     <build>
         <plugins>
-
             <plugin>
                 <groupId>org.openapitools</groupId>
                 <artifactId>openapi-generator-maven-plugin</artifactId>
-                <version>4.3.1</version>
+                <version>5.2.1</version>
                 <executions>
                     <execution>
                         <id>client</id>
@@ -235,9 +255,8 @@
                         </goals>
                         <configuration>
                             <inputSpec>${project.basedir}/src/main/resources/client-v1.yaml</inputSpec>
-                            <output>${pom.basedir}</output>
                             <generatorName>java</generatorName>
-                            <ignoreFileOverride>${pom.basedir}/.swagger-codegen-ignore</ignoreFileOverride>
+                            <templateDirectory>${project.basedir}/template</templateDirectory>
                             <invokerPackage>io.harness.cf</invokerPackage>
                             <apiPackage>io.harness.cf.api</apiPackage>
                             <modelPackage>io.harness.cf.model</modelPackage>
@@ -256,39 +275,6 @@
                             <configOptions>
                                 <java8>true</java8>
                                 <dateLibrary>java8</dateLibrary>
-                                <sourceFolder>target/generated-sources/packages</sourceFolder>
-                            </configOptions>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>metrics</id>
-                        <goals>
-                            <goal>generate</goal>
-                        </goals>
-                        <configuration>
-                            <inputSpec>${project.basedir}/src/main/resources/metrics-v1.yaml</inputSpec>
-                            <output>${pom.basedir}</output>
-                            <generatorName>java</generatorName>
-                            <ignoreFileOverride>${pom.basedir}/.swagger-codegen-ignore</ignoreFileOverride>
-                            <invokerPackage>io.harness.cf.metrics</invokerPackage>
-                            <apiPackage>io.harness.cf.metrics.api</apiPackage>
-                            <modelPackage>io.harness.cf.metrics.model</modelPackage>
-
-                            <generateApiDocumentation>false</generateApiDocumentation>
-                            <generateModelDocumentation>false</generateModelDocumentation>
-                            <generateSupportingFiles>true</generateSupportingFiles>
-                            <generateModelTests>false</generateModelTests>
-                            <generateApiTests>false</generateApiTests>
-                            <typeMappings>
-                                <typeMapping>OffsetDateTime=Date</typeMapping>
-                            </typeMappings>
-                            <importMappings>
-                                <importMapping>java.time.OffsetDateTime=java.util.Date</importMapping>
-                            </importMappings>
-                            <configOptions>
-                                <java8>true</java8>
-                                <dateLibrary>java8</dateLibrary>
-                                <sourceFolder>target/generated-sources/packages</sourceFolder>
                             </configOptions>
                         </configuration>
                     </execution>
@@ -299,9 +285,8 @@
                         </goals>
                         <configuration>
                             <inputSpec>${project.basedir}/src/main/resources/version-v1.yaml</inputSpec>
-                            <output>${pom.basedir}</output>
                             <generatorName>java</generatorName>
-                            <ignoreFileOverride>${pom.basedir}/.swagger-codegen-ignore</ignoreFileOverride>
+                            <templateDirectory>${project.basedir}/template</templateDirectory>
                             <invokerPackage>io.harness.cf.version</invokerPackage>
                             <apiPackage>io.harness.cf.version.api</apiPackage>
                             <modelPackage>io.harness.cf.version.model</modelPackage>
@@ -320,7 +305,6 @@
                             <configOptions>
                                 <java8>true</java8>
                                 <dateLibrary>java8</dateLibrary>
-                                <sourceFolder>target/generated-sources/packages</sourceFolder>
                             </configOptions>
                         </configuration>
                     </execution>
@@ -438,7 +422,11 @@
                     </execution>
                 </executions>
             </plugin>
-
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>findbugs-maven-plugin</artifactId>
+                <version>3.0.4</version>
+            </plugin>
         </plugins>
     </build>
 

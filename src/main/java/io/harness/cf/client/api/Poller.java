@@ -2,12 +2,11 @@ package io.harness.cf.client.api;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.google.common.util.concurrent.AbstractScheduledService;
-import io.harness.cf.api.DefaultApi;
+import io.harness.cf.api.ClientApi;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Segment;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -17,13 +16,13 @@ public class Poller extends AbstractScheduledService {
   private final CfClient cfClient;
   private final String environmentID;
   private final int pollIntervalInSec;
-  private final DefaultApi defaultApi;
+  private final ClientApi defaultApi;
   private final boolean streamEnabled;
   private final Cache<String, Segment> segmentCache;
   private final Cache<String, FeatureConfig> featureCache;
 
   public Poller(
-      DefaultApi defaultApi,
+      ClientApi defaultApi,
       Cache<String, FeatureConfig> featureCache,
       Cache<String, Segment> segmentCache,
       String environmentID,
@@ -51,20 +50,7 @@ public class Poller extends AbstractScheduledService {
     }
     try {
       log.debug("Getting the latest features and segments..");
-      List<FeatureConfig> featureConfigs = defaultApi.getFeatureConfig(environmentID, cluster);
-
-      if (featureConfigs != null) {
-        featureCache.putAll(
-            featureConfigs.stream()
-                .collect(Collectors.toMap(FeatureConfig::getFeature, config -> config)));
-      }
-
-      List<Segment> segments = defaultApi.getAllSegments(environmentID, cluster);
-      if (segments != null) {
-        segmentCache.putAll(
-            segments.stream()
-                .collect(Collectors.toMap(Segment::getIdentifier, segment -> segment)));
-      }
+      CfClient.configs(environmentID, defaultApi, cluster, featureCache, segmentCache);
     } catch (Exception e) {
       log.error("Failed to get FeatureConfig or Segments: {}", e.getMessage());
     } finally {
@@ -77,6 +63,7 @@ public class Poller extends AbstractScheduledService {
   }
 
   @Override
+  @NonNull
   protected Scheduler scheduler() {
     return Scheduler.newFixedDelaySchedule(pollIntervalInSec, pollIntervalInSec, TimeUnit.SECONDS);
   }

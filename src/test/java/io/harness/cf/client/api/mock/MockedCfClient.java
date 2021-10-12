@@ -1,6 +1,6 @@
 package io.harness.cf.client.api.mock;
 
-import static io.harness.cf.client.api.DefaultApiFactory.addAuthHeader;
+import static io.harness.cf.client.api.ApiFactory.addAuthHeader;
 
 import io.harness.cf.ApiException;
 import io.harness.cf.client.Evaluation;
@@ -77,7 +77,7 @@ public class MockedCfClient extends CfClient {
   @Override
   protected void doInit() throws ApiException, CfClientException {
 
-    addAuthHeader(defaultApi, jwtToken);
+    addAuthHeader(defaultApi.getApiClient(), jwtToken);
     environmentID = getEnvironmentID(jwtToken);
     cluster = getCluster(jwtToken);
     evaluator = new Evaluator(segmentCache);
