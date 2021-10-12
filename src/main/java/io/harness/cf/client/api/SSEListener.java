@@ -1,6 +1,5 @@
 package io.harness.cf.client.api;
 
-import static java.lang.String.format;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.google.gson.Gson;
@@ -86,7 +85,7 @@ public class SSEListener implements ServerSentEvent.Listener {
         }
       } catch (ApiException e) {
 
-        log.error(format("Failed to sync the feature %s due to %s", identifier, e.getMessage()));
+        log.error("Failed to sync the feature {} due to {}", identifier, e.getMessage());
       }
     }
   }
@@ -105,7 +104,7 @@ public class SSEListener implements ServerSentEvent.Listener {
                 .collect(Collectors.toMap(Segment::getIdentifier, segment -> segment)));
       }
     } catch (ApiException e) {
-      log.error(format("Failed to sync the segment %s due to %s", identifier, e.getMessage()));
+      log.error("Failed to sync the segment {} due to {}", identifier, e.getMessage());
     }
   }
 

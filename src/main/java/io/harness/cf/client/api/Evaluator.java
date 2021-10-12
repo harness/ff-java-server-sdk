@@ -152,18 +152,18 @@ public class Evaluator implements Evaluation {
         // Should Target be excluded - if in excluded list we return false
         if (isTargetInList(target, segment.getExcluded())) {
           log.debug(
-              format(
-                  "Target %s excluded from segment %s via exclude list",
-                  target.getName(), segment.getName()));
+              "Target {} excluded from segment {} via exclude list",
+              target.getName(),
+              segment.getName());
           return false;
         }
 
         // Should Target be included - if in included list we return true
         if (isTargetInList(target, segment.getIncluded())) {
           log.debug(
-              format(
-                  "Target %s included in segment %s via include list",
-                  target.getName(), segment.getName()));
+              "Target {} included in segment {} via include list",
+              target.getName(),
+              segment.getName());
           return true;
         }
 
@@ -172,9 +172,9 @@ public class Evaluator implements Evaluation {
           for (Clause rule : segment.getRules()) {
             if (compare(rule.getValues(), target, rule)) {
               log.debug(
-                  format(
-                      "Target %s included in segment %s via rules",
-                      target.getName(), segment.getName()));
+                  "Target {} included in segment {} via rules",
+                  target.getName(),
+                  segment.getName());
               return true;
             }
           }
