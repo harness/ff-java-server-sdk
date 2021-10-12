@@ -40,11 +40,6 @@ public class CaffeineCache implements Cache {
   }
 
   @Override
-  public void printCache() {
-    log.info(toString());
-  }
-
-  @Override
   public String toString() {
     return cache.asMap().toString();
   }

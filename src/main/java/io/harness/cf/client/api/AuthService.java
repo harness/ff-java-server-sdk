@@ -4,10 +4,11 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.google.common.util.concurrent.AbstractScheduledService;
 import io.harness.cf.ApiException;
-import io.harness.cf.api.DefaultApi;
-import io.harness.cf.client.dto.AuthenticationRequestBuilder;
+import io.harness.cf.api.ClientApi;
+import io.harness.cf.model.AuthenticationRequest;
 import io.harness.cf.model.AuthenticationResponse;
 import java.util.concurrent.TimeUnit;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -15,11 +16,11 @@ public class AuthService extends AbstractScheduledService {
 
   protected final String apiKey;
   protected final CfClient cfClient;
-  protected final DefaultApi defaultApi;
+  protected final ClientApi defaultApi;
   protected final int pollIntervalInSec;
 
   public AuthService(
-      DefaultApi defaultApi, String apiKey, CfClient cfClient, int pollIntervalInSec) {
+      ClientApi defaultApi, String apiKey, CfClient cfClient, int pollIntervalInSec) {
 
     this.defaultApi = defaultApi;
     this.apiKey = apiKey;
@@ -38,8 +39,7 @@ public class AuthService extends AbstractScheduledService {
     try {
 
       AuthenticationResponse authResponse =
-          defaultApi.authenticate(
-              AuthenticationRequestBuilder.anAuthenticationRequest().apiKey(apiKey).build());
+          defaultApi.authenticate(AuthenticationRequest.builder().apiKey(apiKey).build());
 
       String jwtToken = authResponse.getAuthToken();
       cfClient.setJwtToken(jwtToken);
@@ -60,6 +60,7 @@ public class AuthService extends AbstractScheduledService {
   }
 
   @Override
+  @NonNull
   protected Scheduler scheduler() {
 
     return Scheduler.newFixedDelaySchedule(0L, pollIntervalInSec, TimeUnit.SECONDS);

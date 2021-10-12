@@ -29,6 +29,15 @@ public class Target {
   }
 
   public boolean isValid() {
+
     return !Strings.isNullOrEmpty(identifier);
+  }
+
+  public io.harness.cf.model.Target ApiTarget() {
+    return io.harness.cf.model.Target.builder()
+        .identifier(getIdentifier())
+        .name(getName())
+        .attributes(getAttributes())
+        .build();
   }
 }

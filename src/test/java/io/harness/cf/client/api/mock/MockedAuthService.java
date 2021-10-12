@@ -2,14 +2,14 @@ package io.harness.cf.client.api.mock;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
-import io.harness.cf.api.DefaultApi;
+import io.harness.cf.api.ClientApi;
 import io.harness.cf.client.api.AuthService;
 import io.harness.cf.client.api.CfClientException;
 
 public class MockedAuthService extends AuthService {
 
   public MockedAuthService(
-      DefaultApi defaultApi, String apiKey, MockedCfClient cfClient, int pollIntervalInSec) {
+      ClientApi defaultApi, String apiKey, MockedCfClient cfClient, int pollIntervalInSec) {
 
     super(defaultApi, apiKey, cfClient, pollIntervalInSec);
   }
