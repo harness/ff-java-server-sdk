@@ -35,13 +35,16 @@ After dependency has been added, the SDK elements, primarily `CfClient` should b
 
 `CfClient` is a base class that provides all features of SDK.
 
+We can instantiate by calling the `getInstance(...)` method or by using public
+constructors (making multiple instances).
+
 ```
 /**
  * Put the API Key here from your environment
  */
 String apiKey = "YOUR_API_KEY";
 
-CfClient cfClient = new CfClient(apiKey, Config.builder().build());
+CfClient cfClient = CfClient.getInstance(apiKey, Config.builder().build());
 
 /**
  * Define you target on which you would like to evaluate 
