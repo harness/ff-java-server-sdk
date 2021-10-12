@@ -5,7 +5,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import com.google.common.util.concurrent.AbstractScheduledService;
 import io.harness.cf.ApiException;
 import io.harness.cf.api.ClientApi;
-import io.harness.cf.client.dto.AuthenticationRequestBuilder;
+import io.harness.cf.model.AuthenticationRequest;
 import io.harness.cf.model.AuthenticationResponse;
 import java.util.concurrent.TimeUnit;
 import lombok.NonNull;
@@ -39,8 +39,7 @@ public class AuthService extends AbstractScheduledService {
     try {
 
       AuthenticationResponse authResponse =
-          defaultApi.authenticate(
-              AuthenticationRequestBuilder.anAuthenticationRequest().apiKey(apiKey).build());
+          defaultApi.authenticate(AuthenticationRequest.builder().apiKey(apiKey).build());
 
       String jwtToken = authResponse.getAuthToken();
       cfClient.setJwtToken(jwtToken);

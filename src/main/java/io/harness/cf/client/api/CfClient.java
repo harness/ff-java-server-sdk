@@ -1,6 +1,5 @@
 package io.harness.cf.client.api;
 
-import static io.harness.cf.client.api.DefaultApiFactory.addAuthHeader;
 import static io.harness.cf.model.FeatureConfig.KindEnum.*;
 
 import com.github.benmanes.caffeine.cache.Cache;
@@ -15,7 +14,6 @@ import io.harness.cf.api.ClientApi;
 import io.harness.cf.api.MetricsApi;
 import io.harness.cf.client.Evaluation;
 import io.harness.cf.client.api.analytics.AnalyticsManager;
-import io.harness.cf.client.api.analytics.MetricsApiFactory;
 import io.harness.cf.client.common.Destroyable;
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.FeatureConfig;
@@ -73,22 +71,24 @@ public class CfClient implements Destroyable {
     segmentCache = Caffeine.newBuilder().maximumSize(10000).build();
 
     defaultApi =
-        DefaultApiFactory.create(
-            config.getConfigUrl(),
-            config.getConnectionTimeout(),
-            config.getReadTimeout(),
-            config.getWriteTimeout(),
-            config.isDebug());
+        new ClientApi(
+            ApiFactory.create(
+                config.getConfigUrl(),
+                config.getConnectionTimeout(),
+                config.getReadTimeout(),
+                config.getWriteTimeout(),
+                config.isDebug()));
 
     // Create the metrics API client -
     // we only use this if analytics is actually enabled
     metricsApi =
-        MetricsApiFactory.create(
-            config.getEventUrl(),
-            config.getConnectionTimeout(),
-            config.getReadTimeout(),
-            config.getWriteTimeout(),
-            config.isDebug());
+        new MetricsApi(
+            ApiFactory.create(
+                config.getEventUrl(),
+                config.getConnectionTimeout(),
+                config.getReadTimeout(),
+                config.getWriteTimeout(),
+                config.isDebug()));
 
     // Try to authenticate:
     final AuthService authService = getAuthService(apiKey, config);
@@ -111,8 +111,9 @@ public class CfClient implements Destroyable {
     log.info("Initializing CF client..");
 
     // add auth token to the client and metrics API clients
-    addAuthHeader(defaultApi, jwtToken);
-    io.harness.cf.client.api.analytics.MetricsApiFactory.addAuthHeader(metricsApi, jwtToken);
+    ApiFactory.addAuthHeader(defaultApi.getApiClient(), jwtToken);
+    ApiFactory.addAuthHeader(metricsApi.getApiClient(), jwtToken);
+
     environmentID = getEnvironmentID(jwtToken);
     cluster = getCluster(jwtToken);
     evaluator = getEvaluator();
