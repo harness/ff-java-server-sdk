@@ -98,7 +98,7 @@ public class AuthService extends AbstractScheduledService {
         return Scheduler.newFixedDelaySchedule(0L, pollIntervalInSec, TimeUnit.SECONDS);
     }
 
-    private void failure(final Exception error) {
+    protected void failure(final Exception error) {
 
         if (callback != null) {
 
@@ -106,7 +106,7 @@ public class AuthService extends AbstractScheduledService {
         }
     }
 
-    private void success() {
+    protected void success() {
 
         if (callback != null) {
 

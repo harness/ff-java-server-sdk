@@ -78,7 +78,7 @@ public class CfClient implements Destroyable {
     /**
      * Initialize the SDK.
      *
-     * @param apiKey   SDK API key.
+     * @param apiKey SDK API key.
      */
     public void initialize(final String apiKey) {
 
@@ -105,6 +105,21 @@ public class CfClient implements Destroyable {
      *
      * @param apiKey SDK API key.
      * @param config SDK configuration.
+     */
+    public void initialize(
+
+            final String apiKey,
+            final Config config
+    ) {
+
+        initialize(apiKey, config, null);
+    }
+
+    /**
+     * Initialize the SDK.
+     *
+     * @param apiKey   SDK API key.
+     * @param config   SDK configuration.
      * @param callback Callback.
      */
     public void initialize(
