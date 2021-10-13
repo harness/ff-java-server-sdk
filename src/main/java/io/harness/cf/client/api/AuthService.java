@@ -7,62 +7,110 @@ import io.harness.cf.ApiException;
 import io.harness.cf.api.ClientApi;
 import io.harness.cf.model.AuthenticationRequest;
 import io.harness.cf.model.AuthenticationResponse;
+
 import java.util.concurrent.TimeUnit;
+
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class AuthService extends AbstractScheduledService {
 
-  protected final String apiKey;
-  protected final CfClient cfClient;
-  protected final ClientApi defaultApi;
-  protected final int pollIntervalInSec;
+    protected final String apiKey;
+    protected final CfClient cfClient;
+    protected final ClientApi defaultApi;
+    protected final int pollIntervalInSec;
+    protected final AuthCallback callback;
 
-  public AuthService(
-      ClientApi defaultApi, String apiKey, CfClient cfClient, int pollIntervalInSec) {
+    public AuthService(
 
-    this.defaultApi = defaultApi;
-    this.apiKey = apiKey;
-    this.cfClient = cfClient;
-    this.pollIntervalInSec = pollIntervalInSec;
-  }
+            final ClientApi defaultApi,
+            final String apiKey,
+            final CfClient cfClient,
+            final int pollIntervalInSec,
+            final AuthCallback callback
+    ) {
 
-  @Override
-  protected void runOneIteration() throws Exception {
-
-    if (isNullOrEmpty(apiKey)) {
-
-      throw new CfClientException("SDK key cannot be empty");
+        this.apiKey = apiKey;
+        this.cfClient = cfClient;
+        this.callback = callback;
+        this.defaultApi = defaultApi;
+        this.pollIntervalInSec = pollIntervalInSec;
     }
 
-    try {
+    @Override
+    protected void runOneIteration() throws Exception {
 
-      AuthenticationResponse authResponse =
-          defaultApi.authenticate(AuthenticationRequest.builder().apiKey(apiKey).build());
+        if (isNullOrEmpty(apiKey)) {
 
-      String jwtToken = authResponse.getAuthToken();
-      cfClient.setJwtToken(jwtToken);
-      cfClient.init();
-      log.info("Stopping Auth service");
-      this.stopAsync();
+            final Exception error = new CfClientException("SDK key cannot be empty");
+            failure(error);
+            throw error;
+        }
 
-    } catch (ApiException apiException) {
+        try {
 
-      log.error("Failed to get auth token {}", apiException.getMessage());
-      if (apiException.getCode() == 401 || apiException.getCode() == 403) {
+            final AuthenticationRequest request = AuthenticationRequest.builder()
+                    .apiKey(apiKey)
+                    .build();
 
-        String errorMsg = String.format("Invalid apiKey %s. Serving default value. ", apiKey);
-        log.error(errorMsg);
-        throw new CfClientException(errorMsg);
-      }
+            final AuthenticationResponse response = defaultApi.authenticate(request);
+
+            final String token = response.getAuthToken();
+            cfClient.setJwtToken(token);
+            cfClient.init();
+
+            log.info("Stopping Auth service");
+            success();
+            this.stopAsync();
+
+        } catch (ApiException apiException) {
+
+            log.error(
+
+                    "Failed to get auth token {}",
+                    apiException.getMessage()
+            );
+
+            if (apiException.getCode() == 401 || apiException.getCode() == 403) {
+
+                String errorMsg = String.format(
+
+                        "Invalid apiKey %s. Serving default value. ",
+                        apiKey
+                );
+
+                log.error(errorMsg);
+
+                final Exception error = new CfClientException(errorMsg);
+                failure(error);
+                throw error;
+            }
+
+            failure(apiException);
+        }
     }
-  }
 
-  @Override
-  @NonNull
-  protected Scheduler scheduler() {
+    @Override
+    @NonNull
+    protected Scheduler scheduler() {
 
-    return Scheduler.newFixedDelaySchedule(0L, pollIntervalInSec, TimeUnit.SECONDS);
-  }
+        return Scheduler.newFixedDelaySchedule(0L, pollIntervalInSec, TimeUnit.SECONDS);
+    }
+
+    protected void failure(final Exception error) {
+
+        if (callback != null) {
+
+            callback.onSuccess(false, error);
+        }
+    }
+
+    protected void success() {
+
+        if (callback != null) {
+
+            callback.onSuccess(true, null);
+        }
+    }
 }
