@@ -34,6 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 import okhttp3.Request;
 import org.apache.commons.collections4.CollectionUtils;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 @Slf4j
 public class CfClient implements Destroyable {
@@ -77,11 +78,26 @@ public class CfClient implements Destroyable {
     /**
      * Initialize the SDK.
      *
-     * @param apiKey SDK API key.
+     * @param apiKey   SDK API key.
      */
     public void initialize(final String apiKey) {
 
-        initialize(apiKey, Config.builder().build());
+        initialize(apiKey, Config.builder().build(), null);
+    }
+
+    /**
+     * Initialize the SDK.
+     *
+     * @param apiKey   SDK API key.
+     * @param callback Callback.
+     */
+    public void initialize(
+
+            final String apiKey,
+            @Nullable final AuthCallback callback
+    ) {
+
+        initialize(apiKey, Config.builder().build(), callback);
     }
 
     /**
@@ -89,8 +105,14 @@ public class CfClient implements Destroyable {
      *
      * @param apiKey SDK API key.
      * @param config SDK configuration.
+     * @param callback Callback.
      */
-    public void initialize(final String apiKey, final Config config) {
+    public void initialize(
+
+            final String apiKey,
+            final Config config,
+            final AuthCallback callback
+    ) {
 
         this.apiKey = apiKey;
         this.config = config;
@@ -120,14 +142,26 @@ public class CfClient implements Destroyable {
                                 config.isDebug()));
 
         // Try to authenticate:
-        final AuthService authService = getAuthService(apiKey, config);
+        final AuthService authService = getAuthService(apiKey, config, callback);
         authService.startAsync();
     }
 
     @NotNull
-    protected AuthService getAuthService(String apiKey, Config config) {
+    protected AuthService getAuthService(
 
-        return new AuthService(defaultApi, apiKey, this, config.getPollIntervalInSeconds());
+            final String apiKey,
+            final Config config,
+            final AuthCallback callback
+    ) {
+
+        return new AuthService(
+
+                defaultApi,
+                apiKey,
+                this,
+                config.getPollIntervalInSeconds(),
+                callback
+        );
     }
 
     void init() throws ApiException, CfClientException {
