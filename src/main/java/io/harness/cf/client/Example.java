@@ -4,80 +4,94 @@ import io.harness.cf.client.api.CfClient;
 import io.harness.cf.client.dto.Target;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
 class Example {
 
-    public static final boolean FREEMIUM = false;
+    public static final int capacity;
+    public static final Executor executor;
+    public static final HashMap<String, String> keys;
+
     public static final String FREEMIUM_API_KEY = "1acfded6-65b9-4e0a-9cbd-a6abd7574f54";
     public static final String NON_FREEMIUM_API_KEY = "1acfded6-65b9-4e0a-9cbd-a6abd7574f54";
 
-    private static String getApiKey() {
+    static {
 
-        if (FREEMIUM) {
-
-            return FREEMIUM_API_KEY;
-        } else {
-
-            return NON_FREEMIUM_API_KEY;
-        }
+        capacity = 5;
+        keys = new HashMap<>(capacity);
+        // keys.put("Freemium", FREEMIUM_API_KEY);
+        keys.put("Non-Freemium", NON_FREEMIUM_API_KEY);
+        executor = Executors.newFixedThreadPool(capacity);
     }
 
     public static void main(String... args) {
 
-        final CfClient cfClient = CfClient.getInstance();
-        final CountDownLatch latch = new CountDownLatch(1);
+        for (final String keyName : keys.keySet()) {
 
-        cfClient.initialize(
+            executor.execute(() -> {
 
-                getApiKey(),
-                (success, error) -> {
+                final String apiKey = keys.get(keyName);
+                final String logPrefix = keyName + " :: ";
+                final CfClient cfClient = CfClient.getInstance();
+                final CountDownLatch latch = new CountDownLatch(1);
 
-                    if (success) {
+                cfClient.initialize(
 
-                        latch.countDown();
-                        log.info("Init success");
-                        return;
+                        apiKey,
+                        (success, error) -> {
+
+                            if (success) {
+
+                                latch.countDown();
+                                log.info(logPrefix + "Init success");
+                                return;
+                            }
+
+                            if (error != null) {
+
+                                log.error(logPrefix + "Error", error);
+                            }
+                            System.exit(1);
+                        }
+                );
+
+                try {
+
+                    final boolean result = latch.await(30, TimeUnit.SECONDS);
+                    if (!result) {
+
+                        log.error(logPrefix + "Initialization result is faulty");
+                        System.exit(1);
                     }
+                } catch (InterruptedException e) {
 
-                    if (error != null) {
-
-                        log.error("Error", error);
-                    }
+                    log.error(logPrefix + "Error", e);
                     System.exit(1);
                 }
-        );
 
-        try {
+                Target target = Target.builder()
+                        .identifier("target1")
+                        .isPrivate(false)
+                        .attribute("testKey", "TestValue")
+                        .name("target1")
+                        .build();
 
-            final boolean result = latch.await(30, TimeUnit.SECONDS);
-            if (!result) {
+                final boolean bResult = cfClient.boolVariation("flag1", target, false);
+                log.info(logPrefix + "Boolean variation: {}", bResult);
 
-                log.error("Initialization result is faulty");
-                System.exit(1);
-            }
-        } catch (InterruptedException e) {
+                final double dResult = cfClient.numberVariation("flag2", target, -1);
+                log.info(logPrefix + "Number variation: {}", dResult);
 
-            log.error("Error", e);
-            System.exit(1);
+                final String sResult = cfClient.stringVariation("flag3", target, "NO_VALUE!!!");
+                log.info(logPrefix + "String variation: {}", sResult);
+            });
         }
 
-        Target target = Target.builder()
-                .identifier("target1")
-                .isPrivate(false)
-                .attribute("testKey", "TestValue")
-                .name("target1")
-                .build();
-
-        final boolean bResult = cfClient.boolVariation("flag1", target, false);
-        log.info("Boolean variation: {}", bResult);
-
-        final double dResult = cfClient.numberVariation("flag2", target, -1);
-        log.info("Number variation: {}", dResult);
-
-        final String sResult = cfClient.stringVariation("flag3", target, "NO_VALUE!!!");
-        log.info("String variation: {}", sResult);
+        Thread.yield();
     }
 }
