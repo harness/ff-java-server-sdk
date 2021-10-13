@@ -17,14 +17,14 @@ class Example {
     public static final Executor executor;
     public static final HashMap<String, String> keys;
 
-    public static final String FREEMIUM_API_KEY = "1acfded6-65b9-4e0a-9cbd-a6abd7574f54";
+    public static final String FREEMIUM_API_KEY = "dac123e6-8a08-4775-825b-ed92583b5a70";
     public static final String NON_FREEMIUM_API_KEY = "1acfded6-65b9-4e0a-9cbd-a6abd7574f54";
 
     static {
 
         capacity = 5;
         keys = new HashMap<>(capacity);
-        // keys.put("Freemium", FREEMIUM_API_KEY);
+        keys.put("Freemium", FREEMIUM_API_KEY);
         keys.put("Non-Freemium", NON_FREEMIUM_API_KEY);
         executor = Executors.newFixedThreadPool(capacity);
     }
