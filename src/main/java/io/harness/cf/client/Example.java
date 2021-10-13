@@ -12,7 +12,8 @@ class Example {
 
   public static void main(String... args) {
 
-    final CfClient cfClient = CfClient.getInstance(API_KEY);
+    final CfClient cfClient = CfClient.getInstance();
+    cfClient.initialize(API_KEY);
 
     Target target =
         Target.builder()

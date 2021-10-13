@@ -2,7 +2,6 @@ package io.harness.cf.client.api.mock;
 
 import static io.harness.cf.client.api.ApiFactory.addAuthHeader;
 
-import io.harness.cf.ApiException;
 import io.harness.cf.client.Evaluation;
 import io.harness.cf.client.api.CfClient;
 import io.harness.cf.client.api.CfClientException;
@@ -16,102 +15,92 @@ import org.jetbrains.annotations.NotNull;
 
 public class MockedCfClient extends CfClient {
 
-  public MockedCfClient(String apiKey) {
+    @NotNull
+    @Override
+    protected AnalyticsManager getAnalyticsManager() throws CfClientException {
 
-    super(apiKey);
-  }
+        if (analyticsManager == null) {
 
-  public MockedCfClient(String apiKey, Config config) {
-
-    super(apiKey, config);
-  }
-
-  @NotNull
-  @Override
-  protected AnalyticsManager getAnalyticsManager() throws CfClientException {
-
-    if (analyticsManager == null) {
-
-      analyticsManager = new MockedAnalyticsManager(environmentID, config);
+            analyticsManager = new MockedAnalyticsManager(environmentID, config);
+        }
+        return analyticsManager;
     }
-    return analyticsManager;
-  }
 
-  @NotNull
-  @Override
-  protected MockedAuthService getAuthService(String apiKey, Config config) {
+    @NotNull
+    @Override
+    protected MockedAuthService getAuthService(String apiKey, Config config) {
 
-    return new MockedAuthService(defaultApi, apiKey, this, config.getPollIntervalInSeconds());
-  }
-
-  public void addCallback(MockedAnalyticsHandlerCallback callback) throws IllegalStateException {
-
-    if (analyticsManager == null) {
-
-      throw new IllegalStateException("Analytics manager not yet instantiated");
+        return new MockedAuthService(defaultApi, apiKey, this, config.getPollIntervalInSeconds());
     }
-    ((MockedAnalyticsManager) analyticsManager).addCallback(callback);
-  }
 
-  public void removeCallback(MockedAnalyticsHandlerCallback callback) throws IllegalStateException {
+    public void addCallback(MockedAnalyticsHandlerCallback callback) throws IllegalStateException {
 
-    if (analyticsManager == null) {
+        if (analyticsManager == null) {
 
-      throw new IllegalStateException("Analytics manager not yet instantiated");
+            throw new IllegalStateException("Analytics manager not yet instantiated");
+        }
+        ((MockedAnalyticsManager) analyticsManager).addCallback(callback);
     }
-    ((MockedAnalyticsManager) analyticsManager).removeCallback(callback);
-  }
 
-  @Override
-  protected boolean canPushToMetrics(
-      Target target, Variation variation, FeatureConfig featureConfig) {
+    public void removeCallback(MockedAnalyticsHandlerCallback callback) throws IllegalStateException {
 
-    return target.isValid() && isAnalyticsEnabled && analyticsManager != null;
-  }
+        if (analyticsManager == null) {
 
-  public void initialize() throws ApiException, CfClientException {
+            throw new IllegalStateException("Analytics manager not yet instantiated");
+        }
+        ((MockedAnalyticsManager) analyticsManager).removeCallback(callback);
+    }
 
-    doInit();
-  }
+    @Override
+    protected boolean canPushToMetrics(
+            Target target, Variation variation, FeatureConfig featureConfig) {
 
-  @Override
-  protected void doInit() throws ApiException, CfClientException {
+        return target.isValid() && isAnalyticsEnabled && analyticsManager != null;
+    }
 
-    addAuthHeader(defaultApi.getApiClient(), jwtToken);
-    environmentID = getEnvironmentID(jwtToken);
-    cluster = getCluster(jwtToken);
-    evaluator = new Evaluator(segmentCache);
+    public void initialize() throws CfClientException {
 
-    initCache(environmentID);
+        doInit();
+    }
 
-    analyticsManager = getAnalyticsManager();
-    isInitialized = true;
-  }
+    @Override
+    protected void doInit() throws CfClientException {
 
-  @Override
-  protected String getCluster(String jwtToken) {
+        addAuthHeader(defaultApi.getApiClient(), jwtToken);
+        environmentID = getEnvironmentID(jwtToken);
+        cluster = getCluster(jwtToken);
+        evaluator = new Evaluator(segmentCache);
 
-    return String.valueOf(jwtToken.length());
-  }
+        initCache(environmentID);
 
-  @Override
-  protected String getEnvironmentID(String jwtToken) {
+        analyticsManager = getAnalyticsManager();
+        isInitialized = true;
+    }
 
-    return String.valueOf(System.currentTimeMillis());
-  }
+    @Override
+    protected String getCluster(String jwtToken) {
 
-  @Override
-  protected void initCache(String environmentID) {
+        return String.valueOf(jwtToken.length());
+    }
 
-    final FeatureConfig config = new FeatureConfig();
-    config.setKind(FeatureConfig.KindEnum.BOOLEAN);
-    featureCache.put(MockedFeatureRepository.MOCK_BOOL, config);
-  }
+    @Override
+    protected String getEnvironmentID(String jwtToken) {
 
-  @NotNull
-  @Override
-  protected Evaluation getEvaluator() {
+        return String.valueOf(System.currentTimeMillis());
+    }
 
-    return new MockedEvaluator();
-  }
+    @Override
+    protected void initCache(String environmentID) {
+
+        final FeatureConfig config = new FeatureConfig();
+        config.setKind(FeatureConfig.KindEnum.BOOLEAN);
+        featureCache.put(MockedFeatureRepository.MOCK_BOOL, config);
+    }
+
+    @NotNull
+    @Override
+    protected Evaluation getEvaluator() {
+
+        return new MockedEvaluator();
+    }
 }

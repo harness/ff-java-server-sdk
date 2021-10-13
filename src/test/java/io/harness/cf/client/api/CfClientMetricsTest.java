@@ -19,7 +19,9 @@ public class CfClientMetricsTest {
     final String mock = "Mock";
     final String apiKey = String.valueOf(System.currentTimeMillis());
     final MockedCfConfiguration cfConfiguration = new MockedCfConfiguration();
-    final MockedCfClient cfClient = new MockedCfClient(apiKey, cfConfiguration);
+    final MockedCfClient cfClient = new MockedCfClient();
+
+    cfClient.initialize(apiKey, cfConfiguration);
 
     final Target target =
         Target.builder().identifier(mock).isPrivate(false).attribute(mock, mock).name(mock).build();

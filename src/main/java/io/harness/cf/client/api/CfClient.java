@@ -38,16 +38,16 @@ import org.jetbrains.annotations.NotNull;
 @Slf4j
 public class CfClient implements Destroyable {
 
+    protected Config config;
     protected String cluster;
-    protected final Config config;
     protected Evaluation evaluator;
     protected String environmentID;
-    protected final ClientApi defaultApi;
-    protected final MetricsApi metricsApi;
-    protected final boolean isAnalyticsEnabled;
-    protected AnalyticsManager analyticsManager = null;
-    protected final Cache<String, Segment> segmentCache;
-    protected final Cache<String, FeatureConfig> featureCache;
+    protected ClientApi defaultApi;
+    protected MetricsApi metricsApi;
+    protected boolean isAnalyticsEnabled;
+    protected AnalyticsManager analyticsManager;
+    protected Cache<String, Segment> segmentCache;
+    protected Cache<String, FeatureConfig> featureCache;
 
     @Setter
     protected String jwtToken;
@@ -56,35 +56,41 @@ public class CfClient implements Destroyable {
     protected boolean isInitialized = false;
 
     private Poller poller;
+    private String apiKey;
     private Request sseRequest;
     private ServerSentEvent sse;
-    private final String apiKey;
     private SSEListener listener;
     private static volatile CfClient instance;
 
-    public static CfClient getInstance(final String apiKey) {
-
-        return getInstance(apiKey, Config.builder().build());
-    }
-
-    public static CfClient getInstance(final String apiKey, final Config config) {
+    public static CfClient getInstance() {
 
         if (instance == null) synchronized (CfClient.class) {
 
             if (instance == null) {
 
-                instance = new CfClient(apiKey, config);
+                instance = new CfClient();
             }
         }
         return instance;
     }
 
-    public CfClient(String apiKey) {
+    /**
+     * Initialize the SDK.
+     *
+     * @param apiKey SDK API key.
+     */
+    public void initialize(final String apiKey) {
 
-        this(apiKey, Config.builder().build());
+        initialize(apiKey, Config.builder().build());
     }
 
-    public CfClient(String apiKey, Config config) {
+    /**
+     * Initialize the SDK.
+     *
+     * @param apiKey SDK API key.
+     * @param config SDK configuration.
+     */
+    public void initialize(final String apiKey, final Config config) {
 
         this.apiKey = apiKey;
         this.config = config;
