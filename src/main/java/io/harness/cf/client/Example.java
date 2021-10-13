@@ -38,6 +38,7 @@ class Example {
                     if (success) {
 
                         latch.countDown();
+                        log.info("Init success");
                         return;
                     }
 
@@ -73,10 +74,10 @@ class Example {
         final boolean bResult = cfClient.boolVariation("flag1", target, false);
         log.info("Boolean variation: {}", bResult);
 
-        final double dResult = cfClient.numberVariation("test2", target, -1);
+        final double dResult = cfClient.numberVariation("flag2", target, -1);
         log.info("Number variation: {}", dResult);
 
-        final String sResult = cfClient.stringVariation("test3", target, "NO_VALUE!!!");
+        final String sResult = cfClient.stringVariation("flag3", target, "NO_VALUE!!!");
         log.info("String variation: {}", sResult);
     }
 }
