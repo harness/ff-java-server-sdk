@@ -10,8 +10,20 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 class Example {
 
-    public static final String API_KEY = "dummyKey";
-    public static final String FEATURE_FLAG_KEY = "toggle";
+    public static final boolean FREEMIUM = false;
+    public static final String FREEMIUM_API_KEY = "1acfded6-65b9-4e0a-9cbd-a6abd7574f54";
+    public static final String NON_FREEMIUM_API_KEY = "1acfded6-65b9-4e0a-9cbd-a6abd7574f54";
+
+    private static String getApiKey() {
+
+        if (FREEMIUM) {
+
+            return FREEMIUM_API_KEY;
+        } else {
+
+            return NON_FREEMIUM_API_KEY;
+        }
+    }
 
     public static void main(String... args) {
 
@@ -20,7 +32,7 @@ class Example {
 
         cfClient.initialize(
 
-                API_KEY,
+                getApiKey(),
                 (success, error) -> {
 
                     if (success) {
@@ -58,7 +70,13 @@ class Example {
                 .name("target1")
                 .build();
 
-        boolean result = cfClient.boolVariation(FEATURE_FLAG_KEY, target, false);
-        log.info("Boolean variation: {}", result);
+        final boolean bResult = cfClient.boolVariation("flag1", target, false);
+        log.info("Boolean variation: {}", bResult);
+
+        final double dResult = cfClient.numberVariation("test2", target, -1);
+        log.info("Number variation: {}", dResult);
+
+        final String sResult = cfClient.stringVariation("test3", target, "NO_VALUE!!!");
+        log.info("String variation: {}", sResult);
     }
 }
