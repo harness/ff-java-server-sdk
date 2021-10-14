@@ -26,7 +26,7 @@ class Example {
         keys = new HashMap<>(capacity);
         keys.put("Freemium", FREEMIUM_API_KEY);
         keys.put("Non-Freemium", NON_FREEMIUM_API_KEY);
-        executor = Executors.newFixedThreadPool(capacity);
+        executor = Executors.newSingleThreadExecutor();
     }
 
     public static void main(String... args) {
@@ -36,29 +36,35 @@ class Example {
             executor.execute(() -> {
 
                 final String apiKey = keys.get(keyName);
-                final String logPrefix = keyName + " :: ";
-                final CfClient cfClient = CfClient.getInstance();
+                final CfClient cfClient = new CfClient();
+                final String logPrefix = keyName + " :: " + cfClient.hashCode() + " ";
                 final CountDownLatch latch = new CountDownLatch(1);
 
-                cfClient.initialize(
+                try {
+                    cfClient.initialize(
 
-                        apiKey,
-                        (success, error) -> {
+                            apiKey,
+                            (success, error) -> {
 
-                            if (success) {
+                                if (success) {
 
-                                latch.countDown();
-                                log.info(logPrefix + "Init success");
-                                return;
+                                    latch.countDown();
+                                    log.info(logPrefix + "Init success");
+                                    return;
+                                }
+
+                                if (error != null) {
+
+                                    log.error(logPrefix + "Error", error);
+                                }
+                                System.exit(1);
                             }
+                    );
+                } catch (IllegalStateException e) {
 
-                            if (error != null) {
-
-                                log.error(logPrefix + "Error", error);
-                            }
-                            System.exit(1);
-                        }
-                );
+                    log.error(logPrefix + "Error", e);
+                    System.exit(1);
+                }
 
                 try {
 

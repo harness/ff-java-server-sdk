@@ -79,8 +79,9 @@ public class CfClient implements Destroyable {
      * Initialize the SDK.
      *
      * @param apiKey SDK API key.
+     * @throws IllegalStateException If already initialized
      */
-    public void initialize(final String apiKey) {
+    public void initialize(final String apiKey) throws IllegalStateException {
 
         initialize(apiKey, Config.builder().build(), null);
     }
@@ -90,12 +91,14 @@ public class CfClient implements Destroyable {
      *
      * @param apiKey   SDK API key.
      * @param callback Callback.
+     * @throws IllegalStateException If already initialized
      */
     public void initialize(
 
             final String apiKey,
             @Nullable final AuthCallback callback
-    ) {
+
+    ) throws IllegalStateException {
 
         initialize(apiKey, Config.builder().build(), callback);
     }
@@ -105,12 +108,14 @@ public class CfClient implements Destroyable {
      *
      * @param apiKey SDK API key.
      * @param config SDK configuration.
+     * @throws IllegalStateException If already initialized
      */
     public void initialize(
 
             final String apiKey,
             final Config config
-    ) {
+
+    ) throws IllegalStateException {
 
         initialize(apiKey, config, null);
     }
@@ -121,13 +126,20 @@ public class CfClient implements Destroyable {
      * @param apiKey   SDK API key.
      * @param config   SDK configuration.
      * @param callback Callback.
+     * @throws IllegalStateException If already initialized
      */
     public void initialize(
 
             final String apiKey,
             final Config config,
             final AuthCallback callback
-    ) {
+
+    ) throws IllegalStateException {
+
+        if (isInitialized) {
+
+            throw new IllegalStateException("Already initialized");
+        }
 
         this.apiKey = apiKey;
         this.config = config;
@@ -208,6 +220,7 @@ public class CfClient implements Destroyable {
         }
 
         if (config.isAnalyticsEnabled()) {
+
             log.info("Starting analytics service");
             analyticsManager = getAnalyticsManager();
         }
@@ -493,15 +506,15 @@ public class CfClient implements Destroyable {
     public void destroy() {
 
         if (analyticsManager != null) {
-
             analyticsManager.destroy();
         }
 
         stopPoller();
-        if (sse != null) {
 
+        if (sse != null) {
             sse.close();
         }
+
         featureCache.cleanUp();
         isInitialized = false;
     }
