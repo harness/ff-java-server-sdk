@@ -1,6 +1,5 @@
 package io.harness.cf.client.api;
 
-
 import com.github.benmanes.caffeine.cache.Cache;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -47,7 +46,7 @@ public class SSEListener implements ServerSentEvent.Listener {
   public void onOpen(ServerSentEvent serverSentEvent, Response response) {
 
     log.info("SSE connection opened. ");
-    cfClient.stopPoller();
+    // cfClient.stopPoller();
   }
 
   @Override
@@ -130,7 +129,7 @@ public class SSEListener implements ServerSentEvent.Listener {
   public void onClosed(ServerSentEvent serverSentEvent) {
 
     log.info("SSE connection closed. Switching to polling mode.");
-    cfClient.startPollingMode();
+    // cfClient.startPollingMode();
   }
 
   @Override

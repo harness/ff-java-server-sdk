@@ -1,6 +1,7 @@
 package io.harness.cf.client.api;
 
 import io.harness.cf.client.api.analytics.AnalyticsCacheFactory;
+import io.harness.cf.client.common.KeyValueStore;
 import java.util.Collections;
 import java.util.Set;
 import lombok.AccessLevel;
@@ -9,7 +10,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 @Getter
-@Builder
+@Builder(toBuilder = true)
 @AllArgsConstructor
 public class Config {
 
@@ -54,6 +55,10 @@ public class Config {
   public int getFrequency() {
     return Math.max(frequency, Config.MIN_FREQUENCY);
   }
+
+  @Getter @Builder.Default KeyValueStore cache = new CaffeineCache(10000);
+
+  @Getter KeyValueStore store;
 
   /*
    BufferSize must be a power of 2 for LMAX to work. This function vaidates
