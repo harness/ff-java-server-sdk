@@ -3,7 +3,6 @@ package io.harness.cf.client.api;
 import com.google.common.util.concurrent.AbstractScheduledService;
 import io.harness.cf.ApiException;
 import io.harness.cf.api.ClientApi;
-import io.harness.cf.client.common.AuthCallback;
 import io.harness.cf.model.AuthenticationRequest;
 import io.harness.cf.model.AuthenticationResponse;
 import java.util.concurrent.TimeUnit;
@@ -11,7 +10,7 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class AuthService extends AbstractScheduledService {
+class AuthService extends AbstractScheduledService {
 
   private final ClientApi clientApi;
   private final String apiKey;

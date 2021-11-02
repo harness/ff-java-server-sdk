@@ -9,11 +9,11 @@ import lombok.extern.slf4j.Slf4j;
 public enum CfClient {
   INSTANCE;
 
-  private Client client;
+  private InnerClient client;
 
   public void init(@NonNull final String sdkKey) {
     if (client == null) {
-      client = new Client(sdkKey);
+      client = new InnerClient(sdkKey);
     }
   }
 

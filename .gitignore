@@ -24,3 +24,7 @@ build
 *.iml
 gradle
 out
+
+# example stores
+Freemium
+Non-Freemium

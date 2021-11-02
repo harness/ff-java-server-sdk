@@ -3,7 +3,7 @@ package io.harness.cf.client.api;
 import com.google.common.eventbus.EventBus;
 import io.harness.cf.client.common.KeyValueStore;
 import io.harness.cf.client.common.Operators;
-import io.harness.cf.client.common.Repository;
+import io.harness.cf.client.common.Storage;
 import io.harness.cf.model.Clause;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Segment;
@@ -14,26 +14,21 @@ import java.util.Optional;
 import lombok.NonNull;
 import org.apache.commons.collections4.CollectionUtils;
 
-public class StorageRepository implements Repository {
+class StorageRepository implements Repository {
   private final KeyValueStore cache;
-  private KeyValueStore store;
+  private Storage store;
   private EventBus eventBus;
 
   public StorageRepository(@NonNull KeyValueStore cache) {
     this.cache = cache;
   }
 
-  public StorageRepository(@NonNull KeyValueStore cache, KeyValueStore store) {
+  public StorageRepository(@NonNull KeyValueStore cache, Storage store) {
     this(cache);
     this.store = store;
   }
 
-  public StorageRepository(@NonNull KeyValueStore cache, EventBus eventBus) {
-    this(cache);
-    this.eventBus = eventBus;
-  }
-
-  public StorageRepository(@NonNull KeyValueStore cache, KeyValueStore store, EventBus eventBus) {
+  public StorageRepository(@NonNull KeyValueStore cache, Storage store, EventBus eventBus) {
     this(cache, store);
     this.eventBus = eventBus;
   }
@@ -192,5 +187,12 @@ public class StorageRepository implements Repository {
   @NonNull
   protected String formatSegmentKey(@NonNull String identifier) {
     return String.format("segments/%s", identifier);
+  }
+
+  @Override
+  public void close() {
+    if (store != null) {
+      store.close();
+    }
   }
 }

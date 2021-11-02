@@ -2,6 +2,7 @@ package io.harness.cf.client.api;
 
 import io.harness.cf.client.api.analytics.AnalyticsCacheFactory;
 import io.harness.cf.client.common.KeyValueStore;
+import io.harness.cf.client.common.Storage;
 import java.util.Collections;
 import java.util.Set;
 import lombok.AccessLevel;
@@ -58,7 +59,7 @@ public class Config {
 
   @Getter @Builder.Default KeyValueStore cache = new CaffeineCache(10000);
 
-  @Getter KeyValueStore store;
+  @Getter Storage store;
 
   /*
    BufferSize must be a power of 2 for LMAX to work. This function vaidates
