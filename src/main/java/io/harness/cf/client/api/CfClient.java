@@ -75,6 +75,41 @@ public class CfClient implements Destroyable {
         return instance;
     }
 
+    public CfClient() {
+
+    }
+
+    @Deprecated
+    public CfClient(String apiKey) throws IllegalStateException {
+
+        this(apiKey, Config.builder().build());
+    }
+
+    @Deprecated
+    public CfClient(String apiKey, Config config) throws IllegalStateException {
+
+        initialize(apiKey, config, null);
+    }
+
+    @Deprecated
+    public static CfClient getInstance(final String apiKey) {
+
+        return getInstance(apiKey, Config.builder().build());
+    }
+
+    @Deprecated
+    public static CfClient getInstance(final String apiKey, final Config config) {
+
+        if (instance == null) synchronized (CfClient.class) {
+
+            if (instance == null) {
+
+                instance = new CfClient(apiKey, config);
+            }
+        }
+        return instance;
+    }
+
     /**
      * Initialize the SDK.
      *
