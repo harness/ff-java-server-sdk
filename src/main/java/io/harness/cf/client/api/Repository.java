@@ -1,10 +1,10 @@
-package io.harness.cf.client.common;
+package io.harness.cf.client.api;
 
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Segment;
 import lombok.NonNull;
 
-public interface Repository extends Query {
+interface Repository extends Query {
 
   enum Event {
     FLAG_STORED,
@@ -22,4 +22,6 @@ public interface Repository extends Query {
   void deleteFlag(@NonNull String identifier);
 
   void deleteSegment(@NonNull String identifier);
+
+  void close();
 }

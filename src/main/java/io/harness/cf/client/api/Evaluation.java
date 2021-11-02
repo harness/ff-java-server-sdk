@@ -1,9 +1,9 @@
-package io.harness.cf.client.common;
+package io.harness.cf.client.api;
 
 import com.google.gson.JsonObject;
 import io.harness.cf.client.dto.Target;
 
-public interface Evaluation {
+interface Evaluation {
 
   boolean boolVariation(
       String identifier, Target target, boolean defaultValue, FlagEvaluateCallback callback);

@@ -1,4 +1,4 @@
-package io.harness.cf.client.common;
+package io.harness.cf.client.api;
 
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Segment;
@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import lombok.NonNull;
 
-public interface Query {
+interface Query {
 
   Optional<FeatureConfig> getFlag(@NonNull String identifier);
 

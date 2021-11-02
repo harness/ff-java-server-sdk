@@ -1,6 +1,6 @@
 package io.harness.cf.client.api;
 
-public class StreamProcessor {
+class StreamProcessor {
   public enum Event {
     READY,
     CONNECTED,

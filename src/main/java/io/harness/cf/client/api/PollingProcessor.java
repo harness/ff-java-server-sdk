@@ -1,10 +1,8 @@
 package io.harness.cf.client.api;
 
-import com.google.common.eventbus.EventBus;
 import com.google.common.util.concurrent.AbstractScheduledService;
 import io.harness.cf.ApiException;
 import io.harness.cf.api.ClientApi;
-import io.harness.cf.client.common.Repository;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Segment;
 import java.util.List;
@@ -17,12 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.codehaus.plexus.util.StringUtils;
 
 @Slf4j
-public class PollingProcessor extends AbstractScheduledService {
-
-  public enum Event {
-    READY,
-    ERROR
-  }
+class PollingProcessor extends AbstractScheduledService {
 
   @Setter private String environment;
   @Setter private String cluster;
@@ -31,14 +24,14 @@ public class PollingProcessor extends AbstractScheduledService {
   private final int pollIntervalSeconds;
   private final Repository repository;
   private boolean initialized = false;
-  private final EventBus eventBus;
+  private final PollerCallback callback;
 
   public PollingProcessor(
-      ClientApi api, EventBus eventBus, Repository repository, int pollIntervalSeconds) {
+      ClientApi api, Repository repository, int pollIntervalSeconds, PollerCallback callback) {
     this.api = api;
     this.pollIntervalSeconds = pollIntervalSeconds;
     this.repository = repository;
-    this.eventBus = eventBus;
+    this.callback = callback;
   }
 
   public CompletableFuture<List<FeatureConfig>> retrieveFlags() {
@@ -82,11 +75,11 @@ public class PollingProcessor extends AbstractScheduledService {
       CompletableFuture.allOf(retrieveFlags(), retrieveSegments()).join();
       if (!initialized) {
         initialized = true;
-        eventBus.post(new CustomEvent<>(Event.READY));
+        callback.onPollerReady();
       }
     } catch (CompletionException exc) {
       log.error("Error polling the data, err: {}", exc.getMessage());
-      eventBus.post(new CustomEvent<>(Event.ERROR, exc.getMessage()));
+      callback.onPollerError(exc.getMessage());
     }
   }
 
