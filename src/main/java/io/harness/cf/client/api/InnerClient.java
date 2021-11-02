@@ -17,11 +17,28 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 @Slf4j
-class InnerClient implements FlagEvaluateCallback, AuthCallback, PollerCallback {
+class InnerClient
+    implements FlagEvaluateCallback,
+        AuthCallback,
+        PollerCallback,
+        StreamCallback,
+        RepositoryCallback {
+
+  public enum Event {
+    READY,
+    FAILED,
+    CHANGED
+  }
+
+  enum Processor {
+    POLL,
+    STREAM,
+    METRICS,
+  }
+
   private Evaluation evaluator;
   private Repository repository;
   private ClientApi api;
-  private String sdkKey;
   private String environment;
   private Config options;
   private String cluster = "1";
@@ -32,7 +49,6 @@ class InnerClient implements FlagEvaluateCallback, AuthCallback, PollerCallback 
   private MetricsProcessor metricsProcessor;
   private boolean initialized = false;
   private boolean failure = false;
-  private InnerClient waitForInitialize;
   private boolean pollerReady = false;
   private boolean streamReady = false;
   private boolean metricReady = false;
@@ -47,16 +63,17 @@ class InnerClient implements FlagEvaluateCallback, AuthCallback, PollerCallback 
       return;
     }
     this.options = options;
-    this.sdkKey = sdkKey;
 
     // initialization
     api = new ClientApi(makeApiClient());
-    repository = new StorageRepository(options.getCache(), options.getStore(), eventBus);
+    repository = new StorageRepository(options.getCache(), options.getStore(), this);
     evaluator = new Evaluator(repository);
-    pollProcessor = new PollingProcessor(api, repository, options.getPollIntervalInSeconds(), this);
     authService = new AuthService(api, sdkKey, options.getPollIntervalInSeconds(), this);
+    pollProcessor = new PollingProcessor(api, repository, options.getPollIntervalInSeconds(), this);
+    streamProcessor = new StreamProcessor(sdkKey, api, repository, options.getConfigUrl(), this);
+    metricsProcessor = new MetricsProcessor();
 
-    // start
+    // start with authentication
     authService.startAsync();
   }
 
@@ -100,11 +117,25 @@ class InnerClient implements FlagEvaluateCallback, AuthCallback, PollerCallback 
     // set values to processors
     pollProcessor.setEnvironment(environment);
     pollProcessor.setCluster(cluster);
+
+    streamProcessor.setEnvironmentID(environment);
+    streamProcessor.setCluster(cluster);
+    streamProcessor.setToken(token);
+
+    metricsProcessor.setEnvironmentID(environment);
+    metricsProcessor.setCluster(cluster);
   }
 
   protected void onUnauthorized() {
     authService.startAsync();
     pollProcessor.stopAsync();
+    if (options.isStreamEnabled()) {
+      streamProcessor.stop();
+    }
+
+    if (options.isAnalyticsEnabled()) {
+      metricsProcessor.stop();
+    }
   }
 
   @Override
@@ -113,16 +144,95 @@ class InnerClient implements FlagEvaluateCallback, AuthCallback, PollerCallback 
     processToken(token);
     // services
     pollProcessor.startAsync();
+    if (options.isStreamEnabled()) {
+      streamProcessor.start();
+    }
+
+    if (options.isAnalyticsEnabled()) {
+      metricsProcessor.start();
+    }
   }
 
   @Override
-  public void onAuthError(String error) {}
+  public void onAuthError(String error) {
+    failure = true;
+    eventBus.post(new CustomEvent<>(Event.FAILED));
+  }
 
   @Override
-  public void onPollerReady() {}
+  public void onPollerReady() {
+    initialize(Processor.POLL);
+  }
 
   @Override
-  public void onPollerError(@NonNull String error) {}
+  public void onPollerError(@NonNull String error) {
+    failure = true;
+    eventBus.post(new CustomEvent<>(Event.FAILED));
+  }
+
+  @Override
+  public void onStreamConnected() {
+    pollProcessor.stopAsync();
+  }
+
+  @Override
+  public void onStreamDisconnected() {
+    pollProcessor.startAsync();
+  }
+
+  @Override
+  public void onStreamError() {}
+
+  @Override
+  public void onFlagStored(@NonNull String identifier) {}
+
+  @Override
+  public void onFlagDeleted(@NonNull String identifier) {}
+
+  @Override
+  public void onSegmentStored(@NonNull String identifier) {}
+
+  @Override
+  public void onSegmentDeleted(@NonNull String identifier) {}
+
+  private void initialize(Processor processor) {
+    switch (processor) {
+      case POLL:
+        pollerReady = true;
+        log.debug("PollingProcessor ready");
+        break;
+      case STREAM:
+        streamReady = true;
+        log.debug("StreamingProcessor ready");
+        break;
+      case METRICS:
+        metricReady = true;
+        log.debug("MetricsProcessor ready");
+        break;
+    }
+
+    if (options.isStreamEnabled() && !streamReady) {
+      return;
+    }
+
+    if (options.isAnalyticsEnabled() && !this.metricReady) {
+      return;
+    }
+
+    if (!this.pollerReady) {
+      return;
+    }
+
+    initialized = true;
+    eventBus.post(new CustomEvent<>(Event.READY));
+    notify();
+  }
+
+  public void waitForInitialization() throws InterruptedException {
+    while (!initialized) {
+      wait();
+    }
+  }
 
   public boolean boolVariation(@NonNull String identifier, Target target, boolean defaultValue) {
     return evaluator.boolVariation(identifier, target, defaultValue, this);

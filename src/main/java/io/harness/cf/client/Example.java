@@ -29,6 +29,7 @@ class Example {
     executor = Executors.newFixedThreadPool(2);
   }
 
+  @SuppressWarnings("InfiniteLoopStatement")
   public static void main(String... args) {
 
     Runtime.getRuntime()

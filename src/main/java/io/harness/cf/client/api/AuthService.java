@@ -21,7 +21,7 @@ class AuthService extends AbstractScheduledService {
       @NonNull final ClientApi clientApi,
       @NonNull final String apiKey,
       final int pollIntervalInSec,
-      final AuthCallback callback) {
+      @NonNull final AuthCallback callback) {
 
     this.apiKey = apiKey;
     this.clientApi = clientApi;

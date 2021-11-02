@@ -1,7 +1,6 @@
 package io.harness.cf.client.api;
 
-import com.google.common.eventbus.EventBus;
-import io.harness.cf.client.common.KeyValueStore;
+import io.harness.cf.client.common.Cache;
 import io.harness.cf.client.common.Operators;
 import io.harness.cf.client.common.Storage;
 import io.harness.cf.model.Clause;
@@ -15,22 +14,18 @@ import lombok.NonNull;
 import org.apache.commons.collections4.CollectionUtils;
 
 class StorageRepository implements Repository {
-  private final KeyValueStore cache;
+  private final Cache cache;
   private Storage store;
-  private EventBus eventBus;
+  private final RepositoryCallback callback;
 
-  public StorageRepository(@NonNull KeyValueStore cache) {
+  public StorageRepository(@NonNull Cache cache, RepositoryCallback callback) {
     this.cache = cache;
+    this.callback = callback;
   }
 
-  public StorageRepository(@NonNull KeyValueStore cache, Storage store) {
-    this(cache);
+  public StorageRepository(@NonNull Cache cache, Storage store, RepositoryCallback callback) {
+    this(cache, callback);
     this.store = store;
-  }
-
-  public StorageRepository(@NonNull KeyValueStore cache, Storage store, EventBus eventBus) {
-    this(cache, store);
-    this.eventBus = eventBus;
   }
 
   public Optional<FeatureConfig> getFlag(@NonNull String identifier, boolean cacheable) {
@@ -114,8 +109,8 @@ class StorageRepository implements Repository {
     } else {
       cache.set(flagKey, featureConfig);
     }
-    if (eventBus != null) {
-      eventBus.post(new CustomEvent<>(Repository.Event.FLAG_STORED, identifier));
+    if (callback != null) {
+      callback.onFlagStored(identifier);
     }
   }
 
@@ -129,8 +124,8 @@ class StorageRepository implements Repository {
     } else {
       cache.set(segmentKey, segment);
     }
-    if (eventBus != null) {
-      eventBus.post(new CustomEvent<>(Event.SEGMENT_STORED, identifier));
+    if (callback != null) {
+      callback.onSegmentStored(identifier);
     }
   }
 
@@ -141,8 +136,8 @@ class StorageRepository implements Repository {
       store.del(flagKey);
     }
     this.cache.del(flagKey);
-    if (this.eventBus != null) {
-      eventBus.post(new CustomEvent<>(Event.FLAG_DELETED, identifier));
+    if (callback != null) {
+      callback.onFlagDeleted(identifier);
     }
   }
 
@@ -153,8 +148,8 @@ class StorageRepository implements Repository {
       store.del(segmentKey);
     }
     this.cache.del(segmentKey);
-    if (this.eventBus != null) {
-      eventBus.post(new CustomEvent<>(Event.SEGMENT_DELETED, identifier));
+    if (callback != null) {
+      callback.onSegmentDeleted(identifier);
     }
   }
 
