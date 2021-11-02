@@ -1,7 +1,7 @@
 package io.harness.cf.client.api;
 
 import io.harness.cf.client.api.analytics.AnalyticsCacheFactory;
-import io.harness.cf.client.common.KeyValueStore;
+import io.harness.cf.client.common.Cache;
 import io.harness.cf.client.common.Storage;
 import java.util.Collections;
 import java.util.Set;
@@ -57,7 +57,7 @@ public class Config {
     return Math.max(frequency, Config.MIN_FREQUENCY);
   }
 
-  @Getter @Builder.Default KeyValueStore cache = new CaffeineCache(10000);
+  @Getter @Builder.Default Cache cache = new CaffeineCache(10000);
 
   @Getter Storage store;
 

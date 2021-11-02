@@ -1,14 +1,13 @@
 package io.harness.cf.client.api;
 
-import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import io.harness.cf.client.common.KeyValueStore;
+import io.harness.cf.client.common.Cache;
 import java.util.List;
 import lombok.NonNull;
 
-public class CaffeineCache implements KeyValueStore {
+public class CaffeineCache implements Cache {
 
-  private final Cache<String, Object> cache;
+  private final com.github.benmanes.caffeine.cache.Cache cache;
 
   public CaffeineCache(int size) {
     cache = Caffeine.newBuilder().maximumSize(size).build();

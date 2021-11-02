@@ -15,6 +15,10 @@ public class Client {
     innerClient = new InnerClient(sdkKey, options);
   }
 
+  public void waitForInitialization() throws InterruptedException {
+    innerClient.waitForInitialization();
+  }
+
   public boolean boolVariation(@NonNull String identifier, Target target, boolean defaultValue) {
     return innerClient.boolVariation(identifier, target, defaultValue);
   }
