@@ -118,7 +118,7 @@ class InnerClient
     pollProcessor.setEnvironment(environment);
     pollProcessor.setCluster(cluster);
 
-    streamProcessor.setEnvironmentID(environment);
+    streamProcessor.setEnvironment(environment);
     streamProcessor.setCluster(cluster);
     streamProcessor.setToken(token);
 
@@ -142,7 +142,7 @@ class InnerClient
   public void onAuthSuccess(@NonNull final String token) {
     log.info("SDK successfully logged in");
     processToken(token);
-    // services
+    // run services only after token is processed
     pollProcessor.startAsync();
     if (options.isStreamEnabled()) {
       streamProcessor.start();
