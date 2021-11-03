@@ -1,8 +1,10 @@
 package io.harness.cf.client.api;
 
+import com.google.common.base.Strings;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
+import com.here.oksse.OkSse;
 import com.here.oksse.ServerSentEvent;
 import io.harness.cf.ApiCallback;
 import io.harness.cf.ApiException;
@@ -21,15 +23,22 @@ import okhttp3.Response;
 @Slf4j
 class StreamProcessor implements ServerSentEvent.Listener {
   private final Gson gson = new Gson();
+  private final String sdkKey;
   private final ClientApi clientApi;
   private final Repository repository;
   private final StreamCallback callback;
-  @Setter private String environmentID;
+  private final String url;
+  private final OkSse okSse;
+  private ServerSentEvent sse;
+
+  @Setter private String environment;
   @Setter private String cluster;
   @Setter private String token;
 
+  private boolean running;
+
   StreamProcessor(
-      String sdkKey,
+      @NonNull String sdkKey,
       ClientApi clientApi,
       Repository repository,
       String url,
@@ -38,18 +47,36 @@ class StreamProcessor implements ServerSentEvent.Listener {
     this.clientApi = clientApi;
     this.repository = repository;
     this.callback = callback;
+    this.url = url;
+    this.sdkKey = sdkKey;
+    this.okSse = new OkSse();
+  }
+
+  public void start() {
+    if (running
+        || Strings.isNullOrEmpty(environment)
+        || Strings.isNullOrEmpty(cluster)
+        || Strings.isNullOrEmpty(token)) {
+      return;
+    }
 
     final String sseUrl = String.join("", url, "/stream?cluster=" + cluster);
 
-    Request authorization =
+    Request request =
         new Request.Builder()
-            .url(String.format(sseUrl, environmentID))
+            .url(String.format(sseUrl, environment))
             .header("Authorization", "Bearer " + token)
             .header("API-Key", sdkKey)
             .build();
+    sse = okSse.newServerSentEvent(request, this);
+    running = true;
   }
 
-  public void start() {}
+  public void stop() {
+    running = false;
+    sse.close();
+    sse = null;
+  }
 
   @Override
   public void onOpen(ServerSentEvent serverSentEvent, Response response) {
@@ -84,7 +111,7 @@ class StreamProcessor implements ServerSentEvent.Listener {
       clientApi
           .getFeatureConfigByIdentifierAsync(
               identifier,
-              environmentID,
+              environment,
               cluster,
               new ApiCallback<FeatureConfig>() {
                 @Override
@@ -122,7 +149,7 @@ class StreamProcessor implements ServerSentEvent.Listener {
       clientApi
           .getSegmentByIdentifierAsync(
               identifier,
-              environmentID,
+              environment,
               cluster,
               new ApiCallback<Segment>() {
                 @Override
@@ -180,6 +207,4 @@ class StreamProcessor implements ServerSentEvent.Listener {
 
     return null;
   }
-
-  void stop() {}
 }
