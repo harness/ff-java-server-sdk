@@ -6,5 +6,7 @@ interface StreamCallback {
 
   void onStreamDisconnected();
 
+  void onStreamReady();
+
   void onStreamError();
 }

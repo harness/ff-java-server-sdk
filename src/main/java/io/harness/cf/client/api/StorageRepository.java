@@ -1,7 +1,6 @@
 package io.harness.cf.client.api;
 
 import io.harness.cf.client.common.Cache;
-import io.harness.cf.client.common.Operators;
 import io.harness.cf.client.common.Storage;
 import io.harness.cf.model.Clause;
 import io.harness.cf.model.FeatureConfig;
@@ -129,7 +128,7 @@ class StorageRepository implements Repository {
     }
     final String segmentKey = formatSegmentKey(identifier);
     if (store != null) {
-      store.set(segmentKey, segmentKey);
+      store.set(segmentKey, segment);
       cache.del(segmentKey);
       log.debug("Segment {} successfully stored and cache invalidated", identifier);
     } else {

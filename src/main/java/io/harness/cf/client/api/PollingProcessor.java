@@ -52,9 +52,9 @@ class PollingProcessor extends AbstractScheduledService {
   public CompletableFuture<List<Segment>> retrieveSegments() {
     CompletableFuture<List<Segment>> completableFuture = new CompletableFuture<>();
     try {
-      log.info("Fetching segments started");
+      log.debug("Fetching segments started");
       List<Segment> segments = this.api.getAllSegments(this.environment, this.cluster);
-      log.info("Fetching segments finished");
+      log.debug("Fetching segments finished");
       segments.forEach(s -> repository.setSegment(s.getIdentifier(), s));
       completableFuture.complete(segments);
     } catch (ApiException e) {
@@ -67,14 +67,15 @@ class PollingProcessor extends AbstractScheduledService {
   @Override
   protected void runOneIteration() {
     if (StringUtils.isBlank(environment) && StringUtils.isBlank(cluster)) {
-      log.info("Environment or cluster is missing");
+      log.warn("Environment or cluster is missing");
       return;
     }
-    log.info("running poll iteration");
+    log.debug("running poll iteration");
     try {
       CompletableFuture.allOf(retrieveFlags(), retrieveSegments()).join();
       if (!initialized) {
         initialized = true;
+        log.info("PollingProcessor initialized");
         callback.onPollerReady();
       }
     } catch (CompletionException exc) {

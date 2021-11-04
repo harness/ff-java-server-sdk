@@ -22,7 +22,8 @@ class InnerClient
         AuthCallback,
         PollerCallback,
         StreamCallback,
-        RepositoryCallback {
+        RepositoryCallback,
+        MetricsCallback {
 
   public enum Event {
     READY,
@@ -69,7 +70,7 @@ class InnerClient
     authService = new AuthService(api, sdkKey, options.getPollIntervalInSeconds(), this);
     pollProcessor = new PollingProcessor(api, repository, options.getPollIntervalInSeconds(), this);
     streamProcessor = new StreamProcessor(sdkKey, api, repository, options.getConfigUrl(), this);
-    metricsProcessor = new MetricsProcessor();
+    metricsProcessor = new MetricsProcessor(this);
 
     // start with authentication
     authService.startAsync();
@@ -142,6 +143,7 @@ class InnerClient
     processToken(token);
     // run services only after token is processed
     pollProcessor.start();
+
     if (options.isStreamEnabled()) {
       streamProcessor.start();
     }
@@ -165,17 +167,21 @@ class InnerClient
   @Override
   public void onPollerError(@NonNull String error) {
     failure = true;
-    eventBus.post(new CustomEvent<>(Event.FAILED));
   }
 
   @Override
   public void onStreamConnected() {
-    pollProcessor.stop();
+    //    pollProcessor.stop();
   }
 
   @Override
   public void onStreamDisconnected() {
     pollProcessor.start();
+  }
+
+  @Override
+  public void onStreamReady() {
+    initialize(Processor.STREAM);
   }
 
   @Override
@@ -193,7 +199,20 @@ class InnerClient
   @Override
   public void onSegmentDeleted(@NonNull String identifier) {}
 
-  private void initialize(Processor processor) {
+  @Override
+  public void onMetricsReady() {
+    initialize(Processor.METRICS);
+  }
+
+  @Override
+  public void onMetricsError(@NonNull String error) {}
+
+  @Override
+  public void onMetricsFailure() {
+    failure = true;
+  }
+
+  private synchronized void initialize(Processor processor) {
     switch (processor) {
       case POLL:
         pollerReady = true;
@@ -222,12 +241,13 @@ class InnerClient
     }
 
     initialized = true;
-    eventBus.post(new CustomEvent<>(Event.READY));
     notify();
+    log.info("Wait for initialization to finish");
   }
 
-  public void waitForInitialization() throws InterruptedException {
-    while (!initialized) {
+  public synchronized void waitForInitialization() throws InterruptedException {
+    if (!initialized) {
+      log.info("Wait for initialization to finish");
       wait();
     }
   }
