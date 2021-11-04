@@ -90,7 +90,18 @@ class PollingProcessor extends AbstractScheduledService {
     return Scheduler.newFixedDelaySchedule(0, pollIntervalSeconds, TimeUnit.SECONDS);
   }
 
-  public void close() {
+  public void start() {
+    log.info("Starting PollingProcessor with request interval: {}", pollIntervalSeconds);
+    startAsync();
+  }
+
+  public void stop() {
+    log.info("Stopping PollingProcessor");
     stopAsync();
+  }
+
+  public void close() {
+    stop();
+    log.info("Closing PollingProcessor");
   }
 }
