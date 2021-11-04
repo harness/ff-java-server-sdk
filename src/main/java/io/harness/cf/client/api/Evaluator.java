@@ -2,6 +2,7 @@ package io.harness.cf.client.api;
 
 import static io.harness.cf.client.common.Operators.*;
 
+import com.google.common.base.Strings;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.sangupta.murmur.Murmur3;
@@ -29,6 +30,9 @@ public class Evaluator implements Evaluation {
   }
 
   protected Optional<Object> getAttrValue(Target target, @Nonnull String attribute) {
+    if (Strings.isNullOrEmpty(attribute)) {
+      return Optional.empty();
+    }
     try {
       Field field = Target.class.getDeclaredField(attribute);
       field.setAccessible(true);
@@ -233,6 +237,7 @@ public class Evaluator implements Evaluation {
   protected Optional<Variation> evaluateFlag(@NonNull FeatureConfig featureConfig, Target target) {
     Optional<String> variation = Optional.of(featureConfig.getOffVariation());
     if (featureConfig.getState() == FeatureState.ON) {
+      variation = Optional.empty();
       if (featureConfig.getVariationToTargetMap() != null)
         variation = evaluateVariationMap(featureConfig.getVariationToTargetMap(), target);
       if (!variation.isPresent()) variation = evaluateRules(featureConfig.getRules(), target);

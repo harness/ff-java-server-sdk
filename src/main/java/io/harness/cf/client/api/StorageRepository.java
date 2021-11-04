@@ -11,8 +11,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 
+@Slf4j
 class StorageRepository implements Repository {
   private final Cache cache;
   private Storage store;
@@ -101,13 +103,18 @@ class StorageRepository implements Repository {
 
   @Override
   public void setFlag(@NonNull String identifier, @NonNull FeatureConfig featureConfig) {
-    if (isFlagOutdated(identifier, featureConfig)) return;
+    if (isFlagOutdated(identifier, featureConfig)) {
+      log.debug("Flag {} already exists", identifier);
+      return;
+    }
     final String flagKey = formatFlagKey(identifier);
     if (store != null) {
       store.set(flagKey, featureConfig);
       cache.del(flagKey);
+      log.debug("Flag {} successfully stored and cache invalidated", identifier);
     } else {
       cache.set(flagKey, featureConfig);
+      log.debug("Flag {} successfully cached", identifier);
     }
     if (callback != null) {
       callback.onFlagStored(identifier);
@@ -116,13 +123,18 @@ class StorageRepository implements Repository {
 
   @Override
   public void setSegment(@NonNull String identifier, @NonNull Segment segment) {
-    if (isSegmentOutdated(identifier, segment)) return;
+    if (isSegmentOutdated(identifier, segment)) {
+      log.debug("Segment {} already exists", identifier);
+      return;
+    }
     final String segmentKey = formatSegmentKey(identifier);
     if (store != null) {
       store.set(segmentKey, segmentKey);
       cache.del(segmentKey);
+      log.debug("Segment {} successfully stored and cache invalidated", identifier);
     } else {
       cache.set(segmentKey, segment);
+      log.debug("Segment {} successfully cached", identifier);
     }
     if (callback != null) {
       callback.onSegmentStored(identifier);
@@ -134,8 +146,10 @@ class StorageRepository implements Repository {
     final String flagKey = this.formatFlagKey(identifier);
     if (store != null) {
       store.del(flagKey);
+      log.debug("Flag {} successfully deleted from store", identifier);
     }
     this.cache.del(flagKey);
+    log.debug("Flag {} successfully deleted from cache", identifier);
     if (callback != null) {
       callback.onFlagDeleted(identifier);
     }
@@ -146,8 +160,10 @@ class StorageRepository implements Repository {
     final String segmentKey = this.formatSegmentKey(identifier);
     if (store != null) {
       store.del(segmentKey);
+      log.debug("Segment {} successfully deleted from store", identifier);
     }
     this.cache.del(segmentKey);
+    log.debug("Segment {} successfully deleted from cache", identifier);
     if (callback != null) {
       callback.onSegmentDeleted(identifier);
     }

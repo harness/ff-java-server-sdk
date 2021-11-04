@@ -11,7 +11,6 @@ import io.harness.cf.ApiException;
 import io.harness.cf.api.ClientApi;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Segment;
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import lombok.NonNull;
@@ -86,20 +85,19 @@ class StreamProcessor implements ServerSentEvent.Listener {
   }
 
   @Override
-  public void onMessage(ServerSentEvent serverSentEvent, String s, String s1, String s2) {
+  public void onMessage(ServerSentEvent sse, String id, String event, String message) {
 
     JsonObject jsonObject;
     try {
-      jsonObject = gson.fromJson(s1, JsonObject.class);
+      jsonObject = gson.fromJson(message, JsonObject.class);
+      String domain = jsonObject.get("domain").getAsString();
+      if (domain.equals("flag")) {
+        processFeature(jsonObject);
+      } else if (domain.equals("target-segment")) {
+        processSegment(jsonObject);
+      }
     } catch (JsonSyntaxException ex) {
-      jsonObject = gson.fromJson(s2, JsonObject.class);
-    }
-
-    String domain = jsonObject.get("domain").getAsString();
-    if (domain.equals("flag")) {
-      processFeature(jsonObject);
-    } else if (domain.equals("target-segment")) {
-      processSegment(jsonObject);
+      log.error("Error converting the message from SSE");
     }
   }
 
@@ -108,34 +106,30 @@ class StreamProcessor implements ServerSentEvent.Listener {
     log.info("Syncing the latest features..");
     String identifier = jsonObject.get("identifier").getAsString();
     try {
-      clientApi
-          .getFeatureConfigByIdentifierAsync(
-              identifier,
-              environment,
-              cluster,
-              new ApiCallback<FeatureConfig>() {
-                @Override
-                public void onFailure(
-                    ApiException e, int statusCode, Map<String, List<String>> responseHeaders) {
-                  log.error("Failed to sync the feature {} due to {}", identifier, e.getMessage());
-                }
+      clientApi.getFeatureConfigByIdentifierAsync(
+          identifier,
+          environment,
+          cluster,
+          new ApiCallback<FeatureConfig>() {
+            @Override
+            public void onFailure(
+                ApiException e, int statusCode, Map<String, List<String>> responseHeaders) {
+              log.error("Failed to sync the feature {} due to {}", identifier, e.getMessage());
+            }
 
-                @Override
-                public void onSuccess(
-                    FeatureConfig result,
-                    int statusCode,
-                    Map<String, List<String>> responseHeaders) {
-                  repository.setFlag(result.getFeature(), result);
-                }
+            @Override
+            public void onSuccess(
+                FeatureConfig result, int statusCode, Map<String, List<String>> responseHeaders) {
+              repository.setFlag(result.getFeature(), result);
+            }
 
-                @Override
-                public void onUploadProgress(long bytesWritten, long contentLength, boolean done) {}
+            @Override
+            public void onUploadProgress(long bytesWritten, long contentLength, boolean done) {}
 
-                @Override
-                public void onDownloadProgress(long bytesRead, long contentLength, boolean done) {}
-              })
-          .execute();
-    } catch (ApiException | IOException e) {
+            @Override
+            public void onDownloadProgress(long bytesRead, long contentLength, boolean done) {}
+          });
+    } catch (ApiException e) {
 
       log.error("Failed to sync the feature {} due to {}", identifier, e.getMessage());
     }
@@ -146,33 +140,31 @@ class StreamProcessor implements ServerSentEvent.Listener {
     log.info("Syncing the latest segments..");
     String identifier = jsonObject.get("identifier").getAsString();
     try {
-      clientApi
-          .getSegmentByIdentifierAsync(
-              identifier,
-              environment,
-              cluster,
-              new ApiCallback<Segment>() {
-                @Override
-                public void onFailure(
-                    ApiException e, int statusCode, Map<String, List<String>> responseHeaders) {
-                  log.error("Failed to sync the segment {} due to {}", identifier, e.getMessage());
-                }
+      clientApi.getSegmentByIdentifierAsync(
+          identifier,
+          environment,
+          cluster,
+          new ApiCallback<Segment>() {
+            @Override
+            public void onFailure(
+                ApiException e, int statusCode, Map<String, List<String>> responseHeaders) {
+              log.error("Failed to sync the segment {} due to {}", identifier, e.getMessage());
+            }
 
-                @Override
-                public void onSuccess(
-                    Segment result, int statusCode, Map<String, List<String>> responseHeaders) {
-                  repository.setSegment(result.getIdentifier(), result);
-                }
+            @Override
+            public void onSuccess(
+                Segment result, int statusCode, Map<String, List<String>> responseHeaders) {
+              repository.setSegment(result.getIdentifier(), result);
+            }
 
-                @Override
-                public void onUploadProgress(long bytesWritten, long contentLength, boolean done) {}
+            @Override
+            public void onUploadProgress(long bytesWritten, long contentLength, boolean done) {}
 
-                @Override
-                public void onDownloadProgress(long bytesRead, long contentLength, boolean done) {}
-              })
-          .execute();
+            @Override
+            public void onDownloadProgress(long bytesRead, long contentLength, boolean done) {}
+          });
 
-    } catch (ApiException | IOException e) {
+    } catch (ApiException e) {
       log.error("Failed to sync the segment {} due to {}", identifier, e.getMessage());
     }
   }

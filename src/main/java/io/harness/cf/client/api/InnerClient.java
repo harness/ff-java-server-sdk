@@ -126,7 +126,7 @@ class InnerClient
 
   protected void onUnauthorized() {
     authService.startAsync();
-    pollProcessor.stopAsync();
+    pollProcessor.stop();
     if (options.isStreamEnabled()) {
       streamProcessor.stop();
     }
@@ -141,7 +141,7 @@ class InnerClient
     log.info("SDK successfully logged in");
     processToken(token);
     // run services only after token is processed
-    pollProcessor.startAsync();
+    pollProcessor.start();
     if (options.isStreamEnabled()) {
       streamProcessor.start();
     }
@@ -170,12 +170,12 @@ class InnerClient
 
   @Override
   public void onStreamConnected() {
-    pollProcessor.stopAsync();
+    pollProcessor.stop();
   }
 
   @Override
   public void onStreamDisconnected() {
-    pollProcessor.startAsync();
+    pollProcessor.start();
   }
 
   @Override
