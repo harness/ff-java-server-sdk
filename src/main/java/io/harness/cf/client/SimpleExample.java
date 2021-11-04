@@ -8,23 +8,15 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class SimpleExample {
-  public static Client client;
 
   public static final String SDK_KEY = "1c100d25-4c3f-487b-b198-3b3d01df5794";
 
   @SuppressWarnings("InfiniteLoopStatement")
-  public static void main(String... args) {
-
-    Runtime.getRuntime()
-        .addShutdownHook(
-            new Thread(
-                () -> {
-                  System.out.println("Closing application");
-                  client.close();
-                }));
+  public static void main(String... args) throws InterruptedException {
 
     final FileMapStore fileStore = new FileMapStore("Non-Freemium");
-    client = new Client(SDK_KEY, Config.builder().store(fileStore).build());
+    Client client = new Client(SDK_KEY, Config.builder().store(fileStore).build());
+    client.waitForInitialization();
 
     Target target =
         Target.builder()
@@ -37,7 +29,6 @@ public class SimpleExample {
     while (true) {
       final boolean bResult = client.boolVariation("test", target, false);
       log.info("Boolean variation: {}", bResult);
-
       try {
         Thread.sleep(10000);
       } catch (InterruptedException e) {

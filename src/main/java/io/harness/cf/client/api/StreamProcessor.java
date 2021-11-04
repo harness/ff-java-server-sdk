@@ -49,6 +49,7 @@ class StreamProcessor implements ServerSentEvent.Listener {
     this.url = url;
     this.sdkKey = sdkKey;
     this.okSse = new OkSse();
+    callback.onStreamReady();
   }
 
   public void start() {
@@ -56,6 +57,7 @@ class StreamProcessor implements ServerSentEvent.Listener {
         || Strings.isNullOrEmpty(environment)
         || Strings.isNullOrEmpty(cluster)
         || Strings.isNullOrEmpty(token)) {
+      log.warn("Environment, cluster or token is missing");
       return;
     }
 

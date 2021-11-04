@@ -15,7 +15,7 @@ public class FileMapStore implements Storage {
   private final HTreeMap<String, Object> map;
 
   public FileMapStore(@NonNull String name) {
-    db = DBMaker.fileDB(name).fileMmapEnable().transactionEnable().make();
+    db = DBMaker.fileDB(name).closeOnJvmShutdown().fileChannelEnable().transactionEnable().make();
     map = db.hashMap("map", Serializer.STRING, Serializer.JAVA).createOrOpen();
   }
 

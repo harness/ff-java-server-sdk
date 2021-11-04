@@ -5,7 +5,6 @@ import io.harness.cf.client.api.Config;
 import io.harness.cf.client.api.FileMapStore;
 import io.harness.cf.client.dto.Target;
 import java.util.HashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +18,6 @@ class Example {
 
   public static final String FREEMIUM_API_KEY = "45d2a13a-c62f-4116-a1a7-86f25d715a2e";
   public static final String NON_FREEMIUM_API_KEY = "1acfded6-65b9-4e0a-9cbd-a6abd7574f54";
-  public static final CopyOnWriteArrayList<Client> clients = new CopyOnWriteArrayList<>();
 
   static {
     capacity = 5;
@@ -32,16 +30,6 @@ class Example {
   @SuppressWarnings("InfiniteLoopStatement")
   public static void main(String... args) {
 
-    Runtime.getRuntime()
-        .addShutdownHook(
-            new Thread(
-                () -> {
-                  System.out.println("Closing application");
-                  for (Client client : clients) {
-                    client.close();
-                  }
-                }));
-
     for (final String keyName : keys.keySet()) {
 
       executor.execute(
@@ -49,7 +37,6 @@ class Example {
             final String apiKey = keys.get(keyName);
             final FileMapStore fileStore = new FileMapStore(keyName);
             final Client client = new Client(apiKey, Config.builder().store(fileStore).build());
-            clients.add(client);
             final String logPrefix = keyName + " :: " + client.hashCode() + " ";
 
             Target target =

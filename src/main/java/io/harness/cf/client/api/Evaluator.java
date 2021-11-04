@@ -1,6 +1,6 @@
 package io.harness.cf.client.api;
 
-import static io.harness.cf.client.common.Operators.*;
+import static io.harness.cf.client.api.Operators.*;
 
 import com.google.common.base.Strings;
 import com.google.gson.Gson;

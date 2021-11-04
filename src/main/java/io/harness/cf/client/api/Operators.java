@@ -1,6 +1,6 @@
-package io.harness.cf.client.common;
+package io.harness.cf.client.api;
 
-public interface Operators {
+interface Operators {
 
   String STARTS_WITH = "starts_with";
   String ENDS_WITH = "ends_with";
