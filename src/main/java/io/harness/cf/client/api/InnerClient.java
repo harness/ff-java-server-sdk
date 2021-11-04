@@ -1,7 +1,6 @@
 package io.harness.cf.client.api;
 
 import com.google.common.base.Strings;
-import com.google.common.eventbus.EventBus;
 import com.google.gson.JsonObject;
 import io.harness.cf.ApiClient;
 import io.harness.cf.api.ClientApi;
@@ -25,12 +24,6 @@ class InnerClient
         RepositoryCallback,
         MetricsCallback {
 
-  public enum Event {
-    READY,
-    FAILED,
-    CHANGED
-  }
-
   enum Processor {
     POLL,
     STREAM,
@@ -41,7 +34,6 @@ class InnerClient
   private Repository repository;
   private ClientApi api;
   private Config options;
-  private final EventBus eventBus = new EventBus();
   private AuthService authService;
   private PollingProcessor pollProcessor;
   private StreamProcessor streamProcessor;
@@ -156,7 +148,6 @@ class InnerClient
   @Override
   public void onAuthError(String error) {
     failure = true;
-    eventBus.post(new CustomEvent<>(Event.FAILED));
   }
 
   @Override
