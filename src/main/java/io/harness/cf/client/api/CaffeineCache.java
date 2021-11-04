@@ -7,7 +7,7 @@ import lombok.NonNull;
 
 public class CaffeineCache implements Cache {
 
-  private final com.github.benmanes.caffeine.cache.Cache cache;
+  private final com.github.benmanes.caffeine.cache.Cache<String, Object> cache;
 
   public CaffeineCache(int size) {
     cache = Caffeine.newBuilder().maximumSize(size).build();

@@ -4,11 +4,13 @@ import io.harness.cf.client.common.Storage;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.HTreeMap;
 import org.mapdb.Serializer;
 
+@Slf4j
 public class FileMapStore implements Storage {
 
   private final DB db;
@@ -21,19 +23,44 @@ public class FileMapStore implements Storage {
 
   @Override
   public void set(@NonNull String key, @NonNull Object value) {
-    map.put(key, value);
-    db.commit();
+    try {
+      map.put(key, value);
+      db.commit();
+    } catch (UnsupportedOperationException
+        | ClassCastException
+        | NullPointerException
+        | IllegalArgumentException e) {
+      log.error(
+          "Exception was raised when storing the key {} with the error message {}",
+          key,
+          e.getMessage());
+    }
   }
 
   @Override
   public Object get(@NonNull String key) {
-    return map.get(key);
+    try {
+      return map.get(key);
+    } catch (ClassCastException | NullPointerException e) {
+      log.error(
+          "Exception was raised while getting the key {} with the error message {}",
+          key,
+          e.getMessage());
+      return null;
+    }
   }
 
   @Override
   public void del(@NonNull String key) {
-    map.remove(key);
-    db.commit();
+    try {
+      map.remove(key);
+      db.commit();
+    } catch (UnsupportedOperationException | ClassCastException | NullPointerException e) {
+      log.error(
+          "Exception was raised while deleting the key {} with the error message {}",
+          key,
+          e.getMessage());
+    }
   }
 
   @Override
