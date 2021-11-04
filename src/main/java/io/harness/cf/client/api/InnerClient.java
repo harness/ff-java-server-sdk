@@ -39,9 +39,7 @@ class InnerClient
   private Evaluation evaluator;
   private Repository repository;
   private ClientApi api;
-  private String environment;
   private Config options;
-  private String cluster = "1";
   private final EventBus eventBus = new EventBus();
   private AuthService authService;
   private PollingProcessor pollProcessor;
