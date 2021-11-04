@@ -114,14 +114,14 @@ public class AnalyticsPublisherService {
       metricsData.setTimestamp(System.currentTimeMillis());
       metricsData.count(entry.getValue());
       metricsData.setMetricsType(MetricsData.MetricsTypeEnum.FFMETRICS);
-      setMetricsAttriutes(metricsData, FEATURE_NAME_ATTRIBUTE, entry.getKey().getFeatureName());
-      setMetricsAttriutes(
+      setMetricsAttributes(metricsData, FEATURE_NAME_ATTRIBUTE, entry.getKey().getFeatureName());
+      setMetricsAttributes(
           metricsData, VARIATION_IDENTIFIER_ATTRIBUTE, entry.getKey().getVariationIdentifier());
-      setMetricsAttriutes(metricsData, TARGET_ATTRIBUTE, GLOBAL_TARGET);
-      setMetricsAttriutes(metricsData, SDK_TYPE, SERVER);
+      setMetricsAttributes(metricsData, TARGET_ATTRIBUTE, GLOBAL_TARGET);
+      setMetricsAttributes(metricsData, SDK_TYPE, SERVER);
 
-      setMetricsAttriutes(metricsData, SDK_LANGUAGE, "java");
-      setMetricsAttriutes(metricsData, SDK_VERSION, jarVerion);
+      setMetricsAttributes(metricsData, SDK_LANGUAGE, "java");
+      setMetricsAttributes(metricsData, SDK_VERSION, jarVerion);
       metrics.addMetricsDataItem(metricsData);
     }
     return metrics;
@@ -168,7 +168,7 @@ public class AnalyticsPublisherService {
     }
   }
 
-  private void setMetricsAttriutes(MetricsData metricsData, String key, String value) {
+  private void setMetricsAttributes(MetricsData metricsData, String key, String value) {
     KeyValue metricsAttributes = new KeyValue();
     metricsAttributes.setKey(key);
     metricsAttributes.setValue(value);
