@@ -171,7 +171,7 @@ class InnerClient
 
   @Override
   public void onStreamConnected() {
-    //    pollProcessor.stop();
+    pollProcessor.stop();
   }
 
   @Override
@@ -242,7 +242,7 @@ class InnerClient
 
     initialized = true;
     notify();
-    log.info("Wait for initialization to finish");
+    log.info("Initialization is complete");
   }
 
   public synchronized void waitForInitialization() throws InterruptedException {
