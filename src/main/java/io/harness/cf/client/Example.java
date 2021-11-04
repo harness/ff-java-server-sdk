@@ -41,7 +41,7 @@ class Example {
                     client.close();
                   }
                 }));
-    int i = 0;
+
     for (final String keyName : keys.keySet()) {
 
       executor.execute(
