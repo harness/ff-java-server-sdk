@@ -20,7 +20,7 @@ class Example {
     public static final HashMap<String, String> keys;
 
     public static final String FREEMIUM_API_KEY = "45d2a13a-c62f-4116-a1a7-86f25d715a2e";
-    public static final String NON_FREEMIUM_API_KEY = "1acfded6-65b9-4e0a-9cbd-a6abd7574f54";
+    public static final String NON_FREEMIUM_API_KEY = "cf355e7a-2ac6-4304-90fa-d88d9c7f983d";
 
     static {
         capacity = 5;
