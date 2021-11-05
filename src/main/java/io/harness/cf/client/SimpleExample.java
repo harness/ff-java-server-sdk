@@ -1,5 +1,6 @@
 package io.harness.cf.client;
 
+import com.google.gson.JsonObject;
 import io.harness.cf.client.api.Client;
 import io.harness.cf.client.api.Config;
 import io.harness.cf.client.api.FileMapStore;
@@ -27,8 +28,8 @@ public class SimpleExample {
             .build();
 
     while (true) {
-      final boolean bResult = client.boolVariation("test", target, false);
-      log.info("Boolean variation: {}", bResult);
+      final JsonObject bResult = client.jsonVariation("flag4", target, new JsonObject());
+      log.info("JSON variation: {}", bResult);
       try {
         Thread.sleep(10000);
       } catch (InterruptedException e) {
