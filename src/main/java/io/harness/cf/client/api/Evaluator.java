@@ -360,7 +360,7 @@ public class Evaluator implements Evaluation {
   public JsonObject jsonVariation(
       String identifier, Target target, JsonObject defaultValue, FlagEvaluateCallback callback) {
     final Optional<Variation> variation =
-        evaluate(identifier, target, FeatureConfig.KindEnum.INT, callback);
+        evaluate(identifier, target, FeatureConfig.KindEnum.JSON, callback);
     if (variation.isPresent())
       return new Gson().fromJson(variation.get().getValue(), JsonObject.class);
     return defaultValue;
