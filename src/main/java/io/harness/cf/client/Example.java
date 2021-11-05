@@ -57,7 +57,7 @@ class Example {
               final String sResult = client.stringVariation("flag3", target, "NO_VALUE!!!");
               log.info(logPrefix + "String variation: {}", sResult);
               try {
-                Thread.sleep(10000);
+                Thread.sleep(30 * 1000);
               } catch (InterruptedException e) {
                 e.printStackTrace();
               }
