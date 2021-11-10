@@ -35,6 +35,13 @@ public class EvaluatorTest {
 
             log.info(String.format("Test cases directory: %s", testCasesPath));
 
+            final File[] files = testCasesDirectory.listFiles();
+
+            Assert.assertNotNull(files);
+            Assert.assertTrue(files.length > 0);
+
+
+
 
             testData.clear();
             final Gson gson = new Gson();
