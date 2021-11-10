@@ -62,7 +62,7 @@ class InnerClient
     authService = new AuthService(api, sdkKey, options.getPollIntervalInSeconds(), this);
     pollProcessor = new PollingProcessor(api, repository, options.getPollIntervalInSeconds(), this);
     streamProcessor = new StreamProcessor(sdkKey, api, repository, options.getConfigUrl(), this);
-    metricsProcessor = new MetricsProcessor(this);
+    metricsProcessor = new MetricsProcessor(this.options, this);
 
     // start with authentication
     authService.startAsync();
@@ -263,7 +263,9 @@ class InnerClient
 
   @Override
   public void processEvaluation(
-      @NonNull FeatureConfig featureConfig, Target target, @NonNull Variation variation) {}
+      @NonNull FeatureConfig featureConfig, Target target, @NonNull Variation variation) {
+    metricsProcessor.pushToQueue(target, featureConfig, variation);
+  }
 
   public void close() {
     log.info("Closing the client");

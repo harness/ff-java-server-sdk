@@ -1,6 +1,5 @@
 package io.harness.cf.client.api;
 
-import io.harness.cf.client.api.analytics.AnalyticsCacheFactory;
 import io.harness.cf.client.common.Cache;
 import io.harness.cf.client.common.Storage;
 import java.util.Collections;
@@ -31,11 +30,7 @@ public class Config {
   @Getter(AccessLevel.NONE)
   private int frequency = 60; // unit: second
 
-  @Builder.Default
-  @Getter(AccessLevel.NONE)
-  private int bufferSize = 1024;
-
-  @Builder.Default private String analyticsCacheType = AnalyticsCacheFactory.GUAVA_CACHE;
+  @Builder.Default private int bufferSize = 1024;
 
   // Flag to set all attributes as private
   @Builder.Default private boolean allAttributesPrivate = false;
@@ -60,15 +55,4 @@ public class Config {
   @Getter @Builder.Default Cache cache = new CaffeineCache(10000);
 
   @Getter Storage store;
-
-  /*
-   BufferSize must be a power of 2 for LMAX to work. This function vaidates
-   that. Source: https://stackoverflow.com/a/600306/1493480
-  */
-  public int getBufferSize() throws CfClientException {
-    if (!(bufferSize != 0 && ((bufferSize & (bufferSize - 1)) == 0))) {
-      throw new CfClientException("BufferSize must be a power of 2");
-    }
-    return bufferSize;
-  }
 }
