@@ -8,9 +8,14 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Stream;
 
 @Slf4j
 public class EvaluatorTest {
@@ -51,7 +56,12 @@ public class EvaluatorTest {
 
                 Assert.assertTrue(file.getName().toLowerCase(Locale.getDefault()).endsWith(".json"));
 
-                // TODO: Process
+                final String json = read(file.getAbsolutePath());
+
+                Assert.assertNotNull(json);
+                Assert.assertFalse(json.trim().isEmpty());
+
+                // TODO: Deserialize
             }
 
         } catch (IOException e) {
@@ -64,5 +74,21 @@ public class EvaluatorTest {
     public void testEvaluator() {
 
         // TODO: Process
+    }
+
+    private static String read(final String path) {
+
+        final StringBuilder builder = new StringBuilder();
+
+        try (final Stream<String> stream = Files.lines(Paths.get(path), StandardCharsets.UTF_8)) {
+
+            stream.forEach(s -> builder.append(s).append("\n"));
+
+        } catch (IOException e) {
+
+            Assert.fail(e.getMessage());
+        }
+
+        return builder.toString();
     }
 }
