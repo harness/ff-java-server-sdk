@@ -20,17 +20,22 @@ import java.util.stream.Stream;
 @Slf4j
 public class EvaluatorTest {
 
+    private final EvaluatorTesting tester;
     private final List<TestModel> testData;
 
     {
 
         testData = new LinkedList<>();
+        tester = new EvaluatorTester();
     }
 
     @Test
     public void testEvaluator() {
 
-        // TODO: Process
+        for (final TestModel model : testData) {
+
+            tester.process(model);
+        }
     }
 
     @Before
