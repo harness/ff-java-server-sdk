@@ -41,6 +41,10 @@ public class EvaluatorTest {
             Assert.assertNotNull(files);
             Assert.assertTrue(files.length > 0);
 
+            testData.clear();
+
+            final Gson gson = new Gson();
+
             for (final File file : files) {
 
                 log.info(String.format("Processing the test file: %s", file.getName()));
@@ -49,9 +53,6 @@ public class EvaluatorTest {
 
                 // TODO: Process
             }
-
-            testData.clear();
-            final Gson gson = new Gson();
 
         } catch (IOException e) {
 
