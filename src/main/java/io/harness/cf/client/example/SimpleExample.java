@@ -1,4 +1,4 @@
-package io.harness.cf.client;
+package io.harness.cf.client.example;
 
 import com.google.gson.JsonObject;
 import io.harness.cf.client.api.Client;
@@ -8,7 +8,7 @@ import io.harness.cf.client.dto.Target;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class SimpleExample {
+class SimpleExample {
 
   public static final String SDK_KEY = "1c100d25-4c3f-487b-b198-3b3d01df5794";
 
