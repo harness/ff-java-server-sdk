@@ -1,4 +1,4 @@
-package io.harness.cf.client;
+package io.harness.cf.client.example;
 
 import com.google.gson.JsonObject;
 import io.harness.cf.client.api.Client;
