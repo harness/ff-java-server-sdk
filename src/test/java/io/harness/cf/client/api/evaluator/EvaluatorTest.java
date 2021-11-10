@@ -1,6 +1,7 @@
 package io.harness.cf.client.api.evaluator;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Assert;
 import org.junit.Before;
@@ -60,7 +61,17 @@ public class EvaluatorTest {
                 Assert.assertNotNull(json);
                 Assert.assertFalse(json.trim().isEmpty());
 
-                // TODO: Deserialize
+                try {
+
+                    final TestModel model = gson.fromJson(json, TestModel.class);
+
+                    Assert.assertNotNull(model);
+                    Assert.assertTrue(testData.add(model));
+
+                } catch (JsonSyntaxException e) {
+
+                    Assert.fail(e.getMessage());
+                }
             }
 
         } catch (IOException e) {
