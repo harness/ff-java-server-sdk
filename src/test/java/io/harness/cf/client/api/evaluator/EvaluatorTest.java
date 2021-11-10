@@ -8,7 +8,7 @@ import java.util.List;
 
 public class EvaluatorTest {
 
-    private final List<EvaluatorTestModel> testData;
+    private final List<TestModel> testData;
 
     {
 
