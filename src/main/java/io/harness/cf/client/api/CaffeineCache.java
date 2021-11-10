@@ -2,6 +2,7 @@ package io.harness.cf.client.api;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.harness.cf.client.common.Cache;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.NonNull;
 
@@ -30,6 +31,6 @@ public class CaffeineCache implements Cache {
 
   @Override
   public List<String> keys() {
-    return null;
+    return new ArrayList<>(cache.asMap().keySet());
   }
 }
