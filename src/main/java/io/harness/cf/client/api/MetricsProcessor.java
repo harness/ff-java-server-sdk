@@ -2,6 +2,7 @@ package io.harness.cf.client.api;
 
 import com.google.common.base.Strings;
 import com.google.common.util.concurrent.AbstractScheduledService;
+import io.harness.cf.ApiClient;
 import io.harness.cf.ApiException;
 import io.harness.cf.api.MetricsApi;
 import io.harness.cf.client.dto.Target;
@@ -35,7 +36,7 @@ class MetricsProcessor extends AbstractScheduledService {
 
   private final MetricsCallback callback;
   private final Config config;
-  private BlockingQueue<MetricEvent> queue;
+  private final BlockingQueue<MetricEvent> queue;
   private final MetricsApi api;
 
   private String jarVersion = "";
@@ -43,12 +44,31 @@ class MetricsProcessor extends AbstractScheduledService {
   @Setter private String environmentID;
   @Setter private String cluster;
 
+  private String token;
+
   public MetricsProcessor(Config config, MetricsCallback callback) {
     this.config = config;
     this.callback = callback;
     this.api = new MetricsApi();
     this.queue = new LinkedBlockingQueue<>(config.getBufferSize());
     this.callback.onMetricsReady();
+  }
+
+  public void setToken(String token) {
+    this.token = token;
+    this.api.setApiClient(makeApiClient());
+  }
+
+  protected ApiClient makeApiClient() {
+    final int maxTimeout = 30 * 60 * 1000;
+    ApiClient apiClient = new ApiClient();
+    apiClient.setBasePath(config.getEventUrl());
+    apiClient.setConnectTimeout(maxTimeout);
+    apiClient.setReadTimeout(maxTimeout);
+    apiClient.setWriteTimeout(maxTimeout);
+    apiClient.setDebugging(log.isDebugEnabled());
+    apiClient.addDefaultHeader("Authorization", "Bearer " + token);
+    return apiClient;
   }
 
   // push the incoming data to the ring buffer
@@ -207,7 +227,11 @@ class MetricsProcessor extends AbstractScheduledService {
   }
 
   @Override
-  protected void runOneIteration() throws Exception {}
+  protected void runOneIteration() {
+    List<MetricEvent> data = new ArrayList<>();
+    queue.drainTo(data);
+    sendDataAndResetCache(data);
+  }
 
   @NonNull
   @Override
