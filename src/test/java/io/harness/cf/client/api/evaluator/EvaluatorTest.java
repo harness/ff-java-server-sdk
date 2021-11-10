@@ -28,9 +28,12 @@ public class EvaluatorTest {
         try {
 
             final String testsLocation = "./src/test/ff-test-cases";
-            final String testCasesDirectory = new File(testsLocation).getCanonicalPath();
+            final String testCasesPath = new File(testsLocation).getCanonicalPath();
+            final File testCasesDirectory = new File(testCasesPath);
 
-            log.info(String.format("Test cases directory: %s", testCasesDirectory));
+            Assert.assertTrue(testCasesDirectory.exists());
+
+            log.info(String.format("Test cases directory: %s", testCasesPath));
 
 
             testData.clear();
