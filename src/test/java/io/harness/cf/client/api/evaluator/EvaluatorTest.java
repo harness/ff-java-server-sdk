@@ -24,8 +24,13 @@ public class EvaluatorTest {
 
     {
 
-
         testData = new LinkedList<>();
+    }
+
+    @Test
+    public void testEvaluator() {
+
+        // TODO: Process
     }
 
     @Before
@@ -73,17 +78,10 @@ public class EvaluatorTest {
                     Assert.fail(e.getMessage());
                 }
             }
-
         } catch (IOException e) {
 
             Assert.fail(e.getMessage());
         }
-    }
-
-    @Test
-    public void testEvaluator() {
-
-        // TODO: Process
     }
 
     private static String read(final String path) {
