@@ -1,4 +1,4 @@
-package io.harness.cf.client.api.analytics;
+package io.harness.cf.client.api;
 
 import lombok.*;
 
@@ -9,7 +9,7 @@ import lombok.*;
 @NoArgsConstructor
 @Setter
 @ToString
-public class SummaryMetrics {
+class SummaryMetrics {
   private String featureName;
   private String variationIdentifier;
   private String variationValue;
