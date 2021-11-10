@@ -115,6 +115,7 @@ class InnerClient
 
     metricsProcessor.setEnvironmentID(environment);
     metricsProcessor.setCluster(cluster);
+    metricsProcessor.setToken(token);
   }
 
   protected void onUnauthorized() {
