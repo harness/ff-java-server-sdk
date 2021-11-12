@@ -5,8 +5,11 @@ import io.harness.cf.client.api.Repository;
 import io.harness.cf.client.api.RepositoryCallback;
 import io.harness.cf.client.api.StorageRepository;
 import io.harness.cf.client.common.Cache;
+import io.harness.cf.model.Segment;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.List;
 
 @Slf4j
 class EvaluatorTester implements EvaluatorTesting {
@@ -54,7 +57,16 @@ class EvaluatorTester implements EvaluatorTesting {
 
         log.info("Processing test data: START");
 
-        // TODO:
+        repository.setFlag(data.flag.getFeature(), data.flag);
+
+        List<Segment> segments = data.segments;
+        if (segments!=null) {
+
+            for (final Segment segment : segments) {
+
+                repository.setSegment(segment.getIdentifier(), segment);
+            }
+        }
 
         log.info("Processing test data: END");
     }
