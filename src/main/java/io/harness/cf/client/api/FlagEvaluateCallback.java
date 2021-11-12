@@ -5,7 +5,12 @@ import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Variation;
 import lombok.NonNull;
 
-interface FlagEvaluateCallback {
+public interface FlagEvaluateCallback {
+
   void processEvaluation(
-      @NonNull FeatureConfig featureConfig, Target target, @NonNull Variation variation);
+
+          @NonNull FeatureConfig featureConfig,
+          Target target,
+          @NonNull Variation variation
+  );
 }

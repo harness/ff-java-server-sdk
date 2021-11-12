@@ -1,12 +1,12 @@
 package io.harness.cf.client.api.test.evaluator;
 
-import io.harness.cf.client.api.CaffeineCache;
-import io.harness.cf.client.api.Repository;
-import io.harness.cf.client.api.RepositoryCallback;
-import io.harness.cf.client.api.StorageRepository;
+import com.google.gson.JsonObject;
+import io.harness.cf.client.api.*;
 import io.harness.cf.client.common.Cache;
 import io.harness.cf.client.dto.Target;
+import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Segment;
+import io.harness.cf.model.Variation;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Assert;
@@ -17,12 +17,39 @@ import java.util.List;
 @Slf4j
 public class EvaluatorTester implements EvaluatorTesting {
 
+    private final String noTarget;
+    private final Evaluation evaluator;
     private final Repository repository;
     private final List<TestResult> results;
 
+    private final FlagEvaluateCallback flagEvaluateCallback = new FlagEvaluateCallback() {
+
+        @Override
+        public void processEvaluation(
+
+                @NonNull FeatureConfig featureConfig,
+                Target target,
+                @NonNull Variation variation
+        ) {
+
+            log.info(
+
+                    String.format(
+
+                            "processEvaluation: '%s', '%s', '%s'",
+                            featureConfig.getFeature(),
+                            target != null ? target.getName() : noTarget,
+                            variation.getValue()
+                    )
+            );
+        }
+    };
+
     {
 
-        Cache cache = new CaffeineCache(10000);
+        noTarget = "_no_target";
+
+        final Cache cache = new CaffeineCache(10000);
 
         repository = new StorageRepository(
 
@@ -56,6 +83,7 @@ public class EvaluatorTester implements EvaluatorTesting {
         );
 
         results = new LinkedList<>();
+        evaluator = new Evaluator(repository);
     }
 
     @Override
@@ -73,7 +101,7 @@ public class EvaluatorTester implements EvaluatorTesting {
         repository.setFlag(data.flag.getFeature(), data.flag);
 
         final List<Segment> segments = data.segments;
-        if (segments!=null) {
+        if (segments != null) {
 
             for (final Segment segment : segments) {
 
@@ -110,13 +138,13 @@ public class EvaluatorTester implements EvaluatorTesting {
             );
 
             Target target = null;
-            if (!"_no_target".equals(result.targetIdentifier)) {
+            if (!noTarget.equals(result.targetIdentifier)) {
 
-                if (result.useCase.targets!=null) {
+                if (result.useCase.targets != null) {
 
                     for (final Target item : result.useCase.targets) {
 
-                        if (item!=null &&
+                        if (item != null &&
                                 item.getIdentifier().equals(result.targetIdentifier)) {
 
                             target = item;
@@ -131,20 +159,50 @@ public class EvaluatorTester implements EvaluatorTesting {
 
                 case BOOLEAN:
 
+                    received = evaluator.boolVariation(
+
+                            result.useCase.flag.getFeature(),
+                            target,
+                            false,
+                            flagEvaluateCallback
+                    );
                     break;
 
                 case STRING:
 
+                    received = evaluator.stringVariation(
+
+                            result.useCase.flag.getFeature(),
+                            target,
+                            "",
+                            flagEvaluateCallback
+                    );
                     break;
 
                 case INT:
 
+                    received = evaluator.numberVariation(
+
+                            result.useCase.flag.getFeature(),
+                            target,
+                            0,
+                            flagEvaluateCallback
+                    );
                     break;
 
                 case JSON:
 
+                    received = evaluator.jsonVariation(
+
+                            result.useCase.flag.getFeature(),
+                            target,
+                            new JsonObject(),
+                            flagEvaluateCallback
+                    );
                     break;
             }
+
+            Assert.assertEquals(result.value, received);
         }
 
         log.info(
