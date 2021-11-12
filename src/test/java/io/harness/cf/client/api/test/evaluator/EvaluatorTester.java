@@ -5,6 +5,7 @@ import io.harness.cf.client.api.Repository;
 import io.harness.cf.client.api.RepositoryCallback;
 import io.harness.cf.client.api.StorageRepository;
 import io.harness.cf.client.common.Cache;
+import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.Segment;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -108,7 +109,42 @@ public class EvaluatorTester implements EvaluatorTesting {
                     )
             );
 
+            Target target = null;
+            if (!"_no_target".equals(result.targetIdentifier)) {
 
+                if (result.useCase.targets!=null) {
+
+                    for (final Target item : result.useCase.targets) {
+
+                        if (item!=null &&
+                                item.getIdentifier().equals(result.targetIdentifier)) {
+
+                            target = item;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            Object received = null;
+            switch (result.useCase.flag.getKind()) {
+
+                case BOOLEAN:
+
+                    break;
+
+                case STRING:
+
+                    break;
+
+                case INT:
+
+                    break;
+
+                case JSON:
+
+                    break;
+            }
         }
 
         log.info(
