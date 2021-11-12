@@ -1,10 +1,10 @@
-package io.harness.cf.client.api;
+package io.harness.cf.client.api.test;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
-import io.harness.cf.client.api.evaluator.EvaluatorTester;
-import io.harness.cf.client.api.evaluator.EvaluatorTesting;
-import io.harness.cf.client.api.evaluator.TestModel;
+import io.harness.cf.client.api.test.evaluator.EvaluatorTester;
+import io.harness.cf.client.api.test.evaluator.EvaluatorTesting;
+import io.harness.cf.client.api.test.evaluator.TestModel;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Assert;
 import org.junit.Before;
