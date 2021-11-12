@@ -1,4 +1,4 @@
-package io.harness.cf.client.api.evaluator;
+package io.harness.cf.client.api.test.evaluator;
 
 public class TestResult {
 

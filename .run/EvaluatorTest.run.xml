@@ -8,7 +8,7 @@
       </pattern>
     </extension>
     <option name="PACKAGE_NAME" value="io.harness.cf.client.api" />
-    <option name="MAIN_CLASS_NAME" value="io.harness.cf.client.api.EvaluatorTest" />
+    <option name="MAIN_CLASS_NAME" value="io.harness.cf.client.api.test.EvaluatorTest" />
     <option name="METHOD_NAME" value="" />
     <option name="TEST_OBJECT" value="class" />
     <method v="2">

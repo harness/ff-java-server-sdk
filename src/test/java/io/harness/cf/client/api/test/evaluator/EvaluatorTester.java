@@ -1,4 +1,4 @@
-package io.harness.cf.client.api.evaluator;
+package io.harness.cf.client.api.test.evaluator;
 
 import io.harness.cf.client.api.CaffeineCache;
 import io.harness.cf.client.api.Repository;
