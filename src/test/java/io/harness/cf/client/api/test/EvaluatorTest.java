@@ -52,7 +52,7 @@ public class EvaluatorTest {
 
             Assert.assertTrue(testCasesDirectory.exists());
 
-            log.info(String.format("Test cases directory: %s", testCasesPath));
+            log.info(String.format("Test cases directory: '%s'", testCasesPath));
 
             final File[] files = testCasesDirectory.listFiles();
 
@@ -65,7 +65,7 @@ public class EvaluatorTest {
 
             for (final File file : files) {
 
-                log.info(String.format("Processing the test file: %s", file.getName()));
+                log.info(String.format("Processing the test file: '%s'", file.getName()));
 
                 Assert.assertTrue(file.getName().toLowerCase(Locale.getDefault()).endsWith(".json"));
 
