@@ -1,6 +1,6 @@
 package io.harness.cf.client.api.evaluator;
 
-interface EvaluatorTesting {
+public interface EvaluatorTesting {
 
     void process(TestModel data);
 }

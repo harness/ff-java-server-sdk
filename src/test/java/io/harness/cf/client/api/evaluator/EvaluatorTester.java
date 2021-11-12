@@ -8,18 +8,21 @@ import io.harness.cf.client.common.Cache;
 import io.harness.cf.model.Segment;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.Assert;
 
+import java.util.LinkedList;
 import java.util.List;
 
 @Slf4j
-class EvaluatorTester implements EvaluatorTesting {
+public class EvaluatorTester implements EvaluatorTesting {
 
-    private final Cache cache;
     private final Repository repository;
+    private final List<TestResult> results;
 
     {
 
-        cache = new CaffeineCache(10000);
+        Cache cache = new CaffeineCache(10000);
+
         repository = new StorageRepository(
 
                 cache,
@@ -50,6 +53,8 @@ class EvaluatorTester implements EvaluatorTesting {
                     }
                 }
         );
+
+        results = new LinkedList<>();
     }
 
     @Override
@@ -59,13 +64,28 @@ class EvaluatorTester implements EvaluatorTesting {
 
         repository.setFlag(data.flag.getFeature(), data.flag);
 
-        List<Segment> segments = data.segments;
+        final List<Segment> segments = data.segments;
         if (segments!=null) {
 
             for (final Segment segment : segments) {
 
                 repository.setSegment(segment.getIdentifier(), segment);
             }
+        }
+
+        for (final String key : data.expected.keySet()) {
+
+            final boolean expected = data.expected.get(key);
+
+            final TestResult result = new TestResult(
+
+                    data.testFile,
+                    key,
+                    expected,
+                    data
+            );
+
+            Assert.assertTrue(results.add(result));
         }
 
         log.info("Processing test data: END");
