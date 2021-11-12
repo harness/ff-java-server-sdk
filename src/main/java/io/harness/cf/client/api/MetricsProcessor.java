@@ -74,25 +74,12 @@ class MetricsProcessor extends AbstractScheduledService {
   // push the incoming data to the ring buffer
   public void pushToQueue(Target target, FeatureConfig featureConfig, Variation variation) {
 
-    MetricEvent analytics =
-        MetricEvent.builder()
-            .featureConfig(featureConfig)
-            .target(target)
-            .variation(variation)
-            .build();
-
     if (queue.remainingCapacity() == 0) {
-      List<MetricEvent> data = new ArrayList<>();
-      queue.drainTo(data);
-      sendDataAndResetCache(data);
+      executor().submit(this::runOneIteration);
     }
 
     try {
-      MetricEvent event = new MetricEvent();
-      event.setFeatureConfig(analytics.getFeatureConfig());
-      event.setTarget(analytics.getTarget());
-      event.setVariation(analytics.getVariation());
-      queue.put(event);
+      queue.put(new MetricEvent(featureConfig, target, variation));
     } catch (InterruptedException e) {
 
       log.debug("Long waiting");
@@ -216,10 +203,7 @@ class MetricsProcessor extends AbstractScheduledService {
   }
 
   private void setMetricsAttributes(MetricsData metricsData, String key, String value) {
-    KeyValue metricsAttributes = new KeyValue();
-    metricsAttributes.setKey(key);
-    metricsAttributes.setValue(value);
-    metricsData.addAttributesItem(metricsAttributes);
+    metricsData.addAttributesItem(new KeyValue(key, value));
   }
 
   private String getVersion() {
