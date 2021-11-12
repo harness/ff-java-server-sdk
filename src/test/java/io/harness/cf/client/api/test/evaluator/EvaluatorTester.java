@@ -60,7 +60,14 @@ public class EvaluatorTester implements EvaluatorTesting {
     @Override
     public void process(final TestModel data) {
 
-        log.info("Processing test data: START");
+        log.info(
+
+                String.format(
+
+                        "Processing the test data '%s' started",
+                        data.testFile
+                )
+        );
 
         repository.setFlag(data.flag.getFeature(), data.flag);
 
@@ -104,6 +111,13 @@ public class EvaluatorTester implements EvaluatorTesting {
 
         }
 
-        log.info("Processing test data: END");
+        log.info(
+
+                String.format(
+
+                        "Processing the test data '%s' completed",
+                        data.testFile
+                )
+        );
     }
 }
