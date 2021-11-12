@@ -88,6 +88,22 @@ public class EvaluatorTester implements EvaluatorTesting {
             Assert.assertTrue(results.add(result));
         }
 
+        for (final TestResult result : results) {
+
+            log.info(
+
+                    String.format(
+
+                            "Use case '%s' with target '%s' and expected value '%b'",
+                            result.file,
+                            result.targetIdentifier,
+                            result.value
+                    )
+            );
+
+
+        }
+
         log.info("Processing test data: END");
     }
 }
