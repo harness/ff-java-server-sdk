@@ -76,6 +76,10 @@ public class EvaluatorTest {
                     final TestModel model = gson.fromJson(json, TestModel.class);
 
                     Assert.assertNotNull(model);
+
+                    final String feature = model.flag.getFeature() + file.getName();
+                    model.flag.setFeature(feature);
+
                     Assert.assertTrue(testData.add(model));
 
                 } catch (JsonSyntaxException e) {

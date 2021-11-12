@@ -4,7 +4,7 @@ import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Segment;
 import lombok.NonNull;
 
-interface Repository extends Query {
+public interface Repository extends Query {
 
   // put values
   void setFlag(@NonNull String identifier, @NonNull FeatureConfig featureConfig);
