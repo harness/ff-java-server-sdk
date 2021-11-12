@@ -5,15 +5,18 @@ import io.harness.cf.client.api.Client;
 import io.harness.cf.client.api.Config;
 import io.harness.cf.client.api.FileMapStore;
 import io.harness.cf.client.dto.Target;
+import java.util.concurrent.*;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 class SimpleExample {
 
-  public static final String SDK_KEY = "1c100d25-4c3f-487b-b198-3b3d01df5794";
+  private static final String SDK_KEY = "1c100d25-4c3f-487b-b198-3b3d01df5794";
+  private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
-  @SuppressWarnings("InfiniteLoopStatement")
   public static void main(String... args) throws InterruptedException {
+
+    Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdown));
 
     final FileMapStore fileStore = new FileMapStore("Non-Freemium");
     Client client = new Client(SDK_KEY, Config.builder().store(fileStore).build());
@@ -27,14 +30,13 @@ class SimpleExample {
             .name("target1")
             .build();
 
-    while (true) {
-      final JsonObject bResult = client.jsonVariation("flag4", target, new JsonObject());
-      log.info("JSON variation: {}", bResult);
-      try {
-        Thread.sleep(10000);
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      }
-    }
+    scheduler.scheduleAtFixedRate(
+        () -> {
+          final JsonObject bResult = client.jsonVariation("flag4", target, new JsonObject());
+          log.info("JSON variation: {}", bResult);
+        },
+        0,
+        10,
+        TimeUnit.SECONDS);
   }
 }
