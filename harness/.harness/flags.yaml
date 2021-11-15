@@ -1,0 +1,27 @@
+featureFlags:
+  flags:
+  - flag:
+      name: string_flag
+      identifier: string_flag
+      description: string description
+      permanent: false
+      spec:
+        type: string
+        default:
+          onVariation: str1
+          offVariation: str2
+        variations:
+        - identifier: str1
+          value: hello world
+        - identifier: str2
+          value: bar
+        - identifier: str3
+          value: foo
+      environments:
+      - identifier: test
+        default:
+          onVariation: str1
+          offVariation: str2
+        state: "on"
+  projectIdentifier: CF_KvQgTGEUKUcN
+  orgIdentifier: CF
