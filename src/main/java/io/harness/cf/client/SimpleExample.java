@@ -11,7 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class SimpleExample {
 
-  private static final String SDK_KEY = "1c100d25-4c3f-487b-b198-3b3d01df5794";
+  private static final String SDK_KEY = "342454eb-baab-48f0-acf4-69cdd93ca14b";
   private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
   public static void main(String... args) throws InterruptedException {
@@ -32,8 +32,10 @@ public class SimpleExample {
 
     scheduler.scheduleAtFixedRate(
         () -> {
-          final JsonObject bResult = client.jsonVariation("flag4", target, new JsonObject());
-          log.info("JSON variation: {}", bResult);
+          final boolean bResult = client.boolVariation("test", target, false);
+          log.info("Boolean variation: {}", bResult);
+          final JsonObject jsonResult = client.jsonVariation("flag4", target, new JsonObject());
+          log.info("JSON variation: {}", jsonResult);
         },
         0,
         10,
