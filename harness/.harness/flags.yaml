@@ -22,6 +22,6 @@ featureFlags:
         default:
           onVariation: str1
           offVariation: str2
-        state: "on"
+        state: "off"
   projectIdentifier: CF_KvQgTGEUKUcN
   orgIdentifier: CF
