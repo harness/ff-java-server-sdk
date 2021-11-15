@@ -3,6 +3,7 @@ package io.harness.cf.client.example;
 import com.google.gson.JsonObject;
 import io.harness.cf.client.api.Client;
 import io.harness.cf.client.api.Config;
+import io.harness.cf.client.api.Event;
 import io.harness.cf.client.api.FileMapStore;
 import io.harness.cf.client.dto.Target;
 import java.util.concurrent.*;
@@ -20,7 +21,18 @@ class SimpleExample {
 
     final FileMapStore fileStore = new FileMapStore("Non-Freemium");
     Client client = new Client(SDK_KEY, Config.builder().store(fileStore).build());
-    client.waitForInitialization();
+    // client.waitForInitialization();
+    client.on(
+        Event.READY,
+        result -> {
+          log.info("READY");
+        });
+
+    client.on(
+        Event.CHANGED,
+        result -> {
+          log.info("Flag changed {}", result);
+        });
 
     Target target =
         Target.builder()

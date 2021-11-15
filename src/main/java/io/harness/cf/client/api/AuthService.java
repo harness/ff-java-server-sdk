@@ -64,4 +64,8 @@ class AuthService extends AbstractScheduledService {
 
     return Scheduler.newFixedDelaySchedule(0L, pollIntervalInSec, TimeUnit.SECONDS);
   }
+
+  public void close() {
+    stopAsync();
+  }
 }

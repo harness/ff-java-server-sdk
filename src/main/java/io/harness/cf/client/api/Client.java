@@ -2,6 +2,7 @@ package io.harness.cf.client.api;
 
 import com.google.gson.JsonObject;
 import io.harness.cf.client.dto.Target;
+import java.util.function.Consumer;
 import lombok.NonNull;
 
 public class Client {
@@ -17,6 +18,14 @@ public class Client {
 
   public void waitForInitialization() throws InterruptedException {
     innerClient.waitForInitialization();
+  }
+
+  public void on(Event event, Consumer<String> consumer) {
+    innerClient.on(event, consumer);
+  }
+
+  public void off(Event event, Consumer<String> consumer) {
+    innerClient.off(event, consumer);
   }
 
   public boolean boolVariation(@NonNull String identifier, Target target, boolean defaultValue) {
