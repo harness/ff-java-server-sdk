@@ -1,4 +1,4 @@
-package io.harness.cf.client;
+package io.harness.cf.client.example;
 
 import com.google.gson.JsonObject;
 import io.harness.cf.client.api.Client;
@@ -9,7 +9,7 @@ import java.util.concurrent.*;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class SimpleExample {
+class SimpleExample {
 
   private static final String SDK_KEY = "342454eb-baab-48f0-acf4-69cdd93ca14b";
   private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
