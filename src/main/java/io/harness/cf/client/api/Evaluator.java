@@ -18,7 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 
 @Slf4j
-public class Evaluator implements Evaluation {
+class Evaluator implements Evaluation {
 
   public static final int ONE_HUNDRED = 100;
 
@@ -269,10 +269,15 @@ public class Evaluator implements Evaluation {
         // Pre requisite variation value evaluated below
         Optional<Variation> preReqEvaluatedVariation =
             evaluateFlag(preReqFeatureConfig.get(), target);
+        if (!preReqEvaluatedVariation.isPresent()) {
+          log.error(
+              "Could not evaluate the prerequisite details of feature flag :{}", preReqFeature);
+          return true;
+        }
         log.info(
             "Pre requisite flag {} has variation {} for target {}",
             preReqFeatureConfig.get().getFeature(),
-            preReqEvaluatedVariation,
+            preReqEvaluatedVariation.get(),
             target);
 
         // Compare if the pre requisite variation is a possible valid value of
@@ -282,7 +287,8 @@ public class Evaluator implements Evaluation {
             "Pre requisite flag {} should have the variations {}",
             preReqFeatureConfig.get().getFeature(),
             validPreReqVariations);
-        if (!validPreReqVariations.contains(preReqEvaluatedVariation.toString())) {
+        if (validPreReqVariations.stream()
+            .noneMatch(element -> element.contains(preReqEvaluatedVariation.get().getValue()))) {
           return false;
         } else {
           return checkPreRequisite(preReqFeatureConfig.get(), target);
