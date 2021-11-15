@@ -3,7 +3,7 @@ package io.harness.cf.client.api;
 import com.google.gson.JsonObject;
 import io.harness.cf.client.dto.Target;
 
-interface Evaluation {
+public interface Evaluation {
 
   boolean boolVariation(
       String identifier, Target target, boolean defaultValue, FlagEvaluateCallback callback);

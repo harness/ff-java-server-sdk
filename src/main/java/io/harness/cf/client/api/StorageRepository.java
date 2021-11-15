@@ -14,7 +14,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 
 @Slf4j
-class StorageRepository implements Repository {
+public class StorageRepository implements Repository {
+
   private final Cache cache;
   private Storage store;
   private final RepositoryCallback callback;
