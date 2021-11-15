@@ -1,0 +1,28 @@
+pipeline:
+    name: Simple Turn on Pipeline
+    identifier: Simple_Turn_on_Pipeline
+    projectIdentifier: CF_KvQgTGEUKUcN
+    orgIdentifier: CF
+    tags: {}
+    stages:
+        - stage:
+              name: test
+              identifier: test
+              description: ""
+              type: FeatureFlag
+              spec:
+                  execution:
+                      steps:
+                          - step:
+                                type: FlagConfiguration
+                                name: turn off flag
+                                identifier: turn_off_flag
+                                spec:
+                                    feature: string_flag
+                                    environment: test
+                                    instructions:
+                                        - identifier: SetFeatureFlagStateIdentifier
+                                          type: SetFeatureFlagState
+                                          spec:
+                                              state: "off"
+                                timeout: 10m
