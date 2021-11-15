@@ -90,7 +90,8 @@ class InnerClient
                 onUnauthorized();
               }
               return response;
-            });
+            })
+        .addInterceptor(new RetryInterceptor(3, 2000));
     return apiClient;
   }
 

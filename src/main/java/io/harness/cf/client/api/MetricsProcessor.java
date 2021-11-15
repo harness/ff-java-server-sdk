@@ -68,6 +68,7 @@ class MetricsProcessor extends AbstractScheduledService {
     apiClient.setWriteTimeout(maxTimeout);
     apiClient.setDebugging(log.isDebugEnabled());
     apiClient.addDefaultHeader("Authorization", "Bearer " + token);
+    apiClient.getHttpClient().newBuilder().addInterceptor(new RetryInterceptor(3, 2000));
     return apiClient;
   }
 
@@ -96,12 +97,7 @@ class MetricsProcessor extends AbstractScheduledService {
       try {
         Map<MetricEvent, Integer> map = new HashMap<>();
         for (MetricEvent event : data) {
-          Integer value = map.get(event);
-          if (value != null) {
-            value += 1;
-            map.put(event, value);
-          }
-          map.put(event, 0);
+          map.put(event, map.getOrDefault(event, 0) + 1);
         }
 
         // We will only submit summary metrics to the event server
@@ -117,7 +113,7 @@ class MetricsProcessor extends AbstractScheduledService {
         }
         globalTargetSet.addAll(stagingTargetSet);
         stagingTargetSet.clear();
-        log.debug("Successfully sent analytics data to the server");
+        log.info("Successfully sent analytics data to the server");
       } catch (ApiException e) {
         // Clear the set because the cache is only invalidated when there is no
         // exception, so the targets will reappear in the next iteration
@@ -135,12 +131,7 @@ class MetricsProcessor extends AbstractScheduledService {
       Target target = entry.getKey().getTarget();
       addTargetData(metrics, target);
       SummaryMetrics summaryMetrics = prepareSummaryMetricsKey(entry.getKey());
-      final Integer summaryCount = summaryMetricsData.get(summaryMetrics);
-      Integer total = entry.getValue();
-      if (summaryCount != null) {
-        total = summaryCount + entry.getValue();
-      }
-      summaryMetricsData.put(summaryMetrics, total);
+      summaryMetricsData.put(summaryMetrics, entry.getValue());
     }
 
     for (Map.Entry<SummaryMetrics, Integer> entry : summaryMetricsData.entrySet()) {
@@ -148,14 +139,14 @@ class MetricsProcessor extends AbstractScheduledService {
       metricsData.setTimestamp(System.currentTimeMillis());
       metricsData.count(entry.getValue());
       metricsData.setMetricsType(MetricsData.MetricsTypeEnum.FFMETRICS);
-      setMetricsAttributes(metricsData, FEATURE_NAME_ATTRIBUTE, entry.getKey().getFeatureName());
-      setMetricsAttributes(
-          metricsData, VARIATION_IDENTIFIER_ATTRIBUTE, entry.getKey().getVariationIdentifier());
-      setMetricsAttributes(metricsData, TARGET_ATTRIBUTE, GLOBAL_TARGET);
-      setMetricsAttributes(metricsData, SDK_TYPE, SERVER);
-
-      setMetricsAttributes(metricsData, SDK_LANGUAGE, "java");
-      setMetricsAttributes(metricsData, SDK_VERSION, jarVersion);
+      metricsData.addAttributesItem(
+          new KeyValue(FEATURE_NAME_ATTRIBUTE, entry.getKey().getFeatureName()));
+      metricsData.addAttributesItem(
+          new KeyValue(VARIATION_IDENTIFIER_ATTRIBUTE, entry.getKey().getVariationIdentifier()));
+      metricsData.addAttributesItem(new KeyValue(TARGET_ATTRIBUTE, GLOBAL_TARGET));
+      metricsData.addAttributesItem(new KeyValue(SDK_TYPE, SERVER));
+      metricsData.addAttributesItem(new KeyValue(SDK_LANGUAGE, "java"));
+      metricsData.addAttributesItem(new KeyValue(SDK_VERSION, jarVersion));
       metrics.addMetricsDataItem(metricsData);
     }
     return metrics;
@@ -200,10 +191,6 @@ class MetricsProcessor extends AbstractScheduledService {
       }
       metrics.addTargetDataItem(targetData);
     }
-  }
-
-  private void setMetricsAttributes(MetricsData metricsData, String key, String value) {
-    metricsData.addAttributesItem(new KeyValue(key, value));
   }
 
   private String getVersion() {
