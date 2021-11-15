@@ -10,6 +10,9 @@ import io.harness.cf.model.Variation;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.Jwts;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Request;
@@ -43,6 +46,9 @@ class InnerClient
   private boolean pollerReady = false;
   private boolean streamReady = false;
   private boolean metricReady = false;
+
+  private final ConcurrentHashMap<Event, CopyOnWriteArrayList<Consumer<String>>> events =
+      new ConcurrentHashMap<>();
 
   public InnerClient(@NonNull final String sdkKey) {
     this(sdkKey, Config.builder().build());
@@ -181,16 +187,24 @@ class InnerClient
   public void onStreamError() {}
 
   @Override
-  public void onFlagStored(@NonNull String identifier) {}
+  public void onFlagStored(@NonNull String identifier) {
+    notifyConsumers(Event.CHANGED, identifier);
+  }
 
   @Override
-  public void onFlagDeleted(@NonNull String identifier) {}
+  public void onFlagDeleted(@NonNull String identifier) {
+    notifyConsumers(Event.CHANGED, identifier);
+  }
 
   @Override
-  public void onSegmentStored(@NonNull String identifier) {}
+  public void onSegmentStored(@NonNull String identifier) {
+    notifyConsumers(Event.CHANGED, identifier);
+  }
 
   @Override
-  public void onSegmentDeleted(@NonNull String identifier) {}
+  public void onSegmentDeleted(@NonNull String identifier) {
+    notifyConsumers(Event.CHANGED, identifier);
+  }
 
   @Override
   public void onMetricsReady() {
@@ -236,13 +250,45 @@ class InnerClient
     initialized = true;
     notify();
     log.info("Initialization is complete");
+
+    notifyConsumers(Event.READY, null);
   }
 
+  protected void notifyConsumers(@NonNull Event event, String value) {
+    for (Consumer<String> consumer : events.get(event)) {
+      consumer.accept(value);
+    }
+  }
+
+  /**
+   * if waitForInitialization is used then on(READY) will never be triggered
+   *
+   * @throws InterruptedException
+   */
   public synchronized void waitForInitialization() throws InterruptedException {
     if (!initialized) {
       log.info("Wait for initialization to finish");
       wait();
     }
+  }
+
+  public void on(Event event, Consumer<String> consumer) {
+    final CopyOnWriteArrayList<Consumer<String>> consumers =
+        events.getOrDefault(event, new CopyOnWriteArrayList<>());
+    consumers.add(consumer);
+    events.put(event, consumers);
+  }
+
+  public void off(Event event, Consumer<String> consumer) {
+    if (consumer != null) {
+      events.get(event).removeIf(next -> next == consumer);
+      return;
+    }
+    if (event != null) {
+      events.get(event).clear();
+      return;
+    }
+    events.clear();
   }
 
   public boolean boolVariation(@NonNull String identifier, Target target, boolean defaultValue) {
@@ -271,6 +317,11 @@ class InnerClient
 
   public void close() {
     log.info("Closing the client");
+    off(null, null);
+    authService.close();
     repository.close();
+    streamProcessor.close();
+    pollProcessor.close();
+    metricsProcessor.close();
   }
 }

@@ -79,6 +79,10 @@ class StreamProcessor implements ServerSentEvent.Listener {
     sse = null;
   }
 
+  public void close() {
+    stop();
+  }
+
   @Override
   public void onOpen(ServerSentEvent serverSentEvent, Response response) {
 
