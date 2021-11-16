@@ -17,7 +17,7 @@ Add the following snippet to your project's `pom.xml` file:
 <dependency>
     <groupId>io.harness</groupId>
     <artifactId>ff-java-server-sdk</artifactId>
-    <version>[1.0.5,)</version>
+    <version>[1.0.7,)</version>
 </dependency>
 ```
 
@@ -35,7 +35,7 @@ After dependency has been added, the SDK elements, primarily `CfClient` should b
 
 `CfClient` is a base class that provides all features of SDK.
 
-We can instantiate by calling the `getInstance(...)` method or by using public
+We can instantiate by calling the `getInstance()` method or by using public
 constructors (making multiple instances).
 
 ```
@@ -119,7 +119,7 @@ Otherwise, the default metrics endpoint URL will be used.
 To avoid potential memory leak, when SDK is no longer needed
 (when the app is closed, for example), a caller should call this method:
 
-```Kotlin
+```
 cfClient.destroy();
 ```
 
