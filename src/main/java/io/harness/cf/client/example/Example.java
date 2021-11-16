@@ -19,12 +19,14 @@ class Example {
 
   private static final String FREEMIUM_API_KEY = "45d2a13a-c62f-4116-a1a7-86f25d715a2e";
   private static final String NON_FREEMIUM_API_KEY = "9ecc4ced-afc1-45af-9b54-c899cbff4b62";
+  private static final String NON_FREEMIUM_API_KEY_2 = "f48cba87-e4ff-431e-9301-8534cf870ad0";
 
   static {
     capacity = 5;
     keys = new HashMap<>(capacity);
     keys.put("Freemium", FREEMIUM_API_KEY);
     keys.put("Non-Freemium", NON_FREEMIUM_API_KEY);
+    keys.put("Non-Freemium-2", NON_FREEMIUM_API_KEY_2);
     executor = Executors.newScheduledThreadPool(2);
   }
 
