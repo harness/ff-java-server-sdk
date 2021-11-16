@@ -20,7 +20,7 @@ class SimpleExample {
     Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdown));
 
     final FileMapStore fileStore = new FileMapStore("Non-Freemium");
-    Client client = new Client(SDK_KEY, Config.builder().store(fileStore).build());
+    final Client client = new Client(SDK_KEY, Config.builder().store(fileStore).build());
     // client.waitForInitialization();
     client.on(
         Event.READY,
@@ -34,7 +34,7 @@ class SimpleExample {
           log.info("Flag changed {}", result);
         });
 
-    Target target =
+    final Target target =
         Target.builder()
             .identifier("target1")
             .isPrivate(false)

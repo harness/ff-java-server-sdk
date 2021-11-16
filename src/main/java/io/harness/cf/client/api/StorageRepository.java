@@ -110,7 +110,7 @@ class StorageRepository implements Repository {
     final String flagKey = formatFlagKey(identifier);
     if (store != null) {
       store.set(flagKey, featureConfig);
-      cache.del(flagKey);
+      cache.delete(flagKey);
       log.debug("Flag {} successfully stored and cache invalidated", identifier);
     } else {
       cache.set(flagKey, featureConfig);
@@ -130,7 +130,7 @@ class StorageRepository implements Repository {
     final String segmentKey = formatSegmentKey(identifier);
     if (store != null) {
       store.set(segmentKey, segment);
-      cache.del(segmentKey);
+      cache.delete(segmentKey);
       log.debug("Segment {} successfully stored and cache invalidated", identifier);
     } else {
       cache.set(segmentKey, segment);
@@ -145,10 +145,10 @@ class StorageRepository implements Repository {
   public void deleteFlag(@NonNull String identifier) {
     final String flagKey = this.formatFlagKey(identifier);
     if (store != null) {
-      store.del(flagKey);
+      store.delete(flagKey);
       log.debug("Flag {} successfully deleted from store", identifier);
     }
-    this.cache.del(flagKey);
+    this.cache.delete(flagKey);
     log.debug("Flag {} successfully deleted from cache", identifier);
     if (callback != null) {
       callback.onFlagDeleted(identifier);
@@ -159,10 +159,10 @@ class StorageRepository implements Repository {
   public void deleteSegment(@NonNull String identifier) {
     final String segmentKey = this.formatSegmentKey(identifier);
     if (store != null) {
-      store.del(segmentKey);
+      store.delete(segmentKey);
       log.debug("Segment {} successfully deleted from store", identifier);
     }
-    this.cache.del(segmentKey);
+    this.cache.delete(segmentKey);
     log.debug("Segment {} successfully deleted from cache", identifier);
     if (callback != null) {
       callback.onSegmentDeleted(identifier);

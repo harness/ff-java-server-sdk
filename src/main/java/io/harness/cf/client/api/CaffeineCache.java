@@ -25,7 +25,7 @@ public class CaffeineCache implements Cache {
   }
 
   @Override
-  public void del(@NonNull String key) {
+  public void delete(@NonNull String key) {
     cache.invalidate(key);
   }
 

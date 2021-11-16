@@ -24,7 +24,15 @@ public class Client {
     innerClient.on(event, consumer);
   }
 
-  public void off(Event event, Consumer<String> consumer) {
+  public void off() {
+    innerClient.off();
+  }
+
+  public void off(@NonNull Event event) {
+    innerClient.off(event);
+  }
+
+  public void off(@NonNull Event event, @NonNull Consumer<String> consumer) {
     innerClient.off(event, consumer);
   }
 

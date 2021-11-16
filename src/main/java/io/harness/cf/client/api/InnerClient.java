@@ -20,7 +20,8 @@ import okhttp3.Response;
 
 @Slf4j
 class InnerClient
-    implements FlagEvaluateCallback,
+    implements AutoCloseable,
+        FlagEvaluateCallback,
         AuthCallback,
         PollerCallback,
         StreamCallback,
@@ -260,11 +261,7 @@ class InnerClient
     }
   }
 
-  /**
-   * if waitForInitialization is used then on(READY) will never be triggered
-   *
-   * @throws InterruptedException
-   */
+  /** if waitForInitialization is used then on(READY) will never be triggered */
   public synchronized void waitForInitialization() throws InterruptedException {
     if (!initialized) {
       log.info("Wait for initialization to finish");
@@ -279,16 +276,16 @@ class InnerClient
     events.put(event, consumers);
   }
 
-  public void off(Event event, Consumer<String> consumer) {
-    if (consumer != null) {
-      events.get(event).removeIf(next -> next == consumer);
-      return;
-    }
-    if (event != null) {
-      events.get(event).clear();
-      return;
-    }
+  public void off() {
     events.clear();
+  }
+
+  public void off(@NonNull Event event) {
+    events.get(event).clear();
+  }
+
+  public void off(@NonNull Event event, @NonNull Consumer<String> consumer) {
+    events.get(event).removeIf(next -> next == consumer);
   }
 
   public boolean boolVariation(@NonNull String identifier, Target target, boolean defaultValue) {
@@ -317,7 +314,7 @@ class InnerClient
 
   public void close() {
     log.info("Closing the client");
-    off(null, null);
+    off();
     authService.close();
     repository.close();
     streamProcessor.close();
