@@ -11,7 +11,7 @@ import org.mapdb.HTreeMap;
 import org.mapdb.Serializer;
 
 @Slf4j
-public class FileMapStore implements Storage {
+public class FileMapStore implements Storage, AutoCloseable {
 
   private final DB db;
   private final HTreeMap<String, Object> map;

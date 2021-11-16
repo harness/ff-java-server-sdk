@@ -5,7 +5,7 @@ import io.harness.cf.client.dto.Target;
 import java.util.function.Consumer;
 import lombok.NonNull;
 
-public class Client {
+public class Client implements AutoCloseable {
   private final InnerClient innerClient;
 
   public Client(@NonNull String sdkKey) {
@@ -20,7 +20,7 @@ public class Client {
     innerClient.waitForInitialization();
   }
 
-  public void on(Event event, Consumer<String> consumer) {
+  public void on(@NonNull Event event, @NonNull Consumer<String> consumer) {
     innerClient.on(event, consumer);
   }
 

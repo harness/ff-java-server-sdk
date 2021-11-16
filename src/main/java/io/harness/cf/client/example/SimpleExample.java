@@ -12,27 +12,26 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 class SimpleExample {
 
-  private static final String SDK_KEY = "342454eb-baab-48f0-acf4-69cdd93ca14b";
+  private static final String SDK_KEY = "9ecc4ced-afc1-45af-9b54-c899cbff4b62";
   private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+
+  private static Client client;
 
   public static void main(String... args) throws InterruptedException {
 
-    Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdown));
+    Runtime.getRuntime()
+        .addShutdownHook(
+            new Thread(
+                () -> {
+                  scheduler.shutdown();
+                  client.close();
+                }));
 
     final FileMapStore fileStore = new FileMapStore("Non-Freemium");
-    final Client client = new Client(SDK_KEY, Config.builder().store(fileStore).build());
-    // client.waitForInitialization();
-    client.on(
-        Event.READY,
-        result -> {
-          log.info("READY");
-        });
+    client = new Client(SDK_KEY, Config.builder().store(fileStore).build());
+    client.on(Event.READY, result -> log.info("READY"));
 
-    client.on(
-        Event.CHANGED,
-        result -> {
-          log.info("Flag changed {}", result);
-        });
+    client.on(Event.CHANGED, result -> log.info("Flag changed {}", result));
 
     final Target target =
         Target.builder()
@@ -44,7 +43,7 @@ class SimpleExample {
 
     scheduler.scheduleAtFixedRate(
         () -> {
-          final boolean bResult = client.boolVariation("test", target, false);
+          final boolean bResult = client.boolVariation("flag1", target, false);
           log.info("Boolean variation: {}", bResult);
           final JsonObject jsonResult = client.jsonVariation("flag4", target, new JsonObject());
           log.info("JSON variation: {}", jsonResult);
