@@ -24,3 +24,10 @@ build
 *.iml
 gradle
 out
+
+# example stores
+Freemium*
+Non-Freemium*
+
+gradlew*
+wrapper.json

@@ -1,15 +1,9 @@
 package io.harness.cf.client.api;
 
-/**
- * Authentication callback.
- */
-public interface AuthCallback {
+import lombok.NonNull;
 
-    /**
-     * Authentication success.
-     *
-     * @param success True == Authentication ok.
-     * @param error   Error if occurred.
-     */
-    void onSuccess(boolean success, Exception error);
+interface AuthCallback {
+  void onAuthSuccess(@NonNull final String token);
+
+  void onAuthError(String error);
 }

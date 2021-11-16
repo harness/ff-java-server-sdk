@@ -1,300 +1,112 @@
 package io.harness.cf.client.api;
 
-import static org.junit.Assert.*;
-
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import io.harness.cf.client.dto.Target;
-import io.harness.cf.model.*;
-import java.util.*;
-import org.junit.BeforeClass;
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Locale;
+import java.util.stream.Stream;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
-/** EvaluatorTest tests the flag configuration rules are correctly evaluated */
+@Slf4j
 public class EvaluatorTest {
 
-  private static Evaluator evaluator;
-  private static Cache<String, Segment> cache;
+  private final EvaluatorTester tester;
+  private final List<TestModel> testData;
 
-  private static final Target target1 =
-      Target.builder()
-          .identifier("bob")
-          .name("Bob")
-          .attributes(
-              new ImmutableMap.Builder<String, Object>()
-                  .put("company", "harness")
-                  .put("age", 56)
-                  .put("happy", true)
-                  .build())
-          .build();
-
-  private static final Target target2 =
-      Target.builder()
-          .identifier("joe")
-          .name("Joe")
-          .attributes(
-              new ImmutableMap.Builder<String, Object>()
-                  .put("company", "ACME")
-                  .put("age", 22)
-                  .put("happy", false)
-                  .build())
-          .build();
-
-  @BeforeClass
-  public static void beforeClass() {
-    cache = Caffeine.newBuilder().maximumSize(10000).build();
-    evaluator = new Evaluator(cache);
+  {
+    testData = new LinkedList<>();
+    tester = new EvaluatorTester();
   }
 
-  /** Test that the flag serves the correct default variations when the flag is turned off/on */
   @Test
-  public void testBooleanFlagStates() throws CfClientException {
-    Variation result = evaluator.evaluate(booleanFlag(FeatureState.ON), target1);
-    assertEquals("true", result.getValue());
+  public void testEvaluator() {
 
-    result = evaluator.evaluate(booleanFlag(FeatureState.OFF), target1);
-    assertEquals("false", result.getValue());
+    for (final TestModel model : testData) {
+
+      tester.process(model);
+    }
   }
 
-  /**
-   * Test that target mapping overrides the default serve It should serve the variation specified by
-   * the target mapping
-   */
-  @Test
-  public void testTarget() throws CfClientException {
-    FeatureConfig fc = booleanFlag(FeatureState.ON);
-    addTargetMappingRule(fc, target1.getIdentifier());
+  @Before
+  public void prepareTestData() {
 
-    Variation result = evaluator.evaluate(fc, target1);
-    assertEquals("false", result.getValue());
+    try {
+
+      final String testsLocation = "./src/test/ff-test-cases/tests";
+      final String testCasesPath = new File(testsLocation).getCanonicalPath();
+      final File testCasesDirectory = new File(testCasesPath);
+
+      Assert.assertTrue(testCasesDirectory.exists());
+
+      log.info(String.format("Test cases directory: '%s'", testCasesPath));
+
+      final File[] files = testCasesDirectory.listFiles();
+
+      Assert.assertNotNull(files);
+      Assert.assertTrue(files.length > 0);
+
+      testData.clear();
+
+      final Gson gson = new Gson();
+
+      for (final File file : files) {
+
+        log.info(String.format("Processing the test file: '%s'", file.getName()));
+
+        Assert.assertTrue(file.getName().toLowerCase(Locale.getDefault()).endsWith(".json"));
+
+        final String json = read(file.getAbsolutePath());
+
+        Assert.assertNotNull(json);
+        Assert.assertFalse(json.trim().isEmpty());
+
+        try {
+
+          final TestModel model = gson.fromJson(json, TestModel.class);
+
+          Assert.assertNotNull(model);
+
+          final String testFile = file.getName();
+          final String feature = model.flag.getFeature() + testFile;
+
+          model.testFile = testFile;
+          model.flag.setFeature(feature);
+
+          Assert.assertTrue(testData.add(model));
+
+        } catch (JsonSyntaxException e) {
+
+          Assert.fail(e.getMessage());
+        }
+      }
+    } catch (IOException e) {
+
+      Assert.fail(e.getMessage());
+    }
   }
 
-  /**
-   * Test that segment mapping overrides the default serve It should serve the variation specified
-   * by the segment mapping, if the target belongs to the segment
-   */
-  @Test
-  public void testSegmentIncludeList() throws CfClientException {
-    // Create Segment and add it to the evaluator cache
-    Segment segment =
-        Segment.builder()
-            .identifier("Alpha")
-            .name("alpha")
-            .included(Collections.singletonList(target1.ApiTarget()))
-            .build();
+  private static String read(final String path) {
 
-    addSegmentToCache(segment);
+    final StringBuilder builder = new StringBuilder();
 
-    // Create the flag configuration and add the segment
-    FeatureConfig fc = booleanFlag(FeatureState.ON);
-    addSegmentMappingRule(fc, segment.getIdentifier());
+    try (final Stream<String> stream = Files.lines(Paths.get(path), StandardCharsets.UTF_8)) {
 
-    // Serve false to segment member
-    Variation result = evaluator.evaluate(fc, target1);
-    assertEquals("false", result.getValue());
+      stream.forEach(s -> builder.append(s).append("\n"));
 
-    // Serve default serve (true) to non segment member
-    result = evaluator.evaluate(fc, target2);
-    assertEquals("true", result.getValue());
+    } catch (IOException e) {
 
-    removeSegmentFromCache(segment);
-  }
+      Assert.fail(e.getMessage());
+    }
 
-  /**
-   * Test that segment mapping overrides the default serve It should serve the variation specified
-   * by the segment mapping, unless the target is excluded by the to the segment. The exclude list
-   * should take precedence
-   */
-  @Test
-  public void testSegmentExcludeList() throws CfClientException {
-    // Create Include List
-    List<io.harness.cf.model.Target> included =
-        Arrays.asList(target1.ApiTarget(), target2.ApiTarget());
-
-    // Create Exclude List - exclude segmentMember1
-    List<io.harness.cf.model.Target> excluded = Collections.singletonList(target1.ApiTarget());
-
-    // Create Segment and add it to the evaluator cache
-    Segment segment =
-        Segment.builder()
-            .identifier("Alpha")
-            .name("alpha")
-            .included(included)
-            .excluded(excluded)
-            .build();
-
-    addSegmentToCache(segment);
-
-    // Create the flag configuration and add the segment
-    FeatureConfig fc = booleanFlag(FeatureState.ON);
-    addSegmentMappingRule(fc, segment.getIdentifier());
-
-    // Serve false to segment member
-    Variation result = evaluator.evaluate(fc, target1);
-    assertEquals("true", result.getValue());
-
-    // Serve default serve (true) to non segment member
-    result = evaluator.evaluate(fc, target2);
-    assertEquals("false", result.getValue());
-
-    removeSegmentFromCache(segment);
-  }
-
-  /**
-   * Test that segment mapping overrides the default serve It should serve the variation specified
-   * by the segment mapping, unless the target is excluded by the to the segment
-   */
-  @Test
-  public void testSegmentRules() throws CfClientException {
-    List<Clause> clauses =
-        Arrays.asList(
-            Clause.builder()
-                .attribute("identifier")
-                .op(Operators.EQUAL)
-                .values(Collections.singletonList(target1.getIdentifier()))
-                .build(),
-            Clause.builder()
-                .attribute("name")
-                .op(Operators.EQUAL)
-                .values(Collections.singletonList(target2.getName()))
-                .build());
-
-    // Create Segment and add it to the evaluator cache
-    Segment segment = Segment.builder().identifier("Alpha").name("alpha").rules(clauses).build();
-
-    addSegmentToCache(segment);
-
-    // Create the flag configuration and add the segment
-    FeatureConfig fc = booleanFlag(FeatureState.ON);
-    addSegmentMappingRule(fc, segment.getIdentifier());
-
-    // Serve false to segment member
-    Variation result = evaluator.evaluate(fc, target1);
-    assertEquals("false", result.getValue());
-
-    // Serve default serve (true) to non segment member
-    result = evaluator.evaluate(fc, target2);
-    assertEquals("false", result.getValue());
-
-    removeSegmentFromCache(segment);
-  }
-
-  /** Test that boolean values are correctly evaluated in segment rules */
-  @Test
-  public void testSegmentBooleanRules() throws CfClientException {
-    List<Clause> clauses =
-        Collections.singletonList(
-            Clause.builder()
-                .attribute("happy")
-                .op(Operators.EQUAL)
-                .values(Collections.singletonList(Boolean.toString(true)))
-                .build());
-
-    // Create Segment and add it to the evaluator cache
-    Segment segment = Segment.builder().identifier("Alpha").name("alpha").rules(clauses).build();
-
-    addSegmentToCache(segment);
-
-    // Create the flag configuration and add the segment
-    FeatureConfig fc = booleanFlag(FeatureState.ON);
-    addSegmentMappingRule(fc, segment.getIdentifier());
-
-    // Serve false to segment member (included by happy)
-    Variation result = evaluator.evaluate(fc, target1);
-    assertEquals("false", result.getValue());
-
-    // Serve true to non segment member
-    result = evaluator.evaluate(fc, target2);
-    assertEquals("true", result.getValue());
-
-    removeSegmentFromCache(segment);
-  }
-
-  /** Test that boolean values are correctly evaluated in segment rules */
-  @Test
-  public void testSegmentIntegerRules() throws CfClientException {
-    List<Clause> clauses =
-        Collections.singletonList(
-            Clause.builder()
-                .attribute("age")
-                .op(Operators.EQUAL)
-                .values(Collections.singletonList(Integer.toString(22)))
-                .build());
-
-    // Create Segment and add it to the evaluator cache
-    Segment segment = Segment.builder().identifier("Alpha").name("alpha").rules(clauses).build();
-
-    addSegmentToCache(segment);
-
-    // Create the flag configuration and add the segment
-    FeatureConfig fc = booleanFlag(FeatureState.ON);
-    addSegmentMappingRule(fc, segment.getIdentifier());
-
-    // Serve false to segment member (included by age 22)
-    Variation result = evaluator.evaluate(fc, target2);
-    assertEquals("false", result.getValue());
-
-    // Serve true to non segment member
-    result = evaluator.evaluate(fc, target1);
-    assertEquals("true", result.getValue());
-
-    removeSegmentFromCache(segment);
-  }
-
-  // The functions below are helpers for running the tests
-
-  /**
-   * Add a Target Mapping rule to the flag configuration. The target should be served the specified
-   * variation
-   */
-  private static void addTargetMappingRule(FeatureConfig featureConfig, String targetID) {
-    featureConfig.addVariationToTargetMapItem(
-        VariationMap.builder()
-            .variation("false")
-            .targets(Collections.singletonList(TargetMap.builder().identifier(targetID).build()))
-            .build());
-  }
-
-  /**
-   * Add a Segment Mapping rule to the flag configuration. Any targets that belong to this segment
-   * should receive the specified variation
-   */
-  private static void addSegmentMappingRule(FeatureConfig featureConfig, String segmentID) {
-
-    featureConfig.addVariationToTargetMapItem(
-        VariationMap.builder()
-            .variation("false")
-            .targetSegments(Collections.singletonList(segmentID))
-            .build());
-  }
-
-  /**
-   * Creates a boolean flag Config, with two variations (true|false). By default if the flag is on,
-   * it will serve true, and if its off it will serve false.
-   */
-  private static FeatureConfig booleanFlag(FeatureState state) {
-
-    return FeatureConfig.builder()
-        .state(state)
-        .offVariation("false")
-        .variations(
-            ImmutableList.<Variation>builder()
-                .add(Variation.builder().identifier("false").name("false").value("false").build())
-                .add(Variation.builder().identifier("true").name("true").value("true").build())
-                .build())
-        .defaultServe(Serve.builder().variation("true").build())
-        .build();
-  }
-
-  public static void addSegmentToCache(Segment segment) {
-
-    cache.put(segment.getIdentifier(), segment);
-  }
-
-  public static void removeSegmentFromCache(Segment segment) {
-
-    cache.invalidate(segment.getIdentifier());
+    return builder.toString();
   }
 }

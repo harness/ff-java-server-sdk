@@ -1,120 +1,327 @@
 package io.harness.cf.client.api;
 
 import static io.harness.cf.client.api.Operators.*;
-import static java.lang.String.format;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import io.harness.cf.client.Evaluation;
-import io.harness.cf.client.api.rules.DistributionProcessor;
+import com.google.common.base.Strings;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.sangupta.murmur.Murmur3;
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.*;
 import java.lang.reflect.Field;
-import java.util.*;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
 import javax.annotation.Nonnull;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 
 @Slf4j
-public class Evaluator implements Evaluation {
+class Evaluator implements Evaluation {
 
-  private final Cache<String, Segment> segmentCache;
+  public static final int ONE_HUNDRED = 100;
 
-  public Evaluator(Cache<String, Segment> segmentCache) {
+  private final Query query;
 
-    this.segmentCache = segmentCache;
+  public Evaluator(Query query) {
+
+    this.query = query;
   }
 
-  @Override
-  public Variation evaluate(FeatureConfig featureConfig, Target target) throws CfClientException {
-
-    String servedVariation = featureConfig.getOffVariation();
-    if (featureConfig.getState() == FeatureState.OFF) {
-      return getVariation(featureConfig.getVariations(), servedVariation);
+  protected Optional<Object> getAttrValue(Target target, @Nonnull String attribute) {
+    if (Strings.isNullOrEmpty(attribute)) {
+      return Optional.empty();
     }
-
-    servedVariation = processVariationMap(target, featureConfig.getVariationToTargetMap());
-    if (servedVariation != null) {
-      return getVariation(featureConfig.getVariations(), servedVariation);
+    try {
+      Field field = Target.class.getDeclaredField(attribute);
+      field.setAccessible(true);
+      return Optional.of(field.get(target));
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      if (target.getAttributes() != null) {
+        return Optional.of(target.getAttributes().get(attribute));
+      }
     }
-
-    servedVariation = processRules(featureConfig, target);
-    if (servedVariation != null) {
-      return getVariation(featureConfig.getVariations(), servedVariation);
-    }
-
-    Serve defaultServe = featureConfig.getDefaultServe();
-    servedVariation = processDefaultServe(defaultServe, target);
-
-    return getVariation(featureConfig.getVariations(), servedVariation);
+    log.error("The attribute {} does not exist", attribute);
+    return Optional.empty();
   }
 
-  private String processVariationMap(Target target, List<VariationMap> variationMaps)
-      throws CfClientException {
+  protected Optional<Variation> findVariation(
+      @Nonnull List<Variation> variations, String identifier) {
+    if (identifier == null || CollectionUtils.isEmpty(variations)) return Optional.empty();
+    return variations.stream().filter(v -> v.getIdentifier().equals(identifier)).findFirst();
+  }
 
-    if (variationMaps == null) {
-      return null;
+  protected int getNormalizedNumber(@NonNull Object property, @NonNull String bucketBy) {
+    byte[] value = String.join(":", bucketBy, property.toString()).getBytes();
+    long hasher = Murmur3.hash_x86_32(value, value.length, Murmur3.UINT_MASK);
+    return (int) (hasher % Evaluator.ONE_HUNDRED) + 1;
+  }
+
+  protected boolean isEnabled(Target target, String bucketBy, int percentage) {
+    final Optional<Object> property = getAttrValue(target, bucketBy);
+    if (!property.isPresent()) {
+      return false;
+    }
+    int bucketId = getNormalizedNumber(property.get(), bucketBy);
+
+    return percentage > 0 && bucketId <= percentage;
+  }
+
+  protected Optional<String> evaluateDistribution(Distribution distribution, Target target) {
+    if (distribution == null) {
+      return Optional.empty();
+    }
+
+    String variation = "";
+    for (WeightedVariation weightedVariation : distribution.getVariations()) {
+      variation = weightedVariation.getVariation();
+      if (isEnabled(target, distribution.getBucketBy(), weightedVariation.getWeight())) {
+        return Optional.of(weightedVariation.getVariation());
+      }
+    }
+    return Optional.of(variation);
+  }
+
+  protected boolean evaluateClause(Clause clause, Target target) {
+    if (clause == null) {
+      return false;
+    }
+    // operator is required
+    final String operator = clause.getOp();
+    if (operator.isEmpty()) {
+      return false;
+    }
+
+    Optional<Object> attrValue = getAttrValue(target, clause.getAttribute());
+    if (!attrValue.isPresent()) {
+      return false;
+    }
+
+    String object = attrValue.get().toString();
+    String value = clause.getValues().get(0);
+
+    switch (operator) {
+      case STARTS_WITH:
+        return object.startsWith(value);
+      case ENDS_WITH:
+        return object.endsWith(value);
+      case MATCH:
+        return object.matches(value);
+      case CONTAINS:
+        return object.contains(value);
+      case EQUAL:
+        return object.equalsIgnoreCase(value);
+      case EQUAL_SENSITIVE:
+        return object.equals(value);
+      case IN:
+        return value.contains(object);
+      case SEGMENT_MATCH:
+        return isTargetIncludedOrExcludedInSegment(clause.getValues(), target);
+      default:
+        return false;
+    }
+  }
+
+  protected boolean evaluateClauses(List<Clause> clauses, Target target) {
+    for (Clause clause : clauses) {
+      if (!evaluateClause(clause, target)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * isTargetIncludedOrExcludedInSegment determines if the given target is included by a segment
+   *
+   * @param segmentList a list of segments
+   * @param target the target to check if its included
+   * @return true if the target is included in the segment via rules
+   */
+  private boolean isTargetIncludedOrExcludedInSegment(List<String> segmentList, Target target) {
+
+    for (String segmentIdentifier : segmentList) {
+      final Optional<Segment> optionalSegment = query.getSegment(segmentIdentifier);
+      if (optionalSegment.isPresent()) {
+        final Segment segment = optionalSegment.get();
+        // Should Target be excluded - if in excluded list we return false
+        if (isTargetInList(target, segment.getExcluded())) {
+          log.debug(
+              "Target {} excluded from segment {} via exclude list",
+              target.getName(),
+              segment.getName());
+          return false;
+        }
+
+        // Should Target be included - if in included list we return true
+        if (isTargetInList(target, segment.getIncluded())) {
+          log.debug(
+              "Target {} included in segment {} via include list",
+              target.getName(),
+              segment.getName());
+          return true;
+        }
+
+        // Should Target be included via segment rules
+        List<Clause> rules = segment.getRules();
+        if ((rules != null) && !rules.isEmpty() && evaluateClauses(rules, target)) {
+          log.debug(
+              "Target {} included in segment {} via rules", target.getName(), segment.getName());
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  protected boolean evaluateRule(ServingRule servingRule, Target target) {
+    return this.evaluateClauses(servingRule.getClauses(), target);
+  }
+
+  protected Optional<String> evaluateRules(List<ServingRule> servingRules, Target target) {
+    if (target == null || servingRules == null) {
+      return Optional.empty();
+    }
+
+    servingRules.sort(Comparator.comparing(ServingRule::getPriority));
+    for (ServingRule rule : servingRules) {
+      // if evaluation is false just continue to next rule
+      if (!this.evaluateRule(rule, target)) {
+        continue;
+      }
+
+      // rule matched, check if there is distribution
+      if (rule.getServe().getDistribution() != null) {
+        return evaluateDistribution(rule.getServe().getDistribution(), target);
+      }
+
+      // rule matched, here must be variation if distribution is undefined or null
+      if (rule.getServe().getVariation() != null) {
+        return Optional.of(rule.getServe().getVariation());
+      }
+    }
+
+    return Optional.empty();
+  }
+
+  protected Optional<String> evaluateVariationMap(
+      @NonNull List<VariationMap> variationMaps, Target target) {
+    if (target == null) {
+      return Optional.empty();
     }
     for (VariationMap variationMap : variationMaps) {
-
       List<TargetMap> targets = variationMap.getTargets();
-
       if (targets != null) {
-        for (TargetMap targetMap : targets) {
-          if (targetMap.getIdentifier() != null
-              && targetMap.getIdentifier().contains(target.getIdentifier())) {
-            return variationMap.getVariation();
-          }
-        }
+        Optional<TargetMap> found =
+            targets.stream()
+                .filter(
+                    t -> {
+                      if (t.getIdentifier() != null)
+                        return t.getIdentifier().equals(target.getIdentifier());
+                      return false;
+                    })
+                .findFirst();
+        if (found.isPresent()) return Optional.of(variationMap.getVariation());
       }
 
       List<String> segmentIdentifiers = variationMap.getTargetSegments();
-      if (segmentIdentifiers != null) {
-        if (isTargetIncludedBySegment(segmentIdentifiers, target)) {
-          return variationMap.getVariation();
+      if (segmentIdentifiers != null
+          && isTargetIncludedOrExcludedInSegment(segmentIdentifiers, target)) {
+        return Optional.of(variationMap.getVariation());
+      }
+    }
+    return Optional.empty();
+  }
+
+  protected Optional<Variation> evaluateFlag(@NonNull FeatureConfig featureConfig, Target target) {
+    Optional<String> variation = Optional.of(featureConfig.getOffVariation());
+    if (featureConfig.getState() == FeatureState.ON) {
+      variation = Optional.empty();
+      if (featureConfig.getVariationToTargetMap() != null)
+        variation = evaluateVariationMap(featureConfig.getVariationToTargetMap(), target);
+      if (!variation.isPresent()) variation = evaluateRules(featureConfig.getRules(), target);
+      if (!variation.isPresent())
+        variation = evaluateDistribution(featureConfig.getDefaultServe().getDistribution(), target);
+      if (!variation.isPresent())
+        variation = Optional.ofNullable(featureConfig.getDefaultServe().getVariation());
+    }
+    if (variation.isPresent()) return findVariation(featureConfig.getVariations(), variation.get());
+    return Optional.empty();
+  }
+
+  protected boolean checkPreRequisite(FeatureConfig parentFeatureConfig, Target target) {
+    List<Prerequisite> prerequisites = parentFeatureConfig.getPrerequisites();
+    if (!CollectionUtils.isEmpty(prerequisites)) {
+      log.info(
+          "Checking pre requisites {} of parent feature {}",
+          prerequisites,
+          parentFeatureConfig.getFeature());
+      for (Prerequisite pqs : prerequisites) {
+        String preReqFeature = pqs.getFeature();
+        Optional<FeatureConfig> preReqFeatureConfig = query.getFlag(preReqFeature);
+        if (!preReqFeatureConfig.isPresent()) {
+          log.error(
+              "Could not retrieve the pre requisite details of feature flag :{}", preReqFeature);
+          return true;
+        }
+
+        // Pre requisite variation value evaluated below
+        Optional<Variation> preReqEvaluatedVariation =
+            evaluateFlag(preReqFeatureConfig.get(), target);
+        if (!preReqEvaluatedVariation.isPresent()) {
+          log.error(
+              "Could not evaluate the prerequisite details of feature flag :{}", preReqFeature);
+          return true;
+        }
+        log.info(
+            "Pre requisite flag {} has variation {} for target {}",
+            preReqFeatureConfig.get().getFeature(),
+            preReqEvaluatedVariation.get(),
+            target);
+
+        // Compare if the pre requisite variation is a possible valid value of
+        // the pre requisite FF
+        List<String> validPreReqVariations = pqs.getVariations();
+        log.info(
+            "Pre requisite flag {} should have the variations {}",
+            preReqFeatureConfig.get().getFeature(),
+            validPreReqVariations);
+        if (validPreReqVariations.stream()
+            .noneMatch(element -> element.contains(preReqEvaluatedVariation.get().getValue()))) {
+          return false;
+        } else {
+          return checkPreRequisite(preReqFeatureConfig.get(), target);
         }
       }
     }
-    return null;
+    return true;
   }
 
-  private String processRules(FeatureConfig featureConfig, Target target) throws CfClientException {
+  public Optional<Variation> evaluate(
+      String identifier,
+      Target target,
+      FeatureConfig.KindEnum expected,
+      FlagEvaluateCallback callback) {
 
-    List<ServingRule> originalServingRules = featureConfig.getRules();
-    ArrayList<ServingRule> servingRules =
-        new ArrayList<>(Optional.ofNullable(originalServingRules).orElse(new ArrayList<>()));
-    servingRules.sort(Comparator.comparing(ServingRule::getPriority));
-    for (ServingRule servingRule : Objects.requireNonNull(servingRules)) {
-      String servedVariation = processServingRule(servingRule, target);
-      if (servedVariation != null) {
-        return servedVariation;
-      }
-    }
-    return null;
-  }
+    Optional<FeatureConfig> flag = query.getFlag(identifier);
+    if (!flag.isPresent() || flag.get().getKind() != expected) return Optional.empty();
 
-  private String processServingRule(ServingRule servingRule, Target target)
-      throws CfClientException {
-
-    for (Clause clause : Objects.requireNonNull(servingRule.getClauses())) {
-      if (!process(clause, target)) { // check if the target match the clause
-        return null;
+    if (!CollectionUtils.isEmpty(flag.get().getPrerequisites())) {
+      boolean prereq = checkPreRequisite(flag.get(), target);
+      if (!prereq) {
+        return findVariation(flag.get().getVariations(), flag.get().getOffVariation());
       }
     }
 
-    Serve serve = servingRule.getServe();
-    String servedVariation;
-    if (serve.getVariation() != null) {
-      servedVariation = serve.getVariation();
-    } else {
-      DistributionProcessor distributionProcessor =
-          new DistributionProcessor(servingRule.getServe());
-      servedVariation = distributionProcessor.loadKeyName(target);
+    final Optional<Variation> variation = evaluateFlag(flag.get(), target);
+    if (variation.isPresent()) {
+      if (callback != null) {
+        callback.processEvaluation(flag.get(), target, variation.get());
+      }
+      return variation;
     }
-    return servedVariation;
-  }
-
-  private boolean process(Clause clause, Target target) throws CfClientException {
-    boolean result = compare(clause.getValues(), target, clause);
-    return Optional.of(clause.getNegate()).orElse(false) != result;
+    return Optional.empty();
   }
 
   /**
@@ -135,136 +342,33 @@ public class Evaluator implements Evaluation {
     return false;
   }
 
-  /**
-   * isTargetIncludedBySegment determines if the given target is included by a segment
-   *
-   * @param segmentList a list of segments
-   * @param target the target to check if its included
-   * @return true if the target is included in the segment via rules
-   */
-  private boolean isTargetIncludedBySegment(List<String> segmentList, Target target)
-      throws CfClientException {
-
-    for (String segmentIdentifier : segmentList) {
-      Segment segment = segmentCache.getIfPresent(segmentIdentifier);
-      if (segment != null) {
-
-        // Should Target be excluded - if in excluded list we return false
-        if (isTargetInList(target, segment.getExcluded())) {
-          log.debug(
-              "Target {} excluded from segment {} via exclude list",
-              target.getName(),
-              segment.getName());
-          return false;
-        }
-
-        // Should Target be included - if in included list we return true
-        if (isTargetInList(target, segment.getIncluded())) {
-          log.debug(
-              "Target {} included in segment {} via include list",
-              target.getName(),
-              segment.getName());
-          return true;
-        }
-
-        // Should Target be included via segment rules
-        if ((segment.getRules() != null) && !segment.getRules().isEmpty()) {
-          for (Clause rule : segment.getRules()) {
-            if (compare(rule.getValues(), target, rule)) {
-              log.debug(
-                  "Target {} included in segment {} via rules",
-                  target.getName(),
-                  segment.getName());
-              return true;
-            }
-          }
-        }
-      }
-    }
-    return false;
+  public boolean boolVariation(
+      String identifier, Target target, boolean defaultValue, FlagEvaluateCallback callback) {
+    final Optional<Variation> variation =
+        evaluate(identifier, target, FeatureConfig.KindEnum.BOOLEAN, callback);
+    return variation.map(value -> Boolean.parseBoolean(value.getValue())).orElse(defaultValue);
   }
 
-  private boolean compare(List<String> value, Target target, Clause clause)
-      throws CfClientException {
-    String operator = clause.getOp();
-    String object;
-    Object attrValue;
-    try {
-      attrValue = getAttrValue(target, clause.getAttribute());
-    } catch (CfClientException e) {
-      attrValue = "";
-    }
-
-    object = attrValue.toString();
-
-    String v = (value).get(0);
-    switch (operator) {
-      case STARTS_WITH:
-        return object.startsWith(v);
-      case ENDS_WITH:
-        return object.endsWith(v);
-      case MATCH:
-        return object.matches(v);
-      case CONTAINS:
-        return object.contains(v);
-      case EQUAL:
-        return object.equalsIgnoreCase(v);
-      case EQUAL_SENSITIVE:
-        return object.equals(v);
-      case IN:
-        return value.contains(object);
-      case SEGMENT_MATCH:
-        return isTargetIncludedBySegment(value, target);
-      default:
-        return false;
-    }
+  public String stringVariation(
+      String identifier, Target target, String defaultValue, FlagEvaluateCallback callback) {
+    final Optional<Variation> variation =
+        evaluate(identifier, target, FeatureConfig.KindEnum.STRING, callback);
+    return variation.map(Variation::getValue).orElse(defaultValue);
   }
 
-  private String processDefaultServe(Serve defaultServe, Target target) throws CfClientException {
-    if (defaultServe == null) {
-      throw new CfClientException("The serving rule is missing default serve.");
-    }
-    String servedVariation;
-    if (defaultServe.getVariation() != null) {
-      servedVariation = defaultServe.getVariation();
-    } else if (defaultServe.getDistribution() != null) {
-      DistributionProcessor distributionProcessor = new DistributionProcessor(defaultServe);
-      servedVariation = distributionProcessor.loadKeyName(target);
-    } else {
-      throw new CfClientException("The default serving rule is invalid.");
-    }
-    return servedVariation;
+  public double numberVariation(
+      String identifier, Target target, double defaultValue, FlagEvaluateCallback callback) {
+    final Optional<Variation> variation =
+        evaluate(identifier, target, FeatureConfig.KindEnum.INT, callback);
+    return variation.map(value -> Double.parseDouble(value.getValue())).orElse(defaultValue);
   }
 
-  private Variation getVariation(List<Variation> variations, String variationIdentifier)
-      throws CfClientException {
-
-    for (Variation variation : variations) {
-      if (variationIdentifier.equals(variation.getIdentifier())) {
-        return variation;
-      }
-    }
-    throw new CfClientException(format("Invalid variation identifier %s.", variationIdentifier));
-  }
-
-  public static Object getAttrValue(Target target, @Nonnull String attribute)
-      throws CfClientException {
-
-    Field field;
-    try {
-      field = Target.class.getDeclaredField(attribute);
-      field.setAccessible(true);
-      return field.get(target);
-    } catch (NoSuchFieldException | IllegalAccessException e) {
-      Map<String, Object> customFields = target.getAttributes();
-      if (customFields != null) {
-        for (Map.Entry<String, Object> entry : target.getAttributes().entrySet()) {
-          if (entry.getKey().equals(attribute)) {
-            return entry.getValue();
-          }
-        }
-      }
-    }
-    throw new CfClientException(format("The attribute %s does not exist", attribute));
+  public JsonObject jsonVariation(
+      String identifier, Target target, JsonObject defaultValue, FlagEvaluateCallback callback) {
+    final Optional<Variation> variation =
+        evaluate(identifier, target, FeatureConfig.KindEnum.JSON, callback);
+    if (variation.isPresent())
+      return new Gson().fromJson(variation.get().getValue(), JsonObject.class);
+    return defaultValue;
   }
 }

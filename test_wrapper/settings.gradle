@@ -1,3 +1,0 @@
-rootProject.name = "test_wrapper"
-include ':wrapper'
-include ':Logger:Logger'
