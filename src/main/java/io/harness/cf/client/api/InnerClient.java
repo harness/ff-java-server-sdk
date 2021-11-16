@@ -43,6 +43,7 @@ class InnerClient
   private StreamProcessor streamProcessor;
   private MetricsProcessor metricsProcessor;
   private boolean initialized = false;
+  private boolean closing = false;
   private boolean failure = false;
   private boolean pollerReady = false;
   private boolean streamReady = false;
@@ -127,6 +128,9 @@ class InnerClient
   }
 
   protected void onUnauthorized() {
+    if (closing) {
+      return;
+    }
     authService.startAsync();
     pollProcessor.stop();
     if (options.isStreamEnabled()) {
@@ -141,6 +145,9 @@ class InnerClient
   @Override
   public void onAuthSuccess(@NonNull final String token) {
     log.info("SDK successfully logged in");
+    if (closing) {
+      return;
+    }
     processToken(token);
     // run services only after token is processed
     pollProcessor.start();
@@ -176,7 +183,9 @@ class InnerClient
 
   @Override
   public void onStreamDisconnected() {
-    pollProcessor.start();
+    if (!closing) {
+      pollProcessor.start();
+    }
   }
 
   @Override
@@ -221,6 +230,9 @@ class InnerClient
   }
 
   private synchronized void initialize(Processor processor) {
+    if (closing) {
+      return;
+    }
     switch (processor) {
       case POLL:
         pollerReady = true;
@@ -256,8 +268,11 @@ class InnerClient
   }
 
   protected void notifyConsumers(@NonNull Event event, String value) {
-    for (Consumer<String> consumer : events.get(event)) {
-      consumer.accept(value);
+    CopyOnWriteArrayList<Consumer<String>> consumers = events.get(event);
+    if (consumers != null && !consumers.isEmpty()) {
+      for (Consumer<String> consumer : consumers) {
+        consumer.accept(value);
+      }
     }
   }
 
@@ -269,7 +284,7 @@ class InnerClient
     }
   }
 
-  public void on(Event event, Consumer<String> consumer) {
+  public void on(@NonNull Event event, @NonNull Consumer<String> consumer) {
     final CopyOnWriteArrayList<Consumer<String>> consumers =
         events.getOrDefault(event, new CopyOnWriteArrayList<>());
     consumers.add(consumer);
@@ -314,6 +329,7 @@ class InnerClient
 
   public void close() {
     log.info("Closing the client");
+    closing = true;
     off();
     authService.close();
     repository.close();
