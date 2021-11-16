@@ -18,6 +18,7 @@ class Example {
   private static final HashMap<String, String> keys;
 
   private static final String FREEMIUM_API_KEY = "45d2a13a-c62f-4116-a1a7-86f25d715a2e";
+
   private static final String NON_FREEMIUM_API_KEY = "9ecc4ced-afc1-45af-9b54-c899cbff4b62";
 
   static {
