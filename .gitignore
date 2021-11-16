@@ -26,7 +26,7 @@ gradle
 out
 
 # example stores
-Freemium
+Freemium*
 Non-Freemium*
 
 gradlew*

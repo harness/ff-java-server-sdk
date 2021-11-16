@@ -19,6 +19,7 @@ class Example {
   private static final ScheduledExecutorService scheduler;
 
   private static final String FREEMIUM_API_KEY = "45d2a13a-c62f-4116-a1a7-86f25d715a2e";
+  private static final String FREEMIUM_API_KEY_2 = "75821279-f8f7-49b2-9f2b-b10c2ba36a32";
   private static final String NON_FREEMIUM_API_KEY = "9ecc4ced-afc1-45af-9b54-c899cbff4b62";
   private static final String NON_FREEMIUM_API_KEY_2 = "32ba37eb-2c12-4143-9d05-fb4d6782b083";
 
@@ -26,6 +27,7 @@ class Example {
     capacity = 5;
     keys = new HashMap<>(capacity);
     keys.put("Freemium", FREEMIUM_API_KEY);
+    keys.put("Freemium-2", FREEMIUM_API_KEY_2);
     keys.put("Non-Freemium", NON_FREEMIUM_API_KEY);
     keys.put("Non-Freemium-2", NON_FREEMIUM_API_KEY_2);
     scheduler = Executors.newScheduledThreadPool(keys.size());
