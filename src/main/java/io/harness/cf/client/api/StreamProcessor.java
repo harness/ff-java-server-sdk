@@ -196,7 +196,7 @@ class StreamProcessor implements ServerSentEvent.Listener {
   @Override
   public void onClosed(ServerSentEvent serverSentEvent) {
 
-    log.info("SSE connection closed. Switching to polling mode.");
+    log.info("SSE connection closed.");
     callback.onStreamDisconnected();
   }
 
