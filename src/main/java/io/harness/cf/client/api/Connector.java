@@ -8,11 +8,10 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import lombok.NonNull;
 import okhttp3.Request;
-import org.apache.commons.lang3.tuple.ImmutablePair;
 
 public interface Connector {
 
-  Optional<ImmutablePair<String, String>> authenticate(Consumer<String> onError);
+  Optional<String> authenticate(Consumer<String> onError);
 
   List<FeatureConfig> getFlags();
 

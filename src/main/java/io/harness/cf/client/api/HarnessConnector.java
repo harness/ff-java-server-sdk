@@ -15,7 +15,6 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Request;
 import okhttp3.Response;
-import org.apache.commons.lang3.tuple.ImmutablePair;
 
 @Slf4j
 public class HarnessConnector implements Connector {
@@ -80,18 +79,13 @@ public class HarnessConnector implements Connector {
   }
 
   @Override
-  public Optional<ImmutablePair<String, String>> authenticate(Consumer<String> onError) {
+  public Optional<String> authenticate(Consumer<String> onError) {
     try {
       final AuthenticationRequest request = AuthenticationRequest.builder().apiKey(apiKey).build();
       final AuthenticationResponse response = api.authenticate(request);
       token = response.getAuthToken();
-
-      // set environment and cluster
-      ImmutablePair<String, String> result = processToken(token);
-      environment = result.getLeft();
-      cluster = result.getRight();
-
-      return Optional.of(result);
+      processToken(token);
+      return Optional.of(token);
     } catch (ApiException apiException) {
       log.error("Failed to get auth token {}", apiException.getMessage());
 
@@ -104,11 +98,11 @@ public class HarnessConnector implements Connector {
       }
 
       onError.accept(apiException.getMessage());
-      return Optional.empty();
     }
+    return Optional.empty();
   }
 
-  protected ImmutablePair<String, String> processToken(@NonNull String token) {
+  protected void processToken(@NonNull String token) {
     api.getApiClient().addDefaultHeader("Authorization", String.format("Bearer %s", token));
 
     // get claims
@@ -116,9 +110,8 @@ public class HarnessConnector implements Connector {
     String unsignedJwt = token.substring(0, i + 1);
     Jwt<?, Claims> untrusted = Jwts.parserBuilder().build().parseClaimsJwt(unsignedJwt);
 
-    String environment = (String) untrusted.getBody().get("environment");
-    String cluster = (String) untrusted.getBody().get("clusterIdentifier");
-    return ImmutablePair.of(environment, cluster);
+    environment = (String) untrusted.getBody().get("environment");
+    cluster = (String) untrusted.getBody().get("clusterIdentifier");
   }
 
   @Override
@@ -174,12 +167,10 @@ public class HarnessConnector implements Connector {
   public Request stream() {
     final String sseUrl = String.join("", options.getConfigUrl(), "/stream?cluster=" + cluster);
 
-    Request request =
-        new Request.Builder()
-            .url(String.format(sseUrl, environment))
-            .header("Authorization", "Bearer " + token)
-            .header("API-Key", apiKey)
-            .build();
-    return request;
+    return new Request.Builder()
+        .url(String.format(sseUrl, environment))
+        .header("Authorization", "Bearer " + token)
+        .header("API-Key", apiKey)
+        .build();
   }
 }

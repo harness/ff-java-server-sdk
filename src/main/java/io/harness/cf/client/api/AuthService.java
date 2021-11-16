@@ -5,7 +5,6 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.tuple.ImmutablePair;
 
 @Slf4j
 class AuthService extends AbstractScheduledService {
@@ -26,11 +25,9 @@ class AuthService extends AbstractScheduledService {
 
   @Override
   protected void runOneIteration() {
-    final Optional<ImmutablePair<String, String>> result =
-        connector.authenticate(callback::onAuthError);
-    if (result.isPresent()) {
-      ImmutablePair<String, String> pair = result.get();
-      callback.onAuthSuccess(pair.getLeft(), pair.getRight());
+    final Optional<String> token = connector.authenticate(callback::onAuthError);
+    if (token.isPresent()) {
+      callback.onAuthSuccess();
       log.info("Stopping Auth service");
       this.stopAsync();
     }

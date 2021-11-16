@@ -100,7 +100,7 @@ class InnerClient
   }
 
   @Override
-  public void onAuthSuccess(@NonNull final String environment, @NonNull final String cluster) {
+  public void onAuthSuccess() {
     log.info("SDK successfully logged in");
     if (closing) {
       return;
