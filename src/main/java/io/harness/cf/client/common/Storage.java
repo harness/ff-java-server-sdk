@@ -8,7 +8,7 @@ public interface Storage {
 
   Object get(@NonNull String key);
 
-  void del(@NonNull String key);
+  void delete(@NonNull String key);
 
   List<String> keys();
 

@@ -51,7 +51,7 @@ public class FileMapStore implements Storage {
   }
 
   @Override
-  public void del(@NonNull String key) {
+  public void delete(@NonNull String key) {
     try {
       map.remove(key);
       db.commit();
