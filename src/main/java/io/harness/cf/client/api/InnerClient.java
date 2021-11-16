@@ -2,21 +2,14 @@ package io.harness.cf.client.api;
 
 import com.google.common.base.Strings;
 import com.google.gson.JsonObject;
-import io.harness.cf.ApiClient;
-import io.harness.cf.api.ClientApi;
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Variation;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwt;
-import io.jsonwebtoken.Jwts;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.Request;
-import okhttp3.Response;
 
 @Slf4j
 class InnerClient
@@ -36,7 +29,6 @@ class InnerClient
 
   private Evaluation evaluator;
   private Repository repository;
-  private ClientApi api;
   private Config options;
   private AuthService authService;
   private PollingProcessor pollProcessor;
@@ -57,74 +49,39 @@ class InnerClient
   }
 
   public InnerClient(@NonNull final String sdkKey, final Config options) {
+    HarnessConnector harnessConnector = new HarnessConnector(sdkKey, options, this::onUnauthorized);
+    setUp(sdkKey, harnessConnector, options);
+  }
+
+  public InnerClient(@NonNull final String sdkKey, @NonNull Connector connector) {
+    this(sdkKey, connector, Config.builder().build());
+  }
+
+  public InnerClient(
+      @NonNull final String sdkKey, @NonNull Connector connector, final Config options) {
+    setUp(sdkKey, connector, options);
+  }
+
+  protected void setUp(
+      @NonNull final String sdkKey, @NonNull Connector connector, final Config options) {
     if (Strings.isNullOrEmpty(sdkKey)) {
       log.error("SDK key cannot be empty!");
       return;
     }
+
     this.options = options;
 
     // initialization
-    api = new ClientApi(makeApiClient());
     repository = new StorageRepository(options.getCache(), options.getStore(), this);
     evaluator = new Evaluator(repository);
-    authService = new AuthService(api, sdkKey, options.getPollIntervalInSeconds(), this);
-    pollProcessor = new PollingProcessor(api, repository, options.getPollIntervalInSeconds(), this);
-    streamProcessor = new StreamProcessor(sdkKey, api, repository, options.getConfigUrl(), this);
-    metricsProcessor = new MetricsProcessor(this.options, this);
+    authService = new AuthService(connector, options.getPollIntervalInSeconds(), this);
+    pollProcessor =
+        new PollingProcessor(connector, repository, options.getPollIntervalInSeconds(), this);
+    streamProcessor = new StreamProcessor(connector, repository, this);
+    metricsProcessor = new MetricsProcessor(connector, this.options, this);
 
     // start with authentication
     authService.startAsync();
-  }
-
-  protected ApiClient makeApiClient() {
-    ApiClient apiClient = new ApiClient();
-    apiClient.setBasePath(options.getConfigUrl());
-    apiClient.setConnectTimeout(options.getConnectionTimeout());
-    apiClient.setReadTimeout(options.getReadTimeout());
-    apiClient.setWriteTimeout(options.getWriteTimeout());
-    apiClient.setDebugging(log.isDebugEnabled());
-    apiClient.setUserAgent("java " + io.harness.cf.Version.VERSION);
-    // if http client response is 403 we need to reauthenticate
-    apiClient
-        .getHttpClient()
-        .newBuilder()
-        .addInterceptor(
-            chain -> {
-              Request request = chain.request();
-              // if you need to do something before request replace this
-              // comment with code
-              Response response = chain.proceed(request);
-              if (response.code() == 403) {
-                onUnauthorized();
-              }
-              return response;
-            })
-        .addInterceptor(new RetryInterceptor(3, 2000));
-    return apiClient;
-  }
-
-  protected void processToken(String token) {
-    api.getApiClient().addDefaultHeader("Authorization", String.format("Bearer %s", token));
-
-    // get claims
-    int i = token.lastIndexOf('.');
-    String unsignedJwt = token.substring(0, i + 1);
-    Jwt<?, Claims> untrusted = Jwts.parserBuilder().build().parseClaimsJwt(unsignedJwt);
-
-    String environment = (String) untrusted.getBody().get("environment");
-    String cluster = (String) untrusted.getBody().get("clusterIdentifier");
-
-    // set values to processors
-    pollProcessor.setEnvironment(environment);
-    pollProcessor.setCluster(cluster);
-
-    streamProcessor.setEnvironment(environment);
-    streamProcessor.setCluster(cluster);
-    streamProcessor.setToken(token);
-
-    metricsProcessor.setEnvironmentID(environment);
-    metricsProcessor.setCluster(cluster);
-    metricsProcessor.setToken(token);
   }
 
   protected void onUnauthorized() {
@@ -143,12 +100,12 @@ class InnerClient
   }
 
   @Override
-  public void onAuthSuccess(@NonNull final String token) {
+  public void onAuthSuccess(@NonNull final String environment, @NonNull final String cluster) {
     log.info("SDK successfully logged in");
     if (closing) {
       return;
     }
-    processToken(token);
+
     // run services only after token is processed
     pollProcessor.start();
 

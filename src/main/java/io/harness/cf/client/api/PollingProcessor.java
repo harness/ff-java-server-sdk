@@ -1,8 +1,6 @@
 package io.harness.cf.client.api;
 
 import com.google.common.util.concurrent.AbstractScheduledService;
-import io.harness.cf.ApiException;
-import io.harness.cf.api.ClientApi;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Segment;
 import java.util.List;
@@ -10,25 +8,23 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 import lombok.NonNull;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.codehaus.plexus.util.StringUtils;
 
 @Slf4j
 class PollingProcessor extends AbstractScheduledService {
 
-  @Setter private String environment;
-  @Setter private String cluster;
-
-  private final ClientApi api;
+  private final Connector connector;
   private final int pollIntervalSeconds;
   private final Repository repository;
   private boolean initialized = false;
   private final PollerCallback callback;
 
   public PollingProcessor(
-      ClientApi api, Repository repository, int pollIntervalSeconds, PollerCallback callback) {
-    this.api = api;
+      Connector connector,
+      Repository repository,
+      int pollIntervalSeconds,
+      PollerCallback callback) {
+    this.connector = connector;
     this.pollIntervalSeconds = pollIntervalSeconds;
     this.repository = repository;
     this.callback = callback;
@@ -36,40 +32,28 @@ class PollingProcessor extends AbstractScheduledService {
 
   public CompletableFuture<List<FeatureConfig>> retrieveFlags() {
     CompletableFuture<List<FeatureConfig>> completableFuture = new CompletableFuture<>();
-    try {
-      log.debug("Fetching flags started");
-      List<FeatureConfig> featureConfig = this.api.getFeatureConfig(this.environment, this.cluster);
-      log.debug("Fetching flags finished");
-      featureConfig.forEach(fc -> repository.setFlag(fc.getFeature(), fc));
-      completableFuture.complete(featureConfig);
-    } catch (ApiException e) {
-      log.error("Error loading flags, err: {}", e.getMessage());
-      completableFuture.completeExceptionally(e);
-    }
+
+    log.debug("Fetching flags started");
+    List<FeatureConfig> featureConfig = connector.getFlags();
+    log.debug("Fetching flags finished");
+    featureConfig.forEach(fc -> repository.setFlag(fc.getFeature(), fc));
+    completableFuture.complete(featureConfig);
+
     return completableFuture;
   }
 
   public CompletableFuture<List<Segment>> retrieveSegments() {
     CompletableFuture<List<Segment>> completableFuture = new CompletableFuture<>();
-    try {
-      log.debug("Fetching segments started");
-      List<Segment> segments = this.api.getAllSegments(this.environment, this.cluster);
-      log.debug("Fetching segments finished");
-      segments.forEach(s -> repository.setSegment(s.getIdentifier(), s));
-      completableFuture.complete(segments);
-    } catch (ApiException e) {
-      log.error("Error loading segments, err: {}", e.getMessage());
-      completableFuture.completeExceptionally(e);
-    }
+    log.debug("Fetching segments started");
+    List<Segment> segments = connector.getSegments();
+    log.debug("Fetching segments finished");
+    segments.forEach(s -> repository.setSegment(s.getIdentifier(), s));
+    completableFuture.complete(segments);
     return completableFuture;
   }
 
   @Override
   protected void runOneIteration() {
-    if (StringUtils.isBlank(environment) && StringUtils.isBlank(cluster)) {
-      log.warn("Environment or cluster is missing");
-      return;
-    }
     log.debug("running poll iteration");
     try {
       CompletableFuture.allOf(retrieveFlags(), retrieveSegments()).join();
