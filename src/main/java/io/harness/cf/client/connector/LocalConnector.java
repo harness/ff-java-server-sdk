@@ -9,7 +9,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
@@ -124,7 +127,20 @@ public class LocalConnector implements Connector {
   }
 
   @Override
-  public void postMetrics(Metrics metrics) {}
+  public void postMetrics(Metrics metrics) {
+    SimpleDateFormat df = new SimpleDateFormat("yyyy_MM_dd");
+    String filename = String.format("%s.jsonl", df.format(new Date()));
+    String content = gson.toJson(metrics) + '\n';
+    try {
+      Files.write(
+          Paths.get(source, "metrics", filename),
+          content.getBytes(),
+          StandardOpenOption.CREATE,
+          StandardOpenOption.APPEND);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
 
   @Override
   public void stream(Updater updater) {
