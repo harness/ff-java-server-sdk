@@ -8,18 +8,14 @@ import io.harness.cf.model.*;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.Jwts;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.function.Consumer;
+import java.util.*;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Request;
 import okhttp3.Response;
 
 @Slf4j
-public class HarnessConnector implements Connector {
+public class HarnessConnector implements Connector, AutoCloseable {
 
   private final ClientApi api;
   private final MetricsApi metricsApi;
@@ -86,27 +82,22 @@ public class HarnessConnector implements Connector {
   }
 
   @Override
-  public Optional<String> authenticate(Consumer<String> onError) {
+  public String authenticate() throws ConnectorException {
     try {
       final AuthenticationRequest request = AuthenticationRequest.builder().apiKey(apiKey).build();
       final AuthenticationResponse response = api.authenticate(request);
       token = response.getAuthToken();
       processToken(token);
-      return Optional.of(token);
+      return token;
     } catch (ApiException apiException) {
       log.error("Failed to get auth token {}", apiException.getMessage());
-
       if (apiException.getCode() == 401 || apiException.getCode() == 403) {
-
         String errorMsg = String.format("Invalid apiKey %s. Serving default value. ", apiKey);
-
         log.error(errorMsg);
-        onError.accept(errorMsg);
+        throw new ConnectorException(errorMsg);
       }
-
-      onError.accept(apiException.getMessage());
+      throw new ConnectorException(apiException.getMessage());
     }
-    return Optional.empty();
   }
 
   protected void processToken(@NonNull String token) {
@@ -123,51 +114,47 @@ public class HarnessConnector implements Connector {
   }
 
   @Override
-  public List<FeatureConfig> getFlags() {
+  public List<FeatureConfig> getFlags() throws ConnectorException {
     try {
       return api.getFeatureConfig(environment, cluster);
     } catch (ApiException e) {
-      e.printStackTrace();
-      return null;
+      throw new ConnectorException(e.getMessage());
     }
   }
 
   @Override
-  public Optional<FeatureConfig> getFlag(@NonNull String identifier) {
+  public FeatureConfig getFlag(@NonNull String identifier) throws ConnectorException {
     try {
-      return Optional.of(api.getFeatureConfigByIdentifier(identifier, environment, cluster));
+      return api.getFeatureConfigByIdentifier(identifier, environment, cluster);
     } catch (ApiException e) {
-      e.printStackTrace();
-      return Optional.empty();
+      throw new ConnectorException(e.getMessage());
     }
   }
 
   @Override
-  public List<Segment> getSegments() {
+  public List<Segment> getSegments() throws ConnectorException {
     try {
       return api.getAllSegments(environment, cluster);
     } catch (ApiException e) {
-      e.printStackTrace();
-      return null;
+      throw new ConnectorException(e.getMessage());
     }
   }
 
   @Override
-  public Optional<Segment> getSegment(@NonNull String identifier) {
+  public Segment getSegment(@NonNull String identifier) throws ConnectorException {
     try {
-      return Optional.of(api.getSegmentByIdentifier(identifier, environment, cluster));
+      return api.getSegmentByIdentifier(identifier, environment, cluster);
     } catch (ApiException e) {
-      e.printStackTrace();
-      return Optional.empty();
+      throw new ConnectorException(e.getMessage());
     }
   }
 
   @Override
-  public void postMetrics(Metrics metrics) {
+  public void postMetrics(Metrics metrics) throws ConnectorException {
     try {
       metricsApi.postMetrics(environment, cluster, metrics);
     } catch (ApiException e) {
-      e.printStackTrace();
+      throw new ConnectorException(e.getMessage());
     }
   }
 

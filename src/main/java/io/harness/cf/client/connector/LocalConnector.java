@@ -14,14 +14,14 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 
-public class LocalConnector implements Connector {
+@Slf4j
+public class LocalConnector implements Connector, AutoCloseable {
   private final String source;
   private final Gson gson = new Gson();
   private FileWatcher flagsWatcher;
@@ -34,12 +34,13 @@ public class LocalConnector implements Connector {
   }
 
   @Override
-  public Optional<String> authenticate(Consumer<String> onError) {
-    return Optional.of("success");
+  public String authenticate() {
+    // there is no authentication so just return any string
+    return "success";
   }
 
   @Override
-  public List<FeatureConfig> getFlags() {
+  public List<FeatureConfig> getFlags() throws ConnectorException {
     List<FeatureConfig> configs = new ArrayList<>();
     try {
       List<File> files =
@@ -58,32 +59,32 @@ public class LocalConnector implements Connector {
                 configs.add(featureConfig);
               }
             } catch (Exception e) {
-              e.printStackTrace();
+              log.error(
+                  "Exception was raised while loading flag file {} with error {}",
+                  file.getName(),
+                  e.getMessage());
             }
           });
     } catch (IOException e) {
-      // Error while reading the directory
-      e.printStackTrace();
+      throw new ConnectorException(e.getMessage());
     }
     return configs;
   }
 
   @Override
-  public Optional<FeatureConfig> getFlag(@NonNull String identifier) {
+  public FeatureConfig getFlag(@NonNull String identifier) throws ConnectorException {
 
     try {
       Path path = Paths.get(source, "flags", identifier + ".json");
       String content = new String(Files.readAllBytes(path));
-      FeatureConfig config = gson.fromJson(content, FeatureConfig.class);
-      return Optional.ofNullable(config);
+      return gson.fromJson(content, FeatureConfig.class);
     } catch (IOException e) {
-      e.printStackTrace();
-      return Optional.empty();
+      throw new ConnectorException(e.getMessage());
     }
   }
 
   @Override
-  public List<Segment> getSegments() {
+  public List<Segment> getSegments() throws ConnectorException {
     List<Segment> segments = new ArrayList<>();
     try {
       List<File> files =
@@ -102,32 +103,32 @@ public class LocalConnector implements Connector {
                 segments.add(segment);
               }
             } catch (IOException e) {
-              e.printStackTrace();
+              log.error(
+                  "Exception was raised while loading segment file {} with error {}",
+                  file.getName(),
+                  e.getMessage());
             }
           });
     } catch (IOException e) {
-      // Error while reading the directory
-      e.printStackTrace();
+      throw new ConnectorException(e.getMessage());
     }
     return segments;
   }
 
   @Override
-  public Optional<Segment> getSegment(@NonNull String identifier) {
+  public Segment getSegment(@NonNull String identifier) throws ConnectorException {
 
     try {
       Path path = Paths.get(source, "segments", identifier + ".json");
       String content = new String(Files.readAllBytes(path));
-      Segment segment = gson.fromJson(content, Segment.class);
-      return Optional.ofNullable(segment);
+      return gson.fromJson(content, Segment.class);
     } catch (IOException e) {
-      e.printStackTrace();
-      return Optional.empty();
+      throw new ConnectorException(e.getMessage());
     }
   }
 
   @Override
-  public void postMetrics(Metrics metrics) {
+  public void postMetrics(Metrics metrics) throws ConnectorException {
     SimpleDateFormat df = new SimpleDateFormat("yyyy_MM_dd");
     String filename = String.format("%s.jsonl", df.format(new Date()));
     String content = gson.toJson(metrics) + '\n';
@@ -138,12 +139,12 @@ public class LocalConnector implements Connector {
           StandardOpenOption.CREATE,
           StandardOpenOption.APPEND);
     } catch (IOException e) {
-      e.printStackTrace();
+      throw new ConnectorException(e.getMessage());
     }
   }
 
   @Override
-  public void stream(Updater updater) {
+  public void stream(Updater updater) throws ConnectorException {
     try {
       flagsWatcher = new FileWatcher("flag", Paths.get(source, "flags"), updater);
       segmentsWatcher = new FileWatcher("target-segment", Paths.get(source, "segments"), updater);
@@ -152,7 +153,7 @@ public class LocalConnector implements Connector {
       pool.submit(segmentsWatcher);
       updater.onConnected();
     } catch (IOException e) {
-      e.printStackTrace();
+      throw new ConnectorException(e.getMessage());
     }
   }
 

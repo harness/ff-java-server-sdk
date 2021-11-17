@@ -2,7 +2,7 @@ package io.harness.cf.client.api;
 
 import com.google.common.util.concurrent.AbstractScheduledService;
 import io.harness.cf.client.connector.Connector;
-import java.util.Optional;
+import io.harness.cf.client.connector.ConnectorException;
 import java.util.concurrent.TimeUnit;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -26,11 +26,16 @@ class AuthService extends AbstractScheduledService {
 
   @Override
   protected void runOneIteration() {
-    final Optional<String> token = connector.authenticate(callback::onAuthError);
-    if (token.isPresent()) {
+    try {
+      connector.authenticate();
       callback.onAuthSuccess();
+      stopAsync();
       log.info("Stopping Auth service");
-      this.stopAsync();
+    } catch (ConnectorException e) {
+      log.error(
+          "Exception while authenticating, retry in {} seconds, error: {}",
+          pollIntervalInSec,
+          e.getMessage());
     }
   }
 

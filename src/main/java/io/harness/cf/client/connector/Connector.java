@@ -4,25 +4,23 @@ import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Metrics;
 import io.harness.cf.model.Segment;
 import java.util.List;
-import java.util.Optional;
-import java.util.function.Consumer;
 import lombok.NonNull;
 
 public interface Connector {
 
-  Optional<String> authenticate(Consumer<String> onError);
+  String authenticate() throws ConnectorException;
 
-  List<FeatureConfig> getFlags();
+  List<FeatureConfig> getFlags() throws ConnectorException;
 
-  Optional<FeatureConfig> getFlag(@NonNull String identifier);
+  FeatureConfig getFlag(@NonNull String identifier) throws ConnectorException;
 
-  List<Segment> getSegments();
+  List<Segment> getSegments() throws ConnectorException;
 
-  Optional<Segment> getSegment(@NonNull String identifier);
+  Segment getSegment(@NonNull String identifier) throws ConnectorException;
 
-  void postMetrics(Metrics metrics);
+  void postMetrics(Metrics metrics) throws ConnectorException;
 
-  void stream(Updater updater);
+  void stream(Updater updater) throws ConnectorException;
 
   void close();
 }

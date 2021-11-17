@@ -3,6 +3,7 @@ package io.harness.cf.client.api;
 import com.google.common.base.Strings;
 import com.google.gson.JsonObject;
 import io.harness.cf.client.connector.Connector;
+import io.harness.cf.client.connector.ConnectorException;
 import io.harness.cf.client.connector.HarnessConnector;
 import io.harness.cf.client.connector.Updater;
 import io.harness.cf.client.dto.Message;
@@ -10,7 +11,6 @@ import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Segment;
 import io.harness.cf.model.Variation;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
@@ -117,17 +117,16 @@ class InnerClient
 
     if (options.isStreamEnabled()) {
       log.debug("Starting updater (stream)");
-      connector.stream(this);
+      try {
+        connector.stream(this);
+      } catch (ConnectorException e) {
+        log.error("Starting updater failed with exc: {}", e.getMessage());
+      }
     }
 
     if (options.isAnalyticsEnabled()) {
       metricsProcessor.start();
     }
-  }
-
-  @Override
-  public void onAuthError(String error) {
-    failure = true;
   }
 
   @Override
@@ -269,13 +268,39 @@ class InnerClient
 
   public void update(@NonNull Message message) {
     if (message.getDomain().equals("flag")) {
-      Optional<FeatureConfig> flag = connector.getFlag(message.getIdentifier());
-      flag.ifPresent(value -> repository.setFlag(message.getIdentifier(), flag.get()));
+      processFlag(message);
     }
 
     if (message.getDomain().equals("target-segment")) {
-      Optional<Segment> segment = connector.getSegment(message.getIdentifier());
-      segment.ifPresent(value -> repository.setSegment(message.getIdentifier(), value));
+      processSegment(message);
+    }
+  }
+
+  protected void processFlag(@NonNull Message message) {
+    try {
+      FeatureConfig config = connector.getFlag(message.getIdentifier());
+      if (config != null) {
+        repository.setFlag(message.getIdentifier(), config);
+      }
+    } catch (ConnectorException e) {
+      log.error(
+          "Exception was raised when fetching flag '{}' with the message {}",
+          message.getIdentifier(),
+          e.getMessage());
+    }
+  }
+
+  protected void processSegment(@NonNull Message message) {
+    try {
+      Segment segment = connector.getSegment(message.getIdentifier());
+      if (segment != null) {
+        repository.setSegment(message.getIdentifier(), segment);
+      }
+    } catch (ConnectorException e) {
+      log.error(
+          "Exception was raised when fetching segment '{}' with the message {}",
+          message.getIdentifier(),
+          e.getMessage());
     }
   }
 

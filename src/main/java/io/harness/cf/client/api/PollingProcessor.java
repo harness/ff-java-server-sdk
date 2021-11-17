@@ -2,6 +2,7 @@ package io.harness.cf.client.api;
 
 import com.google.common.util.concurrent.AbstractScheduledService;
 import io.harness.cf.client.connector.Connector;
+import io.harness.cf.client.connector.ConnectorException;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Segment;
 import java.util.List;
@@ -32,33 +33,43 @@ class PollingProcessor extends AbstractScheduledService {
 
   public CompletableFuture<List<FeatureConfig>> retrieveFlags() {
     CompletableFuture<List<FeatureConfig>> completableFuture = new CompletableFuture<>();
-
-    log.debug("Fetching flags started");
-    List<FeatureConfig> featureConfig = connector.getFlags();
-    log.debug("Fetching flags finished");
-    featureConfig.forEach(
-        fc -> {
-          if (fc != null) {
-            repository.setFlag(fc.getFeature(), fc);
-          }
-        });
-    completableFuture.complete(featureConfig);
-
+    try {
+      log.debug("Fetching flags started");
+      List<FeatureConfig> featureConfig = connector.getFlags();
+      log.debug("Fetching flags finished");
+      featureConfig.forEach(
+          fc -> {
+            if (fc != null) {
+              repository.setFlag(fc.getFeature(), fc);
+            }
+          });
+      completableFuture.complete(featureConfig);
+    } catch (ConnectorException e) {
+      log.error(
+          "Exception was raised when fetching flags data with the message {}", e.getMessage());
+      completableFuture.completeExceptionally(e);
+    }
     return completableFuture;
   }
 
   public CompletableFuture<List<Segment>> retrieveSegments() {
     CompletableFuture<List<Segment>> completableFuture = new CompletableFuture<>();
-    log.debug("Fetching segments started");
-    List<Segment> segments = connector.getSegments();
-    log.debug("Fetching segments finished");
-    segments.forEach(
-        s -> {
-          if (s != null) {
-            repository.setSegment(s.getIdentifier(), s);
-          }
-        });
-    completableFuture.complete(segments);
+    try {
+      log.debug("Fetching segments started");
+      List<Segment> segments = connector.getSegments();
+      log.debug("Fetching segments finished");
+      segments.forEach(
+          s -> {
+            if (s != null) {
+              repository.setSegment(s.getIdentifier(), s);
+            }
+          });
+      completableFuture.complete(segments);
+    } catch (ConnectorException e) {
+      log.error(
+          "Exception was raised when fetching flags data with the message {}", e.getMessage());
+      completableFuture.completeExceptionally(e);
+    }
     return completableFuture;
   }
 

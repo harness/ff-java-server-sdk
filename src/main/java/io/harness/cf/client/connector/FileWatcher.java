@@ -8,13 +8,13 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class FileWatcher implements Runnable {
+public class FileWatcher implements Runnable, AutoCloseable {
 
   private final WatchService watchService;
   private final Updater updater;
   private final String domain;
 
-  private boolean running = false;
+  private boolean running;
 
   public FileWatcher(@NonNull String domain, @NonNull Path path, @NonNull Updater updater)
       throws IOException {

@@ -3,6 +3,7 @@ package io.harness.cf.client.api;
 import com.google.common.base.Strings;
 import com.google.common.util.concurrent.AbstractScheduledService;
 import io.harness.cf.client.connector.Connector;
+import io.harness.cf.client.connector.ConnectorException;
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.*;
 import io.jsonwebtoken.lang.Collections;
@@ -57,7 +58,6 @@ class MetricsProcessor extends AbstractScheduledService {
     try {
       queue.put(new MetricEvent(featureConfig, target, variation));
     } catch (InterruptedException e) {
-
       log.debug("Long waiting");
     }
   }
@@ -78,11 +78,15 @@ class MetricsProcessor extends AbstractScheduledService {
       Metrics metrics = prepareSummaryMetricsBody(map);
       if (!Collections.isEmpty(metrics.getMetricsData())
           || !Collections.isEmpty(metrics.getTargetData())) {
-        long startTime = System.currentTimeMillis();
-        connector.postMetrics(metrics);
-        long endTime = System.currentTimeMillis();
-        if ((endTime - startTime) > config.getMetricsServiceAcceptableDuration()) {
-          log.warn("Metrics service API duration=[{}]", (endTime - startTime));
+        try {
+          long startTime = System.currentTimeMillis();
+          connector.postMetrics(metrics);
+          long endTime = System.currentTimeMillis();
+          if ((endTime - startTime) > config.getMetricsServiceAcceptableDuration()) {
+            log.warn("Metrics service API duration=[{}]", (endTime - startTime));
+          }
+        } catch (ConnectorException e) {
+          log.error("Exception whil posting metrics to the event server");
         }
       }
       globalTargetSet.addAll(stagingTargetSet);
