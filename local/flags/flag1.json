@@ -1,0 +1,26 @@
+{
+  "defaultServe": { "distribution": null, "variation": "true" },
+  "environment": "local",
+  "feature": "flag1",
+  "kind": "boolean",
+  "offVariation": "false",
+  "prerequisites": [],
+  "project": "FeatureFlagsDemo",
+  "rules": [],
+  "state": "on",
+  "variationToTargetMap": null,
+  "variations": [
+    {
+      "description": null,
+      "identifier": "true",
+      "name": "Enable Page",
+      "value": "true"
+    },
+    {
+      "description": null,
+      "identifier": "false",
+      "name": "Disable Page",
+      "value": "false"
+    }
+  ]
+}

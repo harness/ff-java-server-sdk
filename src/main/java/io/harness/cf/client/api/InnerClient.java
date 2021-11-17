@@ -55,26 +55,26 @@ class InnerClient
   }
 
   public InnerClient(@NonNull final String sdkKey, final Config options) {
-    HarnessConnector harnessConnector = new HarnessConnector(sdkKey, options, this::onUnauthorized);
-    setUp(sdkKey, harnessConnector, options);
-  }
-
-  public InnerClient(@NonNull final String sdkKey, @NonNull Connector connector) {
-    this(sdkKey, connector, Config.builder().build());
-  }
-
-  public InnerClient(
-      @NonNull final String sdkKey, @NonNull Connector connector, final Config options) {
-    setUp(sdkKey, connector, options);
-  }
-
-  protected void setUp(
-      @NonNull final String sdkKey, @NonNull Connector connector, final Config options) {
     if (Strings.isNullOrEmpty(sdkKey)) {
       log.error("SDK key cannot be empty!");
       return;
     }
+    HarnessConnector harnessConnector = new HarnessConnector(sdkKey, this::onUnauthorized);
+    setUp(harnessConnector, options);
+  }
 
+  public InnerClient(@NonNull final Connector connector) {
+    this(connector, Config.builder().build());
+  }
+
+  public InnerClient(@NonNull Connector connector, final Config options) {
+    setUp(connector, options);
+  }
+
+  protected void setUp(@NonNull Connector connector, final Config options) {
+    log.info(
+        "SDK is not initialized yet! If store is used then values will be loaded from store \n"
+            + " otherwise default values will be used in meantime. You can use waitForInitialization method for SDK to be ready.");
     this.connector = connector;
     this.options = options;
 
@@ -116,6 +116,7 @@ class InnerClient
     pollProcessor.start();
 
     if (options.isStreamEnabled()) {
+      log.debug("Starting updater (stream)");
       connector.stream(this);
     }
 
@@ -183,7 +184,7 @@ class InnerClient
         break;
       case STREAM:
         streamReady = true;
-        log.debug("StreamingProcessor ready");
+        log.debug("Updater ready");
         break;
       case METRICS:
         metricReady = true;

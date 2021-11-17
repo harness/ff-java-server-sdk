@@ -1,6 +1,7 @@
 package io.harness.cf.client.api;
 
 import com.google.gson.JsonObject;
+import io.harness.cf.client.connector.Connector;
 import io.harness.cf.client.dto.Message;
 import io.harness.cf.client.dto.Target;
 import java.util.function.Consumer;
@@ -15,6 +16,14 @@ public class Client implements AutoCloseable {
 
   public Client(@NonNull String sdkKey, Config options) {
     innerClient = new InnerClient(sdkKey, options);
+  }
+
+  public Client(@NonNull final Connector connector) {
+    innerClient = new InnerClient(connector);
+  }
+
+  public Client(@NonNull Connector connector, final Config options) {
+    innerClient = new InnerClient(connector, options);
   }
 
   public void waitForInitialization() throws InterruptedException {

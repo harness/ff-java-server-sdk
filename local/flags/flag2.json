@@ -1,0 +1,26 @@
+{
+  "defaultServe": { "distribution": null, "variation": "one" },
+  "environment": "local",
+  "feature": "flag2",
+  "kind": "int",
+  "offVariation": "two",
+  "prerequisites": [],
+  "project": "FeatureFlagsDemo",
+  "rules": [],
+  "state": "on",
+  "variationToTargetMap": null,
+  "variations": [
+    {
+      "description": null,
+      "identifier": "one",
+      "name": "One",
+      "value": "100"
+    },
+    {
+      "description": null,
+      "identifier": "two",
+      "name": "Two",
+      "value": "200"
+    }
+  ]
+}

@@ -9,16 +9,12 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 
+@Builder
 @Getter
-@Builder(toBuilder = true)
 @AllArgsConstructor
 public class Config {
 
   public static final int MIN_FREQUENCY = 60;
-
-  @Builder.Default private String configUrl = "https://config.ff.harness.io/api/1.0"; // Prod.
-
-  @Builder.Default private String eventUrl = "https://events.ff.harness.io/api/1.0"; // Prod.
 
   @Builder.Default private boolean streamEnabled = true;
   @Builder.Default private int pollIntervalInSeconds = 60;
@@ -36,13 +32,6 @@ public class Config {
   @Builder.Default private boolean allAttributesPrivate = false;
   // Custom list to set the attributes which are private; move over to target
   @Builder.Default private Set<String> privateAttributes = Collections.emptySet();
-
-  /** timeout in milliseconds to connect to CF Server */
-  @Builder.Default int connectionTimeout = 10000;
-  /** timeout in milliseconds for reading data from CF Server */
-  @Builder.Default int readTimeout = 30000;
-  /** timeout in milliseconds for writing data to CF Server */
-  @Builder.Default int writeTimeout = 10000;
 
   @Getter @Builder.Default boolean debug = false;
   /** If metrics service POST call is taking > this time, we need to know about it */

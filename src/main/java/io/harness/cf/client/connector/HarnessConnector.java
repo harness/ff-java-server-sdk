@@ -4,7 +4,6 @@ import io.harness.cf.ApiClient;
 import io.harness.cf.ApiException;
 import io.harness.cf.api.ClientApi;
 import io.harness.cf.api.MetricsApi;
-import io.harness.cf.client.api.Config;
 import io.harness.cf.model.*;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwt;
@@ -25,8 +24,8 @@ public class HarnessConnector implements Connector {
   private final ClientApi api;
   private final MetricsApi metricsApi;
   private final String apiKey;
-  private final Config options;
   private final Runnable onUnauthorized;
+  private final HarnessConfig options;
 
   private String token;
   private String environment;
@@ -34,8 +33,12 @@ public class HarnessConnector implements Connector {
 
   private EventSource eventSource;
 
+  public HarnessConnector(@NonNull String apiKey, Runnable onUnauthorized) {
+    this(apiKey, HarnessConfig.builder().build(), onUnauthorized);
+  }
+
   public HarnessConnector(
-      @NonNull String apiKey, @NonNull Config options, Runnable onUnauthorized) {
+      @NonNull String apiKey, @NonNull HarnessConfig options, Runnable onUnauthorized) {
     this.apiKey = apiKey;
     this.options = options;
     this.api = new ClientApi(makeApiClient());

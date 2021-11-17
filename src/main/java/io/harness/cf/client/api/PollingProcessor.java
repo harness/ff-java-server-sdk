@@ -6,7 +6,6 @@ import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Segment;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +36,12 @@ class PollingProcessor extends AbstractScheduledService {
     log.debug("Fetching flags started");
     List<FeatureConfig> featureConfig = connector.getFlags();
     log.debug("Fetching flags finished");
-    featureConfig.forEach(fc -> repository.setFlag(fc.getFeature(), fc));
+    featureConfig.forEach(
+        fc -> {
+          if (fc != null) {
+            repository.setFlag(fc.getFeature(), fc);
+          }
+        });
     completableFuture.complete(featureConfig);
 
     return completableFuture;
@@ -48,7 +52,12 @@ class PollingProcessor extends AbstractScheduledService {
     log.debug("Fetching segments started");
     List<Segment> segments = connector.getSegments();
     log.debug("Fetching segments finished");
-    segments.forEach(s -> repository.setSegment(s.getIdentifier(), s));
+    segments.forEach(
+        s -> {
+          if (s != null) {
+            repository.setSegment(s.getIdentifier(), s);
+          }
+        });
     completableFuture.complete(segments);
     return completableFuture;
   }
@@ -63,7 +72,7 @@ class PollingProcessor extends AbstractScheduledService {
         log.info("PollingProcessor initialized");
         callback.onPollerReady();
       }
-    } catch (CompletionException exc) {
+    } catch (Exception exc) {
       log.error("Error polling the data, err: {}", exc.getMessage());
       callback.onPollerError(exc.getMessage());
     }
