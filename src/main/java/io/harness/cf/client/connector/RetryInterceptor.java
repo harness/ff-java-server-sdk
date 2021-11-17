@@ -1,4 +1,4 @@
-package io.harness.cf.client.api;
+package io.harness.cf.client.connector;
 
 import java.io.IOException;
 import lombok.AllArgsConstructor;

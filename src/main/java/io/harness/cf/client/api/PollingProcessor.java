@@ -1,6 +1,7 @@
 package io.harness.cf.client.api;
 
 import com.google.common.util.concurrent.AbstractScheduledService;
+import io.harness.cf.client.connector.Connector;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Segment;
 import java.util.List;

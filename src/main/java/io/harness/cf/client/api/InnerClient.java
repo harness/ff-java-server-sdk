@@ -2,9 +2,15 @@ package io.harness.cf.client.api;
 
 import com.google.common.base.Strings;
 import com.google.gson.JsonObject;
+import io.harness.cf.client.connector.Connector;
+import io.harness.cf.client.connector.HarnessConnector;
+import io.harness.cf.client.connector.Updater;
+import io.harness.cf.client.dto.Message;
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.FeatureConfig;
+import io.harness.cf.model.Segment;
 import io.harness.cf.model.Variation;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
@@ -17,9 +23,9 @@ class InnerClient
         FlagEvaluateCallback,
         AuthCallback,
         PollerCallback,
-        StreamCallback,
         RepositoryCallback,
-        MetricsCallback {
+        MetricsCallback,
+        Updater {
 
   enum Processor {
     POLL,
@@ -27,12 +33,12 @@ class InnerClient
     METRICS,
   }
 
+  private Connector connector;
   private Evaluation evaluator;
   private Repository repository;
   private Config options;
   private AuthService authService;
   private PollingProcessor pollProcessor;
-  private StreamProcessor streamProcessor;
   private MetricsProcessor metricsProcessor;
   private boolean initialized = false;
   private boolean closing = false;
@@ -69,16 +75,16 @@ class InnerClient
       return;
     }
 
+    this.connector = connector;
     this.options = options;
 
     // initialization
     repository = new StorageRepository(options.getCache(), options.getStore(), this);
     evaluator = new Evaluator(repository);
-    authService = new AuthService(connector, options.getPollIntervalInSeconds(), this);
+    authService = new AuthService(this.connector, options.getPollIntervalInSeconds(), this);
     pollProcessor =
-        new PollingProcessor(connector, repository, options.getPollIntervalInSeconds(), this);
-    streamProcessor = new StreamProcessor(connector, repository, this);
-    metricsProcessor = new MetricsProcessor(connector, this.options, this);
+        new PollingProcessor(this.connector, repository, options.getPollIntervalInSeconds(), this);
+    metricsProcessor = new MetricsProcessor(this.connector, this.options, this);
 
     // start with authentication
     authService.startAsync();
@@ -91,7 +97,7 @@ class InnerClient
     authService.startAsync();
     pollProcessor.stop();
     if (options.isStreamEnabled()) {
-      streamProcessor.stop();
+      connector.close();
     }
 
     if (options.isAnalyticsEnabled()) {
@@ -110,7 +116,7 @@ class InnerClient
     pollProcessor.start();
 
     if (options.isStreamEnabled()) {
-      streamProcessor.start();
+      connector.stream(this);
     }
 
     if (options.isAnalyticsEnabled()) {
@@ -132,26 +138,6 @@ class InnerClient
   public void onPollerError(@NonNull String error) {
     failure = true;
   }
-
-  @Override
-  public void onStreamConnected() {
-    pollProcessor.stop();
-  }
-
-  @Override
-  public void onStreamDisconnected() {
-    if (!closing) {
-      pollProcessor.start();
-    }
-  }
-
-  @Override
-  public void onStreamReady() {
-    initialize(Processor.STREAM);
-  }
-
-  @Override
-  public void onStreamError() {}
 
   @Override
   public void onFlagStored(@NonNull String identifier) {
@@ -260,6 +246,38 @@ class InnerClient
     events.get(event).removeIf(next -> next == consumer);
   }
 
+  @Override
+  public void onConnected() {
+    pollProcessor.stop();
+  }
+
+  @Override
+  public void onDisconnected() {
+    if (!closing) {
+      pollProcessor.start();
+    }
+  }
+
+  @Override
+  public void onReady() {
+    initialize(Processor.STREAM);
+  }
+
+  @Override
+  public void onError() {}
+
+  public void update(@NonNull Message message) {
+    if (message.getDomain().equals("flag")) {
+      Optional<FeatureConfig> flag = connector.getFlag(message.getIdentifier());
+      flag.ifPresent(value -> repository.setFlag(message.getIdentifier(), flag.get()));
+    }
+
+    if (message.getDomain().equals("target-segment")) {
+      Optional<Segment> segment = connector.getSegment(message.getIdentifier());
+      segment.ifPresent(value -> repository.setSegment(message.getIdentifier(), value));
+    }
+  }
+
   public boolean boolVariation(@NonNull String identifier, Target target, boolean defaultValue) {
     return evaluator.boolVariation(identifier, target, defaultValue, this);
   }
@@ -290,7 +308,6 @@ class InnerClient
     off();
     authService.close();
     repository.close();
-    streamProcessor.close();
     pollProcessor.close();
     metricsProcessor.close();
   }

@@ -1,14 +1,17 @@
-package io.harness.cf.client.api;
+package io.harness.cf.client.connector;
 
 import io.harness.cf.ApiClient;
 import io.harness.cf.ApiException;
 import io.harness.cf.api.ClientApi;
 import io.harness.cf.api.MetricsApi;
+import io.harness.cf.client.api.Config;
 import io.harness.cf.model.*;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.Jwts;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 import lombok.NonNull;
@@ -29,6 +32,8 @@ public class HarnessConnector implements Connector {
   private String environment;
   private String cluster;
 
+  private EventSource eventSource;
+
   public HarnessConnector(
       @NonNull String apiKey, @NonNull Config options, Runnable onUnauthorized) {
     this.apiKey = apiKey;
@@ -45,7 +50,7 @@ public class HarnessConnector implements Connector {
     apiClient.setReadTimeout(options.getReadTimeout());
     apiClient.setWriteTimeout(options.getWriteTimeout());
     apiClient.setDebugging(log.isDebugEnabled());
-    apiClient.setUserAgent("java " + io.harness.cf.Version.VERSION);
+    apiClient.setUserAgent("JavaSDK " + io.harness.cf.Version.VERSION);
     // if http client response is 403 we need to reauthenticate
     apiClient
         .getHttpClient()
@@ -56,7 +61,7 @@ public class HarnessConnector implements Connector {
               // if you need to do something before request replace this
               // comment with code
               Response response = chain.proceed(request);
-              if (response.code() == 403) {
+              if (response.code() == 403 && onUnauthorized != null) {
                 onUnauthorized.run();
               }
               return response;
@@ -73,7 +78,6 @@ public class HarnessConnector implements Connector {
     apiClient.setReadTimeout(maxTimeout);
     apiClient.setWriteTimeout(maxTimeout);
     apiClient.setDebugging(log.isDebugEnabled());
-    apiClient.addDefaultHeader("Authorization", "Bearer " + token);
     apiClient.getHttpClient().newBuilder().addInterceptor(new RetryInterceptor(3, 2000));
     return apiClient;
   }
@@ -104,6 +108,7 @@ public class HarnessConnector implements Connector {
 
   protected void processToken(@NonNull String token) {
     api.getApiClient().addDefaultHeader("Authorization", String.format("Bearer %s", token));
+    metricsApi.getApiClient().addDefaultHeader("Authorization", "Bearer " + token);
 
     // get claims
     int i = token.lastIndexOf('.');
@@ -164,13 +169,16 @@ public class HarnessConnector implements Connector {
   }
 
   @Override
-  public Request stream() {
+  public void stream(Updater updater) {
     final String sseUrl = String.join("", options.getConfigUrl(), "/stream?cluster=" + cluster);
+    Map<String, String> map = new HashMap<>();
+    map.put("Authorization", "Bearer " + token);
+    map.put("API-Key", apiKey);
+    eventSource = new EventSource(sseUrl, map, updater);
+  }
 
-    return new Request.Builder()
-        .url(String.format(sseUrl, environment))
-        .header("Authorization", "Bearer " + token)
-        .header("API-Key", apiKey)
-        .build();
+  @Override
+  public void close() {
+    eventSource.close();
   }
 }

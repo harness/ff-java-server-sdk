@@ -1,6 +1,7 @@
 package io.harness.cf.client.api;
 
 import com.google.gson.JsonObject;
+import io.harness.cf.client.dto.Message;
 import io.harness.cf.client.dto.Target;
 import java.util.function.Consumer;
 import lombok.NonNull;
@@ -34,6 +35,10 @@ public class Client implements AutoCloseable {
 
   public void off(@NonNull Event event, @NonNull Consumer<String> consumer) {
     innerClient.off(event, consumer);
+  }
+
+  public void update(@NonNull Message message) {
+    innerClient.update(message);
   }
 
   public boolean boolVariation(@NonNull String identifier, Target target, boolean defaultValue) {

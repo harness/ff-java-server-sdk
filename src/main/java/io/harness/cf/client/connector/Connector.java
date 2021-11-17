@@ -1,4 +1,4 @@
-package io.harness.cf.client.api;
+package io.harness.cf.client.connector;
 
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Metrics;
@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 import lombok.NonNull;
-import okhttp3.Request;
 
 public interface Connector {
 
@@ -23,5 +22,7 @@ public interface Connector {
 
   void postMetrics(Metrics metrics);
 
-  Request stream();
+  void stream(Updater updater);
+
+  void close();
 }
