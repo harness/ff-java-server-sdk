@@ -281,7 +281,11 @@ class InnerClient
     try {
       FeatureConfig config = connector.getFlag(message.getIdentifier());
       if (config != null) {
-        repository.setFlag(message.getIdentifier(), config);
+        if (message.getEvent().equals("create") || message.getEvent().equals("patch")) {
+          repository.setFlag(message.getIdentifier(), config);
+        } else if (message.getEvent().equals("delete")) {
+          repository.deleteFlag(message.getIdentifier());
+        }
       }
     } catch (ConnectorException e) {
       log.error(
@@ -295,7 +299,11 @@ class InnerClient
     try {
       Segment segment = connector.getSegment(message.getIdentifier());
       if (segment != null) {
-        repository.setSegment(message.getIdentifier(), segment);
+        if (message.getEvent().equals("create") || message.getEvent().equals("patch")) {
+          repository.setSegment(message.getIdentifier(), segment);
+        } else if (message.getEvent().equals("delete")) {
+          repository.deleteSegment(message.getIdentifier());
+        }
       }
     } catch (ConnectorException e) {
       log.error(
