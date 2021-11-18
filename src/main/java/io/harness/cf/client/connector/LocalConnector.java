@@ -11,12 +11,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -40,14 +41,13 @@ public class LocalConnector implements Connector, AutoCloseable {
     return "success";
   }
 
-  protected List<File> listFiles(@NonNull String source, @NonNull String domain)
+  protected Stream<File> listFiles(@NonNull String source, @NonNull String domain)
       throws ConnectorException {
     try {
       return Files.list(Paths.get(source, domain))
           .filter(Files::isRegularFile)
           .filter(path -> path.toString().endsWith(".json"))
-          .map(Path::toFile)
-          .collect(Collectors.toList());
+          .map(Path::toFile);
 
     } catch (IOException e) {
       throw new ConnectorException(e.getMessage());
@@ -77,16 +77,10 @@ public class LocalConnector implements Connector, AutoCloseable {
 
   @Override
   public List<FeatureConfig> getFlags() throws ConnectorException {
-    List<FeatureConfig> configs = new ArrayList<>();
-
-    listFiles(source, "flags")
-        .forEach(
-            file -> {
-              FeatureConfig config = load(file, FeatureConfig.class);
-              if (config != null) configs.add(config);
-            });
-
-    return configs;
+    return listFiles(source, "flags")
+        .map(file -> load(file, FeatureConfig.class))
+        .filter(Objects::nonNull)
+        .collect(Collectors.toList());
   }
 
   @Override
@@ -101,22 +95,16 @@ public class LocalConnector implements Connector, AutoCloseable {
 
   @Override
   public List<Segment> getSegments() throws ConnectorException {
-    List<Segment> segments = new ArrayList<>();
-
-    listFiles(source, "segments")
-        .forEach(
-            file -> {
-              Segment segment = load(file, Segment.class);
-              if (segment != null) segments.add(segment);
-            });
-
-    return segments;
+    return listFiles(source, "segments")
+        .map(file -> load(file, Segment.class))
+        .filter(Objects::nonNull)
+        .collect(Collectors.toList());
   }
 
   @Override
   public Segment getSegment(@NonNull String identifier) throws ConnectorException {
-    Path path = Paths.get(source, "segments", identifier + ".json");
-    ImmutablePair<Segment, Exception> pair = loadFile(path.toFile(), Segment.class);
+    final Path path = Paths.get(source, "segments", identifier + ".json");
+    final ImmutablePair<Segment, Exception> pair = loadFile(path.toFile(), Segment.class);
     if (pair.right != null) {
       throw new ConnectorException(pair.right.getMessage());
     }
