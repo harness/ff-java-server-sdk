@@ -191,23 +191,16 @@ class InnerClient
         break;
     }
 
-    if (options.isStreamEnabled() && !streamReady) {
-      return;
-    }
-
-    if (options.isAnalyticsEnabled() && !this.metricReady) {
-      return;
-    }
-
-    if (!this.pollerReady) {
+    if ((options.isStreamEnabled() && !streamReady)
+        || (options.isAnalyticsEnabled() && !this.metricReady)
+        || (!this.pollerReady)) {
       return;
     }
 
     initialized = true;
     notify();
-    log.info("Initialization is complete");
-
     notifyConsumers(Event.READY, null);
+    log.info("Initialization is complete");
   }
 
   protected void notifyConsumers(@NonNull Event event, String value) {
