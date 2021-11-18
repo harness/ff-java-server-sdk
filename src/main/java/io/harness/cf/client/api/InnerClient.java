@@ -266,6 +266,7 @@ class InnerClient
   @Override
   public void onError() {}
 
+  @Override
   public void update(@NonNull Message message) {
     if (message.getDomain().equals("flag")) {
       processFlag(message);

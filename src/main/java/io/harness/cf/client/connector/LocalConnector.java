@@ -19,6 +19,7 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 
 @Slf4j
 public class LocalConnector implements Connector, AutoCloseable {
@@ -39,92 +40,87 @@ public class LocalConnector implements Connector, AutoCloseable {
     return "success";
   }
 
-  @Override
-  public List<FeatureConfig> getFlags() throws ConnectorException {
-    List<FeatureConfig> configs = new ArrayList<>();
+  protected List<File> listFiles(@NonNull String source, @NonNull String domain)
+      throws ConnectorException {
     try {
-      List<File> files =
-          Files.list(Paths.get(source, "flags"))
-              .filter(Files::isRegularFile)
-              .filter(path -> path.toString().endsWith(".json"))
-              .map(Path::toFile)
-              .collect(Collectors.toList());
+      return Files.list(Paths.get(source, domain))
+          .filter(Files::isRegularFile)
+          .filter(path -> path.toString().endsWith(".json"))
+          .map(Path::toFile)
+          .collect(Collectors.toList());
 
-      files.forEach(
-          file -> {
-            try {
-              String content = new String(Files.readAllBytes(file.toPath()));
-              FeatureConfig featureConfig = gson.fromJson(content, FeatureConfig.class);
-              if (featureConfig != null) {
-                configs.add(featureConfig);
-              }
-            } catch (Exception e) {
-              log.error(
-                  "Exception was raised while loading flag file {} with error {}",
-                  file.getName(),
-                  e.getMessage());
-            }
-          });
     } catch (IOException e) {
       throw new ConnectorException(e.getMessage());
     }
+  }
+
+  protected <T> ImmutablePair<T, Exception> loadFile(@NonNull File file, Class<T> classOfT) {
+    try {
+      final String content = new String(Files.readAllBytes(file.toPath()));
+      return ImmutablePair.of(gson.fromJson(content, classOfT), null);
+    } catch (Exception e) {
+      return ImmutablePair.of(null, e);
+    }
+  }
+
+  protected <T> T load(@NonNull File file, Class<T> classOfT) {
+    final ImmutablePair<T, Exception> pair = loadFile(file, classOfT);
+    if (pair.right != null) {
+      log.error(
+          "Exception was raised while loading flag file {} with error {}",
+          file.getName(),
+          pair.right.getMessage());
+      return null;
+    }
+    return pair.left;
+  }
+
+  @Override
+  public List<FeatureConfig> getFlags() throws ConnectorException {
+    List<FeatureConfig> configs = new ArrayList<>();
+
+    listFiles(source, "flags")
+        .forEach(
+            file -> {
+              FeatureConfig config = load(file, FeatureConfig.class);
+              if (config != null) configs.add(config);
+            });
+
     return configs;
   }
 
   @Override
   public FeatureConfig getFlag(@NonNull String identifier) throws ConnectorException {
-
-    try {
-      Path path = Paths.get(source, "flags", identifier + ".json");
-      String content = new String(Files.readAllBytes(path));
-      return gson.fromJson(content, FeatureConfig.class);
-    } catch (IOException e) {
-      throw new ConnectorException(e.getMessage());
+    Path path = Paths.get(source, "flags", identifier + ".json");
+    ImmutablePair<FeatureConfig, Exception> pair = loadFile(path.toFile(), FeatureConfig.class);
+    if (pair.right != null) {
+      throw new ConnectorException(pair.right.getMessage());
     }
+    return pair.left;
   }
 
   @Override
   public List<Segment> getSegments() throws ConnectorException {
     List<Segment> segments = new ArrayList<>();
-    try {
-      List<File> files =
-          Files.list(Paths.get(source, "segments"))
-              .filter(Files::isRegularFile)
-              .filter(path -> path.toString().endsWith(".json"))
-              .map(Path::toFile)
-              .collect(Collectors.toList());
 
-      files.forEach(
-          file -> {
-            try {
-              String content = new String(Files.readAllBytes(file.toPath()));
-              Segment segment = gson.fromJson(content, Segment.class);
-              if (segment != null) {
-                segments.add(segment);
-              }
-            } catch (IOException e) {
-              log.error(
-                  "Exception was raised while loading segment file {} with error {}",
-                  file.getName(),
-                  e.getMessage());
-            }
-          });
-    } catch (IOException e) {
-      throw new ConnectorException(e.getMessage());
-    }
+    listFiles(source, "segments")
+        .forEach(
+            file -> {
+              Segment segment = load(file, Segment.class);
+              if (segment != null) segments.add(segment);
+            });
+
     return segments;
   }
 
   @Override
   public Segment getSegment(@NonNull String identifier) throws ConnectorException {
-
-    try {
-      Path path = Paths.get(source, "segments", identifier + ".json");
-      String content = new String(Files.readAllBytes(path));
-      return gson.fromJson(content, Segment.class);
-    } catch (IOException e) {
-      throw new ConnectorException(e.getMessage());
+    Path path = Paths.get(source, "segments", identifier + ".json");
+    ImmutablePair<Segment, Exception> pair = loadFile(path.toFile(), Segment.class);
+    if (pair.right != null) {
+      throw new ConnectorException(pair.right.getMessage());
     }
+    return pair.left;
   }
 
   @Override

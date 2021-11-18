@@ -43,7 +43,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
   }
 
   protected ApiClient makeApiClient() {
-    ApiClient apiClient = new ApiClient();
+    final ApiClient apiClient = new ApiClient();
     apiClient.setBasePath(options.getConfigUrl());
     apiClient.setConnectTimeout(options.getConnectionTimeout());
     apiClient.setReadTimeout(options.getReadTimeout());
@@ -56,7 +56,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
         .newBuilder()
         .addInterceptor(
             chain -> {
-              Request request = chain.request();
+              final Request request = chain.request();
               // if you need to do something before request replace this
               // comment with code
               Response response = chain.proceed(request);
@@ -71,7 +71,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
 
   protected ApiClient makeMetricsApiClient() {
     final int maxTimeout = 30 * 60 * 1000;
-    ApiClient apiClient = new ApiClient();
+    final ApiClient apiClient = new ApiClient();
     apiClient.setBasePath(options.getEventUrl());
     apiClient.setConnectTimeout(maxTimeout);
     apiClient.setReadTimeout(maxTimeout);
@@ -160,6 +160,10 @@ public class HarnessConnector implements Connector, AutoCloseable {
 
   @Override
   public void stream(Updater updater) {
+    if (eventSource != null) {
+      eventSource.close();
+      eventSource = null;
+    }
     final String sseUrl = String.join("", options.getConfigUrl(), "/stream?cluster=" + cluster);
     Map<String, String> map = new HashMap<>();
     map.put("Authorization", "Bearer " + token);

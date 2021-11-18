@@ -1,10 +1,8 @@
 package io.harness.cf.client.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.Data;
 
-@AllArgsConstructor
-@Getter
+@Data
 public class Message {
   private final String event;
   private final String domain;
