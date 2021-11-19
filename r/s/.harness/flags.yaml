@@ -1,0 +1,159 @@
+featureFlags:
+  flags:
+  - flag:
+      name: SimpleBool
+      identifier: SimpleBool
+      description: ""
+      permanent: false
+      spec:
+        type: boolean
+        default:
+          onVariation: "true"
+          offVariation: "false"
+        variations:
+        - identifier: "true"
+          value: "true"
+        - identifier: "false"
+          value: "false"
+      environments:
+      - identifier: davestest
+        default:
+          onVariation: "false"
+          offVariation: "false"
+        state: "off"
+      - identifier: foo
+        default:
+          onVariation: "true"
+          offVariation: "false"
+        state: "off"
+        targetRules:
+        - targets:
+          - identifier: FooBar
+          variation: "true"
+      - identifier: test
+        default:
+          onVariation: "false"
+          offVariation: "true"
+        state: "on"
+        targetRules:
+        - targetGroups:
+          - identifier: alpha
+          variation: "false"
+      - identifier: test10
+        default:
+          onVariation: "true"
+          offVariation: "false"
+        state: "off"
+      - identifier: test11
+        default:
+          onVariation: "true"
+          offVariation: "false"
+        state: "off"
+      - identifier: test2
+        default:
+          onVariation: "true"
+          offVariation: "false"
+        state: "off"
+      - identifier: test3
+        default:
+          onVariation: "true"
+          offVariation: "false"
+        state: "on"
+      - identifier: test4
+        default:
+          onVariation: "true"
+          offVariation: "false"
+        state: "off"
+      - identifier: test5
+        default:
+          onVariation: "true"
+          offVariation: "false"
+        state: "off"
+      - identifier: test6
+        default:
+          onVariation: "true"
+          offVariation: "false"
+        state: "off"
+  - flag:
+      name: SimpleFlag
+      identifier: SimpleFlag
+      description: ""
+      permanent: false
+      spec:
+        type: boolean
+        default:
+          onVariation: "true"
+          offVariation: "false"
+        variations:
+        - identifier: "true"
+          value: "true"
+        - identifier: "false"
+          value: "false"
+      environments:
+      - identifier: davestest
+        default:
+          onVariation: "true"
+          offVariation: "false"
+        state: "off"
+      - identifier: foo
+        default:
+          onVariation: "true"
+          offVariation: "false"
+        state: "off"
+      - identifier: test
+        default:
+          onVariation: "true"
+          offVariation: "false"
+        state: "off"
+        rules:
+        - priority: 100
+          serve:
+            distribution:
+              bucketBy: name
+              variations:
+              - weight: 90
+                variation: "false"
+              - weight: 10
+                variation: "true"
+          clauses:
+          - attribute: ""
+            op: segmentMatch
+            values:
+            - alpha
+      - identifier: test10
+        default:
+          onVariation: "true"
+          offVariation: "false"
+        state: "off"
+      - identifier: test11
+        default:
+          onVariation: "true"
+          offVariation: "false"
+        state: "off"
+      - identifier: test2
+        default:
+          onVariation: "true"
+          offVariation: "false"
+        state: "off"
+      - identifier: test3
+        default:
+          onVariation: "true"
+          offVariation: "false"
+        state: "off"
+      - identifier: test4
+        default:
+          onVariation: "true"
+          offVariation: "false"
+        state: "off"
+      - identifier: test5
+        default:
+          onVariation: "true"
+          offVariation: "false"
+        state: "off"
+      - identifier: test6
+        default:
+          onVariation: "true"
+          offVariation: "false"
+        state: "off"
+  projectIdentifier: test
+  orgIdentifier: cf
