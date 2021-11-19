@@ -34,7 +34,7 @@ featureFlags:
         default:
           onVariation: "false"
           offVariation: "true"
-        state: "on"
+        state: "off"
         targetRules:
         - targetGroups:
           - identifier: alpha
