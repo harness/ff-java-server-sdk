@@ -13,16 +13,18 @@ import okhttp3.Response;
 @Slf4j
 public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Service {
 
+  private final OkSse okSse;
   private final Updater updater;
-  private final ServerSentEvent sse;
   private final Gson gson = new Gson();
+  private final Request.Builder builder;
+
+  private ServerSentEvent sse;
 
   public EventSource(@NonNull String url, Map<String, String> headers, @NonNull Updater updater) {
     this.updater = updater;
-    OkSse okSse = new OkSse();
-    Request.Builder builder = new Request.Builder().url(url);
+    okSse = new OkSse();
+    builder = new Request.Builder().url(url);
     headers.forEach(builder::header);
-    sse = okSse.newServerSentEvent(builder.build(), this);
     updater.onReady();
   }
 
@@ -65,15 +67,16 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
 
   @Override
   public void start() {
-    // not applicable
+    sse = okSse.newServerSentEvent(builder.build(), this);
   }
 
   @Override
   public void stop() {
-    // not applicable
+    sse.close();
   }
 
   public void close() {
-    sse.close();
+    stop();
+    okSse.getClient().connectionPool().evictAll();
   }
 }
