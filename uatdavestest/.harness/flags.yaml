@@ -1,6 +1,27 @@
 featureFlags:
   flags:
   - flag:
+      name: newtest
+      identifier: newtest
+      description: ""
+      permanent: false
+      spec:
+        type: boolean
+        default:
+          onVariation: "true"
+          offVariation: "false"
+        variations:
+        - identifier: "true"
+          value: "true"
+        - identifier: "false"
+          value: "false"
+      environments:
+      - identifier: ffdev
+        default:
+          onVariation: "true"
+          offVariation: "false"
+        state: "off"
+  - flag:
       name: simplebool
       identifier: simplebool
       description: ""
