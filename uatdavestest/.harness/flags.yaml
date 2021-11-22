@@ -1,0 +1,46 @@
+featureFlags:
+  flags:
+  - flag:
+      name: simplebool
+      identifier: simplebool
+      description: ""
+      permanent: false
+      spec:
+        type: boolean
+        default:
+          onVariation: "true"
+          offVariation: "false"
+        variations:
+        - identifier: "true"
+          value: "true"
+        - identifier: "false"
+          value: "false"
+      environments:
+      - identifier: ffdev
+        default:
+          onVariation: "true"
+          offVariation: "false"
+        state: "off"
+  - flag:
+      name: simplebool2
+      identifier: simplebool2
+      description: ""
+      permanent: false
+      spec:
+        type: boolean
+        default:
+          onVariation: "true"
+          offVariation: "false"
+        variations:
+        - identifier: "true"
+          value: "true"
+        - identifier: "false"
+          value: "false"
+      environments:
+      - identifier: ffdev
+        default:
+          onVariation: "true"
+          offVariation: "false"
+        state: "on"
+  projectIdentifier: davestest
+  orgIdentifier: default
