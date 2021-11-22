@@ -1,7 +1,7 @@
 package io.harness.cf.client.example;
 
 import com.google.gson.JsonObject;
-import io.harness.cf.client.api.Client;
+import io.harness.cf.client.api.CfClient;
 import io.harness.cf.client.api.Config;
 import io.harness.cf.client.api.Event;
 import io.harness.cf.client.api.FileMapStore;
@@ -11,11 +11,10 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 class SimpleExample {
-
-  private static final String SDK_KEY = "9ecc4ced-afc1-45af-9b54-c899cbff4b62";
+  private static final String SDK_KEY = System.getenv("SDK_KEY");
   private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
-  private static Client client;
+  private static CfClient client;
 
   public static void main(String... args) throws InterruptedException {
 
@@ -28,7 +27,7 @@ class SimpleExample {
                 }));
 
     final FileMapStore fileStore = new FileMapStore("Non-Freemium");
-    client = new Client(SDK_KEY, Config.builder().store(fileStore).build());
+    client = new CfClient(SDK_KEY, Config.builder().store(fileStore).build());
     client.on(Event.READY, result -> log.info("READY"));
 
     client.on(Event.CHANGED, result -> log.info("Flag changed {}", result));

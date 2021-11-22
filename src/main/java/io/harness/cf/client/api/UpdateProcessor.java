@@ -39,7 +39,9 @@ public class UpdateProcessor implements AutoCloseable {
   }
 
   public void stop() {
-    stream.stop();
+    if (stream != null) {
+      stream.stop();
+    }
     try {
       boolean result = executor.awaitTermination(3, TimeUnit.SECONDS);
       if (result) {

@@ -31,7 +31,6 @@ class InnerClient
     METRICS,
   }
 
-  private Connector connector;
   private Evaluation evaluator;
   private Repository repository;
   private Config options;
@@ -74,17 +73,16 @@ class InnerClient
     log.info(
         "SDK is not initialized yet! If store is used then values will be loaded from store \n"
             + " otherwise default values will be used in meantime. You can use waitForInitialization method for SDK to be ready.");
-    this.connector = connector;
     this.options = options;
 
     // initialization
     repository = new StorageRepository(options.getCache(), options.getStore(), this);
     evaluator = new Evaluator(repository);
-    authService = new AuthService(this.connector, options.getPollIntervalInSeconds(), this);
+    authService = new AuthService(connector, options.getPollIntervalInSeconds(), this);
     pollProcessor =
-        new PollingProcessor(this.connector, repository, options.getPollIntervalInSeconds(), this);
-    metricsProcessor = new MetricsProcessor(this.connector, this.options, this);
-    updateProcessor = new UpdateProcessor(this.connector, this.repository, this);
+        new PollingProcessor(connector, repository, options.getPollIntervalInSeconds(), this);
+    metricsProcessor = new MetricsProcessor(connector, this.options, this);
+    updateProcessor = new UpdateProcessor(connector, this.repository, this);
 
     // start with authentication
     authService.startAsync();
@@ -144,12 +142,12 @@ class InnerClient
 
   @Override
   public void onSegmentStored(@NonNull String identifier) {
-    notifyConsumers(Event.CHANGED, identifier);
+    repository.findFlagsBySegment(identifier).forEach(s -> notifyConsumers(Event.CHANGED, s));
   }
 
   @Override
   public void onSegmentDeleted(@NonNull String identifier) {
-    notifyConsumers(Event.CHANGED, identifier);
+    repository.findFlagsBySegment(identifier).forEach(s -> notifyConsumers(Event.CHANGED, s));
   }
 
   @Override
@@ -197,6 +195,14 @@ class InnerClient
   @Override
   public void update(@NonNull Message message) {
     updateProcessor.update(message);
+  }
+
+  public void update(@NonNull Message message, boolean manual) {
+    if (options.isStreamEnabled() && manual) {
+      log.warn(
+          "You run the update method manually with the stream enabled. Please turn off the stream in this case.");
+    }
+    update(message);
   }
 
   private synchronized void initialize(Processor processor) {

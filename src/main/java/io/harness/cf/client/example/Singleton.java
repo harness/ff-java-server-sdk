@@ -1,10 +1,7 @@
 package io.harness.cf.client.example;
 
-import io.harness.cf.client.api.CfClient;
-import io.harness.cf.client.api.Config;
-import io.harness.cf.client.api.Event;
-import io.harness.cf.client.api.FileMapStore;
-import io.harness.cf.client.connector.LocalConnector;
+import com.google.gson.JsonObject;
+import io.harness.cf.client.api.*;
 import io.harness.cf.client.dto.Target;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -12,12 +9,14 @@ import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class LocalExample {
+public class Singleton {
+  private static final String SDK_KEY = System.getenv("SDK_KEY");
   private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
   private static CfClient client;
 
-  public static void main(String... args) throws InterruptedException {
+  public static void main(String... args)
+      throws InterruptedException, FeatureFlagInitializeException {
 
     Runtime.getRuntime()
         .addShutdownHook(
@@ -28,10 +27,9 @@ public class LocalExample {
                 }));
 
     final FileMapStore fileStore = new FileMapStore("Non-Freemium");
-    LocalConnector connector = new LocalConnector("./local");
-    client = new CfClient(connector, Config.builder().store(fileStore).build());
-    client.on(Event.READY, result -> log.info("READY"));
-    client.on(Event.CHANGED, result -> log.info("Flag changed {}", result));
+    client = CfClient.getInstance();
+    client.initialize(SDK_KEY, Config.builder().store(fileStore).build());
+    client.waitForInitialization();
 
     final Target target =
         Target.builder()
@@ -45,8 +43,8 @@ public class LocalExample {
         () -> {
           final boolean bResult = client.boolVariation("flag1", target, false);
           log.info("Boolean variation: {}", bResult);
-          final Number numResult = client.numberVariation("flag2", target, 1);
-          log.info("Number variation: {}", numResult);
+          final JsonObject jsonResult = client.jsonVariation("flag4", target, new JsonObject());
+          log.info("JSON variation: {}", jsonResult);
         },
         0,
         10,
