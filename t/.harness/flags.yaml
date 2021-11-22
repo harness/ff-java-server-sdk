@@ -20,6 +20,6 @@ featureFlags:
         default:
           onVariation: "true"
           offVariation: "false"
-        state: "on"
+        state: "off"
   projectIdentifier: demo
   orgIdentifier: default
