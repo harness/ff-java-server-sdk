@@ -9,6 +9,8 @@ public interface Updater {
 
   void onReady();
 
+  void onFailure();
+
   void onError();
 
   void update(Message message);

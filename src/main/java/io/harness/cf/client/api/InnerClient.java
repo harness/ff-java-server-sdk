@@ -3,13 +3,11 @@ package io.harness.cf.client.api;
 import com.google.common.base.Strings;
 import com.google.gson.JsonObject;
 import io.harness.cf.client.connector.Connector;
-import io.harness.cf.client.connector.ConnectorException;
 import io.harness.cf.client.connector.HarnessConnector;
 import io.harness.cf.client.connector.Updater;
 import io.harness.cf.client.dto.Message;
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.FeatureConfig;
-import io.harness.cf.model.Segment;
 import io.harness.cf.model.Variation;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -40,6 +38,7 @@ class InnerClient
   private AuthService authService;
   private PollingProcessor pollProcessor;
   private MetricsProcessor metricsProcessor;
+  private UpdateProcessor updateProcessor;
   private boolean initialized = false;
   private boolean closing = false;
   private boolean failure = false;
@@ -85,6 +84,7 @@ class InnerClient
     pollProcessor =
         new PollingProcessor(this.connector, repository, options.getPollIntervalInSeconds(), this);
     metricsProcessor = new MetricsProcessor(this.connector, this.options, this);
+    updateProcessor = new UpdateProcessor(this.connector, this.repository, this);
 
     // start with authentication
     authService.startAsync();
@@ -97,7 +97,7 @@ class InnerClient
     authService.startAsync();
     pollProcessor.stop();
     if (options.isStreamEnabled()) {
-      connector.close();
+      updateProcessor.stop();
     }
 
     if (options.isAnalyticsEnabled()) {
@@ -116,12 +116,7 @@ class InnerClient
     pollProcessor.start();
 
     if (options.isStreamEnabled()) {
-      log.debug("Starting updater (stream)");
-      try {
-        connector.stream(this);
-      } catch (ConnectorException e) {
-        log.error("Starting updater failed with exc: {}", e.getMessage());
-      }
+      updateProcessor.start();
     }
 
     if (options.isAnalyticsEnabled()) {
@@ -135,9 +130,7 @@ class InnerClient
   }
 
   @Override
-  public void onPollerError(@NonNull String error) {
-    failure = true;
-  }
+  public void onPollerError(@NonNull String error) {}
 
   @Override
   public void onFlagStored(@NonNull String identifier) {
@@ -170,6 +163,40 @@ class InnerClient
   @Override
   public void onMetricsFailure() {
     failure = true;
+    notify();
+  }
+
+  @Override
+  public void onConnected() {
+    pollProcessor.stop();
+  }
+
+  @Override
+  public void onDisconnected() {
+    if (!closing) {
+      pollProcessor.start();
+    }
+  }
+
+  @Override
+  public void onReady() {
+    initialize(Processor.STREAM);
+  }
+
+  @Override
+  public void onError() {
+    // on updater error
+  }
+
+  @Override
+  public void onFailure() {
+    failure = true;
+    notify();
+  }
+
+  @Override
+  public void update(@NonNull Message message) {
+    updateProcessor.update(message);
   }
 
   private synchronized void initialize(Processor processor) {
@@ -204,19 +231,19 @@ class InnerClient
   }
 
   protected void notifyConsumers(@NonNull Event event, String value) {
-    CopyOnWriteArrayList<Consumer<String>> consumers = events.get(event);
-    if (consumers != null && !consumers.isEmpty()) {
-      for (Consumer<String> consumer : consumers) {
-        consumer.accept(value);
-      }
-    }
+    events.get(event).forEach(c -> c.accept(value));
   }
 
   /** if waitForInitialization is used then on(READY) will never be triggered */
-  public synchronized void waitForInitialization() throws InterruptedException {
+  public synchronized void waitForInitialization()
+      throws InterruptedException, FeatureFlagInitializeException {
     if (!initialized) {
       log.info("Wait for initialization to finish");
       wait();
+
+      if (failure) {
+        throw new FeatureFlagInitializeException();
+      }
     }
   }
 
@@ -237,73 +264,6 @@ class InnerClient
 
   public void off(@NonNull Event event, @NonNull Consumer<String> consumer) {
     events.get(event).removeIf(next -> next == consumer);
-  }
-
-  @Override
-  public void onConnected() {
-    pollProcessor.stop();
-  }
-
-  @Override
-  public void onDisconnected() {
-    if (!closing) {
-      pollProcessor.start();
-    }
-  }
-
-  @Override
-  public void onReady() {
-    initialize(Processor.STREAM);
-  }
-
-  @Override
-  public void onError() {}
-
-  @Override
-  public void update(@NonNull Message message) {
-    if (message.getDomain().equals("flag")) {
-      processFlag(message);
-    }
-
-    if (message.getDomain().equals("target-segment")) {
-      processSegment(message);
-    }
-  }
-
-  protected void processFlag(@NonNull Message message) {
-    try {
-      FeatureConfig config = connector.getFlag(message.getIdentifier());
-      if (config != null) {
-        if (message.getEvent().equals("create") || message.getEvent().equals("patch")) {
-          repository.setFlag(message.getIdentifier(), config);
-        } else if (message.getEvent().equals("delete")) {
-          repository.deleteFlag(message.getIdentifier());
-        }
-      }
-    } catch (ConnectorException e) {
-      log.error(
-          "Exception was raised when fetching flag '{}' with the message {}",
-          message.getIdentifier(),
-          e.getMessage());
-    }
-  }
-
-  protected void processSegment(@NonNull Message message) {
-    try {
-      Segment segment = connector.getSegment(message.getIdentifier());
-      if (segment != null) {
-        if (message.getEvent().equals("create") || message.getEvent().equals("patch")) {
-          repository.setSegment(message.getIdentifier(), segment);
-        } else if (message.getEvent().equals("delete")) {
-          repository.deleteSegment(message.getIdentifier());
-        }
-      }
-    } catch (ConnectorException e) {
-      log.error(
-          "Exception was raised when fetching segment '{}' with the message {}",
-          message.getIdentifier(),
-          e.getMessage());
-    }
   }
 
   public boolean boolVariation(@NonNull String identifier, Target target, boolean defaultValue) {
@@ -337,6 +297,7 @@ class InnerClient
     authService.close();
     repository.close();
     pollProcessor.close();
+    updateProcessor.close();
     metricsProcessor.close();
   }
 }

@@ -3,6 +3,7 @@ package io.harness.cf.client.example;
 import com.google.gson.JsonObject;
 import io.harness.cf.client.api.Client;
 import io.harness.cf.client.api.Config;
+import io.harness.cf.client.api.FeatureFlagInitializeException;
 import io.harness.cf.client.api.FileMapStore;
 import io.harness.cf.client.dto.Target;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +31,8 @@ class ExampleTry {
       log.info("Boolean variation: {}", bResult);
       final JsonObject jsonResult = client.jsonVariation("flag4", target, new JsonObject());
       log.info("JSON variation: {}", jsonResult);
+    } catch (FeatureFlagInitializeException e) {
+      log.error("Exception: {}", e.getMessage());
     }
     System.exit(0);
   }

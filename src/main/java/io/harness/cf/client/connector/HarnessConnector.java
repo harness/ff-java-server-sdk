@@ -15,7 +15,7 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 @Slf4j
-public class HarnessConnector implements Connector, AutoCloseable {
+public class HarnessConnector implements Connector, AutoCloseable, Service {
 
   private final ClientApi api;
   private final MetricsApi metricsApi;
@@ -159,7 +159,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
   }
 
   @Override
-  public void stream(Updater updater) {
+  public Service stream(Updater updater) {
     if (eventSource != null) {
       eventSource.close();
       eventSource = null;
@@ -169,6 +169,17 @@ public class HarnessConnector implements Connector, AutoCloseable {
     map.put("Authorization", "Bearer " + token);
     map.put("API-Key", apiKey);
     eventSource = new EventSource(sseUrl, map, updater);
+    return this;
+  }
+
+  @Override
+  public void start() {
+    eventSource.start();
+  }
+
+  @Override
+  public void stop() {
+    eventSource.stop();
   }
 
   @Override

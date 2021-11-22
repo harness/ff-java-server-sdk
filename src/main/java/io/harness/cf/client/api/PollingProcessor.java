@@ -84,7 +84,6 @@ class PollingProcessor extends AbstractScheduledService {
         callback.onPollerReady();
       }
     } catch (Exception exc) {
-      log.error("Error polling the data, err: {}", exc.getMessage());
       callback.onPollerError(exc.getMessage());
     }
   }

@@ -26,7 +26,7 @@ public class Client implements AutoCloseable {
     innerClient = new InnerClient(connector, options);
   }
 
-  public void waitForInitialization() throws InterruptedException {
+  public void waitForInitialization() throws InterruptedException, FeatureFlagInitializeException {
     innerClient.waitForInitialization();
   }
 

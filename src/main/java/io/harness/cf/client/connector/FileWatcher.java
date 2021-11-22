@@ -27,8 +27,6 @@ public class FileWatcher implements Runnable, AutoCloseable {
         StandardWatchEventKinds.ENTRY_CREATE,
         StandardWatchEventKinds.ENTRY_DELETE,
         StandardWatchEventKinds.ENTRY_MODIFY);
-
-    running = true;
   }
 
   @SneakyThrows
@@ -56,6 +54,14 @@ public class FileWatcher implements Runnable, AutoCloseable {
       }
       key.reset();
     }
+  }
+
+  public void start() {
+    running = true;
+  }
+
+  public void stop() {
+    running = false;
   }
 
   public void close() {

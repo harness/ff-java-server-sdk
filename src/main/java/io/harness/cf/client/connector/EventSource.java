@@ -6,19 +6,20 @@ import com.here.oksse.ServerSentEvent;
 import io.harness.cf.client.dto.Message;
 import java.util.Map;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.Request;
 import okhttp3.Response;
 
-public class EventSource implements ServerSentEvent.Listener, AutoCloseable {
+@Slf4j
+public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Service {
 
-  private final OkSse okSse;
   private final Updater updater;
-  private ServerSentEvent sse;
+  private final ServerSentEvent sse;
   private final Gson gson = new Gson();
 
   public EventSource(@NonNull String url, Map<String, String> headers, @NonNull Updater updater) {
     this.updater = updater;
-    this.okSse = new OkSse();
+    OkSse okSse = new OkSse();
     Request.Builder builder = new Request.Builder().url(url);
     headers.forEach(builder::header);
     sse = okSse.newServerSentEvent(builder.build(), this);
@@ -60,6 +61,16 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable {
   @Override
   public Request onPreRetry(ServerSentEvent serverSentEvent, Request request) {
     return null;
+  }
+
+  @Override
+  public void start() {
+    // not applicable
+  }
+
+  @Override
+  public void stop() {
+    // not applicable
   }
 
   public void close() {

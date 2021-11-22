@@ -20,7 +20,7 @@ public interface Connector {
 
   void postMetrics(Metrics metrics) throws ConnectorException;
 
-  void stream(Updater updater) throws ConnectorException;
+  Service stream(Updater updater) throws ConnectorException;
 
   void close();
 }

@@ -7,7 +7,7 @@
   "prerequisites": [],
   "project": "FeatureFlagsDemo",
   "rules": [],
-  "state": "off",
+  "state": "on",
   "variationToTargetMap": null,
   "variations": [
     {

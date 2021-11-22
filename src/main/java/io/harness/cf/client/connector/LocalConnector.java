@@ -23,7 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
 @Slf4j
-public class LocalConnector implements Connector, AutoCloseable {
+public class LocalConnector implements Connector, AutoCloseable, Service {
   private final String source;
   private final Gson gson = new Gson();
   private FileWatcher flagsWatcher;
@@ -128,7 +128,7 @@ public class LocalConnector implements Connector, AutoCloseable {
   }
 
   @Override
-  public void stream(Updater updater) throws ConnectorException {
+  public Service stream(Updater updater) throws ConnectorException {
     try {
       flagsWatcher = new FileWatcher("flag", Paths.get(source, "flags"), updater);
       segmentsWatcher = new FileWatcher("target-segment", Paths.get(source, "segments"), updater);
@@ -136,9 +136,22 @@ public class LocalConnector implements Connector, AutoCloseable {
       pool.submit(flagsWatcher);
       pool.submit(segmentsWatcher);
       updater.onConnected();
+      return this;
     } catch (IOException e) {
       throw new ConnectorException(e.getMessage());
     }
+  }
+
+  @Override
+  public void start() {
+    flagsWatcher.start();
+    segmentsWatcher.start();
+  }
+
+  @Override
+  public void stop() {
+    flagsWatcher.stop();
+    segmentsWatcher.stop();
   }
 
   @Override
