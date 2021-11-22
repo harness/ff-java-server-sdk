@@ -52,6 +52,14 @@ public class CfClient implements AutoCloseable {
     client = new InnerClient(apiKey, config);
   }
 
+  public void initialize(@NonNull final Connector connector) {
+    client = new InnerClient(connector);
+  }
+
+  public void initialize(@NonNull Connector connector, final Config options) {
+    client = new InnerClient(connector, options);
+  }
+
   public void waitForInitialization() throws InterruptedException, FeatureFlagInitializeException {
     client.waitForInitialization();
   }
