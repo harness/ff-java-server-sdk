@@ -2,21 +2,18 @@ package io.harness.cf.client.api;
 
 import com.google.common.base.Strings;
 import com.google.gson.JsonObject;
-import io.harness.cf.ApiClient;
-import io.harness.cf.api.ClientApi;
+import io.harness.cf.client.connector.Connector;
+import io.harness.cf.client.connector.HarnessConnector;
+import io.harness.cf.client.connector.Updater;
+import io.harness.cf.client.dto.Message;
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Variation;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwt;
-import io.jsonwebtoken.Jwts;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.Request;
-import okhttp3.Response;
 
 @Slf4j
 class InnerClient
@@ -24,9 +21,9 @@ class InnerClient
         FlagEvaluateCallback,
         AuthCallback,
         PollerCallback,
-        StreamCallback,
         RepositoryCallback,
-        MetricsCallback {
+        MetricsCallback,
+        Updater {
 
   enum Processor {
     POLL,
@@ -36,12 +33,11 @@ class InnerClient
 
   private Evaluation evaluator;
   private Repository repository;
-  private ClientApi api;
   private Config options;
   private AuthService authService;
   private PollingProcessor pollProcessor;
-  private StreamProcessor streamProcessor;
   private MetricsProcessor metricsProcessor;
+  private UpdateProcessor updateProcessor;
   private boolean initialized = false;
   private boolean closing = false;
   private boolean failure = false;
@@ -61,70 +57,35 @@ class InnerClient
       log.error("SDK key cannot be empty!");
       return;
     }
+    HarnessConnector harnessConnector = new HarnessConnector(sdkKey, this::onUnauthorized);
+    setUp(harnessConnector, options);
+  }
+
+  public InnerClient(@NonNull final Connector connector) {
+    this(connector, Config.builder().build());
+  }
+
+  public InnerClient(@NonNull Connector connector, final Config options) {
+    setUp(connector, options);
+  }
+
+  protected void setUp(@NonNull Connector connector, final Config options) {
+    log.info(
+        "SDK is not initialized yet! If store is used then values will be loaded from store \n"
+            + " otherwise default values will be used in meantime. You can use waitForInitialization method for SDK to be ready.");
     this.options = options;
 
     // initialization
-    api = new ClientApi(makeApiClient());
     repository = new StorageRepository(options.getCache(), options.getStore(), this);
     evaluator = new Evaluator(repository);
-    authService = new AuthService(api, sdkKey, options.getPollIntervalInSeconds(), this);
-    pollProcessor = new PollingProcessor(api, repository, options.getPollIntervalInSeconds(), this);
-    streamProcessor = new StreamProcessor(sdkKey, api, repository, options.getConfigUrl(), this);
-    metricsProcessor = new MetricsProcessor(this.options, this);
+    authService = new AuthService(connector, options.getPollIntervalInSeconds(), this);
+    pollProcessor =
+        new PollingProcessor(connector, repository, options.getPollIntervalInSeconds(), this);
+    metricsProcessor = new MetricsProcessor(connector, this.options, this);
+    updateProcessor = new UpdateProcessor(connector, this.repository, this);
 
     // start with authentication
     authService.startAsync();
-  }
-
-  protected ApiClient makeApiClient() {
-    ApiClient apiClient = new ApiClient();
-    apiClient.setBasePath(options.getConfigUrl());
-    apiClient.setConnectTimeout(options.getConnectionTimeout());
-    apiClient.setReadTimeout(options.getReadTimeout());
-    apiClient.setWriteTimeout(options.getWriteTimeout());
-    apiClient.setDebugging(log.isDebugEnabled());
-    apiClient.setUserAgent("java " + io.harness.cf.Version.VERSION);
-    // if http client response is 403 we need to reauthenticate
-    apiClient
-        .getHttpClient()
-        .newBuilder()
-        .addInterceptor(
-            chain -> {
-              Request request = chain.request();
-              // if you need to do something before request replace this
-              // comment with code
-              Response response = chain.proceed(request);
-              if (response.code() == 403) {
-                onUnauthorized();
-              }
-              return response;
-            })
-        .addInterceptor(new RetryInterceptor(3, 2000));
-    return apiClient;
-  }
-
-  protected void processToken(String token) {
-    api.getApiClient().addDefaultHeader("Authorization", String.format("Bearer %s", token));
-
-    // get claims
-    int i = token.lastIndexOf('.');
-    String unsignedJwt = token.substring(0, i + 1);
-    Jwt<?, Claims> untrusted = Jwts.parserBuilder().build().parseClaimsJwt(unsignedJwt);
-
-    String environment = (String) untrusted.getBody().get("environment");
-    String cluster = (String) untrusted.getBody().get("clusterIdentifier");
-
-    // set values to processors
-    pollProcessor.setEnvironment(environment);
-    pollProcessor.setCluster(cluster);
-
-    streamProcessor.setEnvironment(environment);
-    streamProcessor.setCluster(cluster);
-    streamProcessor.setToken(token);
-
-    metricsProcessor.setEnvironmentID(environment);
-    metricsProcessor.setCluster(cluster);
-    metricsProcessor.setToken(token);
   }
 
   protected void onUnauthorized() {
@@ -134,7 +95,7 @@ class InnerClient
     authService.startAsync();
     pollProcessor.stop();
     if (options.isStreamEnabled()) {
-      streamProcessor.stop();
+      updateProcessor.stop();
     }
 
     if (options.isAnalyticsEnabled()) {
@@ -143,17 +104,17 @@ class InnerClient
   }
 
   @Override
-  public void onAuthSuccess(@NonNull final String token) {
+  public void onAuthSuccess() {
     log.info("SDK successfully logged in");
     if (closing) {
       return;
     }
-    processToken(token);
+
     // run services only after token is processed
     pollProcessor.start();
 
     if (options.isStreamEnabled()) {
-      streamProcessor.start();
+      updateProcessor.start();
     }
 
     if (options.isAnalyticsEnabled()) {
@@ -162,39 +123,12 @@ class InnerClient
   }
 
   @Override
-  public void onAuthError(String error) {
-    failure = true;
-  }
-
-  @Override
   public void onPollerReady() {
     initialize(Processor.POLL);
   }
 
   @Override
-  public void onPollerError(@NonNull String error) {
-    failure = true;
-  }
-
-  @Override
-  public void onStreamConnected() {
-    pollProcessor.stop();
-  }
-
-  @Override
-  public void onStreamDisconnected() {
-    if (!closing) {
-      pollProcessor.start();
-    }
-  }
-
-  @Override
-  public void onStreamReady() {
-    initialize(Processor.STREAM);
-  }
-
-  @Override
-  public void onStreamError() {}
+  public void onPollerError(@NonNull String error) {}
 
   @Override
   public void onFlagStored(@NonNull String identifier) {
@@ -208,12 +142,12 @@ class InnerClient
 
   @Override
   public void onSegmentStored(@NonNull String identifier) {
-    notifyConsumers(Event.CHANGED, identifier);
+    repository.findFlagsBySegment(identifier).forEach(s -> notifyConsumers(Event.CHANGED, s));
   }
 
   @Override
   public void onSegmentDeleted(@NonNull String identifier) {
-    notifyConsumers(Event.CHANGED, identifier);
+    repository.findFlagsBySegment(identifier).forEach(s -> notifyConsumers(Event.CHANGED, s));
   }
 
   @Override
@@ -227,6 +161,48 @@ class InnerClient
   @Override
   public void onMetricsFailure() {
     failure = true;
+    notify();
+  }
+
+  @Override
+  public void onConnected() {
+    pollProcessor.stop();
+  }
+
+  @Override
+  public void onDisconnected() {
+    if (!closing) {
+      pollProcessor.start();
+    }
+  }
+
+  @Override
+  public void onReady() {
+    initialize(Processor.STREAM);
+  }
+
+  @Override
+  public void onError() {
+    // on updater error
+  }
+
+  @Override
+  public void onFailure() {
+    failure = true;
+    notify();
+  }
+
+  @Override
+  public void update(@NonNull Message message) {
+    updateProcessor.update(message);
+  }
+
+  public void update(@NonNull Message message, boolean manual) {
+    if (options.isStreamEnabled() && manual) {
+      log.warn(
+          "You run the update method manually with the stream enabled. Please turn off the stream in this case.");
+    }
+    update(message);
   }
 
   private synchronized void initialize(Processor processor) {
@@ -240,7 +216,7 @@ class InnerClient
         break;
       case STREAM:
         streamReady = true;
-        log.debug("StreamingProcessor ready");
+        log.debug("Updater ready");
         break;
       case METRICS:
         metricReady = true;
@@ -248,39 +224,32 @@ class InnerClient
         break;
     }
 
-    if (options.isStreamEnabled() && !streamReady) {
-      return;
-    }
-
-    if (options.isAnalyticsEnabled() && !this.metricReady) {
-      return;
-    }
-
-    if (!this.pollerReady) {
+    if ((options.isStreamEnabled() && !streamReady)
+        || (options.isAnalyticsEnabled() && !this.metricReady)
+        || (!this.pollerReady)) {
       return;
     }
 
     initialized = true;
     notify();
-    log.info("Initialization is complete");
-
     notifyConsumers(Event.READY, null);
+    log.info("Initialization is complete");
   }
 
   protected void notifyConsumers(@NonNull Event event, String value) {
-    CopyOnWriteArrayList<Consumer<String>> consumers = events.get(event);
-    if (consumers != null && !consumers.isEmpty()) {
-      for (Consumer<String> consumer : consumers) {
-        consumer.accept(value);
-      }
-    }
+    events.get(event).forEach(c -> c.accept(value));
   }
 
   /** if waitForInitialization is used then on(READY) will never be triggered */
-  public synchronized void waitForInitialization() throws InterruptedException {
+  public synchronized void waitForInitialization()
+      throws InterruptedException, FeatureFlagInitializeException {
     if (!initialized) {
       log.info("Wait for initialization to finish");
       wait();
+
+      if (failure) {
+        throw new FeatureFlagInitializeException();
+      }
     }
   }
 
@@ -333,8 +302,8 @@ class InnerClient
     off();
     authService.close();
     repository.close();
-    streamProcessor.close();
     pollProcessor.close();
+    updateProcessor.close();
     metricsProcessor.close();
   }
 }

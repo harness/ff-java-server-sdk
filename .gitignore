@@ -31,3 +31,5 @@ Non-Freemium*
 
 gradlew*
 wrapper.json
+
+local/metrics/*

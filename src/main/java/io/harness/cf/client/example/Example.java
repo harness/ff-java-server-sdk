@@ -1,7 +1,7 @@
 package io.harness.cf.client.example;
 
 import com.google.gson.JsonObject;
-import io.harness.cf.client.api.Client;
+import io.harness.cf.client.api.CfClient;
 import io.harness.cf.client.api.Config;
 import io.harness.cf.client.api.FileMapStore;
 import io.harness.cf.client.dto.Target;
@@ -41,7 +41,7 @@ class Example {
 
       final String apiKey = keys.get(keyName);
       final FileMapStore fileStore = new FileMapStore(keyName);
-      final Client client = new Client(apiKey, Config.builder().store(fileStore).build());
+      final CfClient client = new CfClient(apiKey, Config.builder().store(fileStore).build());
       final String logPrefix = keyName + " :: " + client.hashCode() + " ";
 
       Target target =

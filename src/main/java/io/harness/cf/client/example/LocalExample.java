@@ -1,17 +1,18 @@
 package io.harness.cf.client.example;
 
-import com.google.gson.JsonObject;
 import io.harness.cf.client.api.CfClient;
 import io.harness.cf.client.api.Config;
 import io.harness.cf.client.api.Event;
 import io.harness.cf.client.api.FileMapStore;
+import io.harness.cf.client.connector.LocalConnector;
 import io.harness.cf.client.dto.Target;
-import java.util.concurrent.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-class SimpleExample {
-  private static final String SDK_KEY = System.getenv("SDK_KEY");
+public class LocalExample {
   private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
   private static CfClient client;
@@ -27,9 +28,9 @@ class SimpleExample {
                 }));
 
     final FileMapStore fileStore = new FileMapStore("Non-Freemium");
-    client = new CfClient(SDK_KEY, Config.builder().store(fileStore).build());
+    LocalConnector connector = new LocalConnector("./local");
+    client = new CfClient(connector, Config.builder().store(fileStore).build());
     client.on(Event.READY, result -> log.info("READY"));
-
     client.on(Event.CHANGED, result -> log.info("Flag changed {}", result));
 
     final Target target =
@@ -44,8 +45,8 @@ class SimpleExample {
         () -> {
           final boolean bResult = client.boolVariation("flag1", target, false);
           log.info("Boolean variation: {}", bResult);
-          final JsonObject jsonResult = client.jsonVariation("flag4", target, new JsonObject());
-          log.info("JSON variation: {}", jsonResult);
+          final Number numResult = client.numberVariation("flag2", target, 1);
+          log.info("Number variation: {}", numResult);
         },
         0,
         10,

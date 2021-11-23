@@ -17,7 +17,7 @@ Add the following snippet to your project's `pom.xml` file:
 <dependency>
     <groupId>io.harness</groupId>
     <artifactId>ff-java-server-sdk</artifactId>
-    <version>[1.0.7,)</version>
+    <version>[1.1.0,)</version>
 </dependency>
 ```
 
@@ -44,7 +44,13 @@ constructors (making multiple instances).
  */
 String apiKey = "YOUR_API_KEY";
 
-CfClient cfClient = CfClient.getInstance(apiKey, Config.builder().build());
+CfClient cfClient = CfClient.getInstance();
+cfClient.initialize(apiKey);
+
+/**
+ * if you want wait for initialization use method waitForInitialization()
+ * otherwise it will do in asynchronous manner
+ */
 
 /**
  * Define you target on which you would like to evaluate 
@@ -67,15 +73,31 @@ Target target = Target.builder()
 
 The Public API exposes a few methods that you can utilize:
 
+initialize:
+* `public void initialize(final String apiKey)`
+* `public void initialize(final String apiKey, final Config config)`
+* `public void initialize(@NonNull final Connector connector)`
+* `public void initialize(@NonNull Connector connector, final Config options)`
+* `public void waitForInitialization() throws InterruptedException, FeatureFlagInitializeException`
+
+evaluations:
 * `public boolean boolVariation(String key, Target target, boolean defaultValue)`
-
 * `public String stringVariation(String key, Target target, String defaultValue)`
-
 * `public double numberVariation(String key, Target target, int defaultValue)`
-
 * `public JsonObject jsonVariation(String key, Target target, JsonObject defaultValue)`
 
-* `public void destroy()`
+react on event:
+* `public void on(@NonNull Event event, @NonNull Consumer<String> consumer)`
+* `public void off()`
+* `public void off(@NonNull Event event)`
+* `public void off(@NonNull Event event, @NonNull Consumer<String> consumer)`
+
+manual update (webpush):
+* `public void update(@NonNull Message message)`
+
+close SDK:
+* `public void destroy()` @deprecated
+* `public void close()`
 
 ## Fetch evaluation's value
 
@@ -114,12 +136,60 @@ Config.builder()
 
 Otherwise, the default metrics endpoint URL will be used.
 
+## Listen on events
+
+```
+client.on(Event.READY, result -> log.info("READY"));
+
+client.on(Event.CHANGED, result -> log.info("Flag changed {}", result));
+```
+
+events will work even when streamEnabled is off.
+
+## Connector
+
+This is a new feature that allows you to create or use other connectors.
+Connector is just a proxy to your data. Currently supported connectors:
+* Harness
+* Local (used only in development)
+
+```
+LocalConnector connector = new LocalConnector("./local");
+client = new CfClient(connector);
+```
+
+## Storage
+
+For offline support and asynchronous startup of SDK use storage interface.
+When SDK is used without waitForInitialization method then it starts in async mode.
+So all flags are loaded from last saved configurations and it will use that values.
+If there is no flag on storage then it will be evaluated from defaultValue argument.
+
+```
+final FileMapStore fileStore = new FileMapStore("Non-Freemium");
+LocalConnector connector = new LocalConnector("./local");
+client = new CfClient(connector, Config.builder().store(fileStore).build());
+```
+
+## Update from controller or handler
+
+this is useful only if webpush is used and in that case you need to disable
+stream
+```
+Config.builder()
+      .streamEnabled(false)
+      .build();
+
+cfClient.update(Message message)
+```
+
 ## Shutting down the SDK
 
 To avoid potential memory leak, when SDK is no longer needed
 (when the app is closed, for example), a caller should call this method:
 
 ```
-cfClient.destroy();
+cfClient.close();
 ```
+
 
