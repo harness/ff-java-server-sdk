@@ -37,6 +37,7 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
 
   @Override
   public void onMessage(ServerSentEvent sse, String id, String event, String message) {
+    log.info("SSE message received {}", message);
     Message msg = gson.fromJson(message, Message.class);
     updater.update(msg);
   }
