@@ -15,7 +15,7 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 @Slf4j
-public class HarnessConnector implements Connector, AutoCloseable, Service {
+public class HarnessConnector implements Connector, AutoCloseable {
 
   private final ClientApi api;
   private final MetricsApi metricsApi;
@@ -29,12 +29,14 @@ public class HarnessConnector implements Connector, AutoCloseable, Service {
 
   private EventSource eventSource;
 
-  public HarnessConnector(@NonNull String apiKey, Runnable onUnauthorized) {
+  public HarnessConnector(@NonNull String apiKey, final Runnable onUnauthorized) {
     this(apiKey, HarnessConfig.builder().build(), onUnauthorized);
   }
 
   public HarnessConnector(
-      @NonNull String apiKey, @NonNull HarnessConfig options, Runnable onUnauthorized) {
+      @NonNull final String apiKey,
+      @NonNull final HarnessConfig options,
+      final Runnable onUnauthorized) {
     this.apiKey = apiKey;
     this.options = options;
     this.api = new ClientApi(makeApiClient());
@@ -100,7 +102,7 @@ public class HarnessConnector implements Connector, AutoCloseable, Service {
     }
   }
 
-  protected void processToken(@NonNull String token) {
+  protected void processToken(@NonNull final String token) {
     api.getApiClient().addDefaultHeader("Authorization", String.format("Bearer %s", token));
     metricsApi.getApiClient().addDefaultHeader("Authorization", "Bearer " + token);
 
@@ -123,7 +125,7 @@ public class HarnessConnector implements Connector, AutoCloseable, Service {
   }
 
   @Override
-  public FeatureConfig getFlag(@NonNull String identifier) throws ConnectorException {
+  public FeatureConfig getFlag(@NonNull final String identifier) throws ConnectorException {
     try {
       return api.getFeatureConfigByIdentifier(identifier, environment, cluster);
     } catch (ApiException e) {
@@ -141,7 +143,7 @@ public class HarnessConnector implements Connector, AutoCloseable, Service {
   }
 
   @Override
-  public Segment getSegment(@NonNull String identifier) throws ConnectorException {
+  public Segment getSegment(@NonNull final String identifier) throws ConnectorException {
     try {
       return api.getSegmentByIdentifier(identifier, environment, cluster);
     } catch (ApiException e) {
@@ -150,7 +152,7 @@ public class HarnessConnector implements Connector, AutoCloseable, Service {
   }
 
   @Override
-  public void postMetrics(Metrics metrics) throws ConnectorException {
+  public void postMetrics(@NonNull final Metrics metrics) throws ConnectorException {
     try {
       metricsApi.postMetrics(environment, cluster, metrics);
     } catch (ApiException e) {
@@ -159,31 +161,23 @@ public class HarnessConnector implements Connector, AutoCloseable, Service {
   }
 
   @Override
-  public Service stream(Updater updater) {
+  public Service stream(@NonNull final Updater updater) {
     if (eventSource != null) {
       eventSource.close();
       eventSource = null;
     }
     final String sseUrl = String.join("", options.getConfigUrl(), "/stream?cluster=" + cluster);
-    Map<String, String> map = new HashMap<>();
+    final Map<String, String> map = new HashMap<>();
     map.put("Authorization", "Bearer " + token);
     map.put("API-Key", apiKey);
     eventSource = new EventSource(sseUrl, map, updater);
-    return this;
-  }
-
-  @Override
-  public void start() {
-    eventSource.start();
-  }
-
-  @Override
-  public void stop() {
-    eventSource.stop();
+    return eventSource;
   }
 
   @Override
   public void close() {
+    api.getApiClient().getHttpClient().connectionPool().evictAll();
+    metricsApi.getApiClient().getHttpClient().connectionPool().evictAll();
     eventSource.close();
   }
 }

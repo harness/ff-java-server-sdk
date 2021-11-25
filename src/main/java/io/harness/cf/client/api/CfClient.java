@@ -16,11 +16,11 @@ public class CfClient implements AutoCloseable {
     client = null;
   }
 
-  public CfClient(@NonNull String sdkKey) {
+  public CfClient(@NonNull final String sdkKey) {
     client = new InnerClient(sdkKey);
   }
 
-  public CfClient(@NonNull String sdkKey, Config options) {
+  public CfClient(@NonNull final String sdkKey, final Config options) {
     client = new InnerClient(sdkKey, options);
   }
 
@@ -28,7 +28,7 @@ public class CfClient implements AutoCloseable {
     client = new InnerClient(connector);
   }
 
-  public CfClient(@NonNull Connector connector, final Config options) {
+  public CfClient(@NonNull final Connector connector, final Config options) {
     client = new InnerClient(connector, options);
   }
 
@@ -56,7 +56,7 @@ public class CfClient implements AutoCloseable {
     client = new InnerClient(connector);
   }
 
-  public void initialize(@NonNull Connector connector, final Config options) {
+  public void initialize(@NonNull final Connector connector, final Config options) {
     client = new InnerClient(connector, options);
   }
 
@@ -64,7 +64,7 @@ public class CfClient implements AutoCloseable {
     client.waitForInitialization();
   }
 
-  public void on(@NonNull Event event, @NonNull Consumer<String> consumer) {
+  public void on(@NonNull final Event event, @NonNull final Consumer<String> consumer) {
     client.on(event, consumer);
   }
 
@@ -72,33 +72,37 @@ public class CfClient implements AutoCloseable {
     client.off();
   }
 
-  public void off(@NonNull Event event) {
+  public void off(@NonNull final Event event) {
     client.off(event);
   }
 
-  public void off(@NonNull Event event, @NonNull Consumer<String> consumer) {
+  public void off(@NonNull final Event event, @NonNull final Consumer<String> consumer) {
     client.off(event, consumer);
   }
 
-  public void update(@NonNull Message message) {
+  public void update(@NonNull final Message message) {
     client.update(message, true);
   }
 
-  public boolean boolVariation(@NonNull String identifier, Target target, boolean defaultValue) {
+  public boolean boolVariation(
+      @NonNull final String identifier, final Target target, final boolean defaultValue) {
     return client.boolVariation(identifier, target, defaultValue);
   }
 
   public String stringVariation(
-      @NonNull String identifier, Target target, @NonNull String defaultValue) {
+      @NonNull String identifier, final Target target, @NonNull final String defaultValue) {
     return client.stringVariation(identifier, target, defaultValue);
   }
 
-  public double numberVariation(@NonNull String identifier, Target target, double defaultValue) {
+  public double numberVariation(
+      @NonNull final String identifier, final Target target, final double defaultValue) {
     return client.numberVariation(identifier, target, defaultValue);
   }
 
   public JsonObject jsonVariation(
-      @NonNull String identifier, Target target, @NonNull JsonObject defaultValue) {
+      @NonNull final String identifier,
+      final Target target,
+      @NonNull final JsonObject defaultValue) {
     return client.jsonVariation(identifier, target, defaultValue);
   }
 
