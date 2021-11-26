@@ -21,10 +21,10 @@ class PollingProcessor extends AbstractScheduledService {
   private final PollerCallback callback;
 
   public PollingProcessor(
-      Connector connector,
-      Repository repository,
-      int pollIntervalSeconds,
-      PollerCallback callback) {
+      @NonNull final Connector connector,
+      @NonNull final Repository repository,
+      final int pollIntervalSeconds,
+      @NonNull final PollerCallback callback) {
     this.connector = connector;
     this.pollIntervalSeconds = pollIntervalSeconds;
     this.repository = repository;
@@ -35,7 +35,7 @@ class PollingProcessor extends AbstractScheduledService {
     CompletableFuture<List<FeatureConfig>> completableFuture = new CompletableFuture<>();
     try {
       log.debug("Fetching flags started");
-      List<FeatureConfig> featureConfig = connector.getFlags();
+      final List<FeatureConfig> featureConfig = connector.getFlags();
       log.debug("Fetching flags finished");
       featureConfig.forEach(
           fc -> {
@@ -53,10 +53,10 @@ class PollingProcessor extends AbstractScheduledService {
   }
 
   public CompletableFuture<List<Segment>> retrieveSegments() {
-    CompletableFuture<List<Segment>> completableFuture = new CompletableFuture<>();
+    final CompletableFuture<List<Segment>> completableFuture = new CompletableFuture<>();
     try {
       log.debug("Fetching segments started");
-      List<Segment> segments = connector.getSegments();
+      final List<Segment> segments = connector.getSegments();
       log.debug("Fetching segments finished");
       segments.forEach(
           s -> {
@@ -103,6 +103,9 @@ class PollingProcessor extends AbstractScheduledService {
   public void stop() {
     log.info("Stopping PollingProcessor");
     stopAsync();
+    if (!isRunning()) {
+      log.info("PollingProcessor stopped");
+    }
   }
 
   public void close() {

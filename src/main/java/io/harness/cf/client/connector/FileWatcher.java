@@ -1,5 +1,7 @@
 package io.harness.cf.client.connector;
 
+import com.google.common.base.Strings;
+import com.sun.nio.file.SensitivityWatchEventModifier;
 import io.harness.cf.client.dto.Message;
 import java.io.IOException;
 import java.nio.file.*;
@@ -8,33 +10,53 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class FileWatcher implements Runnable, AutoCloseable {
+public class FileWatcher implements Runnable, AutoCloseable, Service {
 
-  private final WatchService watchService;
   private final Updater updater;
   private final String domain;
+  private final WatchService watcher;
+  private Thread thread;
 
-  private boolean running;
+  private boolean isRunning = false;
 
-  public FileWatcher(@NonNull String domain, @NonNull Path path, @NonNull Updater updater)
+  public FileWatcher(
+      @NonNull final String domain, @NonNull final Path path, @NonNull final Updater updater)
       throws IOException {
     this.domain = domain;
     this.updater = updater;
-    watchService = FileSystems.getDefault().newWatchService();
 
+    watcher = FileSystems.getDefault().newWatchService();
     path.register(
-        watchService,
-        StandardWatchEventKinds.ENTRY_CREATE,
-        StandardWatchEventKinds.ENTRY_DELETE,
-        StandardWatchEventKinds.ENTRY_MODIFY);
+        watcher,
+        new WatchEvent.Kind[] {
+          StandardWatchEventKinds.ENTRY_CREATE,
+          StandardWatchEventKinds.ENTRY_DELETE,
+          StandardWatchEventKinds.ENTRY_MODIFY
+        },
+        SensitivityWatchEventModifier.HIGH);
   }
 
   @SneakyThrows
   @Override
   public void run() {
-    WatchKey key;
-    while (running && (key = watchService.take()) != null) {
+    for (; ; ) {
+      if (thread.isInterrupted()) break;
+
+      WatchKey key;
+      try {
+        log.debug("waiting for create event");
+        key = watcher.take();
+        log.debug("got an event, process it");
+      } catch (InterruptedException ie) {
+        log.debug("interruped, must be time to shut down...");
+        break;
+      }
+
       for (WatchEvent<?> event : key.pollEvents()) {
+        final WatchEvent.Kind<?> kind = event.kind();
+
+        if (kind == StandardWatchEventKinds.OVERFLOW) continue;
+
         log.info("Event kind:" + event.kind().name() + ". File affected: " + event.context() + ".");
         String strEvent = "";
         switch (event.kind().name()) {
@@ -52,29 +74,48 @@ public class FileWatcher implements Runnable, AutoCloseable {
             new Message(
                 strEvent, domain, removeFileExtension(event.context().toString(), false), 0));
       }
-      key.reset();
+      final boolean valid = key.reset();
+      if (!valid) {
+        break;
+      }
     }
   }
 
-  public void start() {
-    running = true;
-  }
-
-  public void stop() {
-    running = false;
-  }
-
+  @Override
   public void close() {
-    running = false;
-    updater.onDisconnected();
+    try {
+      stop();
+    } catch (InterruptedException e) {
+      log.warn("request to stop failed!");
+    }
   }
 
-  public static String removeFileExtension(String filename, boolean removeAllExtensions) {
-    if (filename == null || filename.isEmpty()) {
+  public static String removeFileExtension(
+      @NonNull final String filename, final boolean removeAllExtensions) {
+    if (Strings.isNullOrEmpty(filename)) {
       return filename;
     }
 
     String extPattern = "(?<!^)[.]" + (removeAllExtensions ? ".*" : "[^.]*$");
     return filename.replaceAll(extPattern, "");
+  }
+
+  @Override
+  public void start() {
+    if (isRunning) return;
+    log.trace("starting monitor");
+    thread = new Thread(this);
+    thread.start();
+    log.trace("monitor started");
+  }
+
+  @Override
+  public void stop() throws InterruptedException {
+    if (!isRunning) return;
+    log.trace("stopping monitor");
+    thread.interrupt();
+    thread.join();
+    thread = null;
+    log.trace("monitor stopped");
   }
 }

@@ -14,8 +14,6 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.NonNull;
@@ -23,15 +21,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
 @Slf4j
-public class LocalConnector implements Connector, AutoCloseable, Service {
+public class LocalConnector implements Connector, AutoCloseable {
   private final String source;
   private final Gson gson = new Gson();
-  private FileWatcher flagsWatcher;
-  private FileWatcher segmentsWatcher;
 
-  private final ExecutorService pool = Executors.newFixedThreadPool(2);
-
-  public LocalConnector(@NonNull String source) {
+  public LocalConnector(@NonNull final String source) {
     this.source = source;
   }
 
@@ -41,7 +35,7 @@ public class LocalConnector implements Connector, AutoCloseable, Service {
     return "success";
   }
 
-  protected Stream<File> listFiles(@NonNull String source, @NonNull String domain)
+  protected Stream<File> listFiles(@NonNull final String source, @NonNull final String domain)
       throws ConnectorException {
     try {
       return Files.list(Paths.get(source, domain))
@@ -54,7 +48,8 @@ public class LocalConnector implements Connector, AutoCloseable, Service {
     }
   }
 
-  protected <T> ImmutablePair<T, Exception> loadFile(@NonNull File file, Class<T> classOfT) {
+  protected <T> ImmutablePair<T, Exception> loadFile(
+      @NonNull final File file, @NonNull final Class<T> classOfT) {
     try {
       final String content = new String(Files.readAllBytes(file.toPath()));
       return ImmutablePair.of(gson.fromJson(content, classOfT), null);
@@ -63,7 +58,7 @@ public class LocalConnector implements Connector, AutoCloseable, Service {
     }
   }
 
-  protected <T> T load(@NonNull File file, Class<T> classOfT) {
+  protected <T> T load(@NonNull final File file, @NonNull final Class<T> classOfT) {
     final ImmutablePair<T, Exception> pair = loadFile(file, classOfT);
     if (pair.right != null) {
       log.error(
@@ -84,9 +79,10 @@ public class LocalConnector implements Connector, AutoCloseable, Service {
   }
 
   @Override
-  public FeatureConfig getFlag(@NonNull String identifier) throws ConnectorException {
-    Path path = Paths.get(source, "flags", identifier + ".json");
-    ImmutablePair<FeatureConfig, Exception> pair = loadFile(path.toFile(), FeatureConfig.class);
+  public FeatureConfig getFlag(@NonNull final String identifier) throws ConnectorException {
+    final Path path = Paths.get(source, "flags", identifier + ".json");
+    final ImmutablePair<FeatureConfig, Exception> pair =
+        loadFile(path.toFile(), FeatureConfig.class);
     if (pair.right != null) {
       throw new ConnectorException(pair.right.getMessage());
     }
@@ -102,7 +98,7 @@ public class LocalConnector implements Connector, AutoCloseable, Service {
   }
 
   @Override
-  public Segment getSegment(@NonNull String identifier) throws ConnectorException {
+  public Segment getSegment(@NonNull final String identifier) throws ConnectorException {
     final Path path = Paths.get(source, "segments", identifier + ".json");
     final ImmutablePair<Segment, Exception> pair = loadFile(path.toFile(), Segment.class);
     if (pair.right != null) {
@@ -112,10 +108,10 @@ public class LocalConnector implements Connector, AutoCloseable, Service {
   }
 
   @Override
-  public void postMetrics(Metrics metrics) throws ConnectorException {
-    SimpleDateFormat df = new SimpleDateFormat("yyyy_MM_dd");
-    String filename = String.format("%s.jsonl", df.format(new Date()));
-    String content = gson.toJson(metrics) + '\n';
+  public void postMetrics(@NonNull final Metrics metrics) throws ConnectorException {
+    final SimpleDateFormat df = new SimpleDateFormat("yyyy_MM_dd");
+    final String filename = String.format("%s.jsonl", df.format(new Date()));
+    final String content = gson.toJson(metrics) + '\n';
     try {
       Files.write(
           Paths.get(source, "metrics", filename),
@@ -128,36 +124,50 @@ public class LocalConnector implements Connector, AutoCloseable, Service {
   }
 
   @Override
-  public Service stream(Updater updater) throws ConnectorException {
+  public Service stream(@NonNull final Updater updater) throws ConnectorException {
     try {
-      flagsWatcher = new FileWatcher("flag", Paths.get(source, "flags"), updater);
-      segmentsWatcher = new FileWatcher("target-segment", Paths.get(source, "segments"), updater);
-      updater.onReady();
-      pool.submit(flagsWatcher);
-      pool.submit(segmentsWatcher);
-      updater.onConnected();
-      return this;
+      return new FileWatcherService(updater);
     } catch (IOException e) {
       throw new ConnectorException(e.getMessage());
     }
   }
 
   @Override
-  public void start() {
-    flagsWatcher.start();
-    segmentsWatcher.start();
-  }
-
-  @Override
-  public void stop() {
-    flagsWatcher.stop();
-    segmentsWatcher.stop();
-  }
-
-  @Override
   public void close() {
-    flagsWatcher.close();
-    segmentsWatcher.close();
-    pool.shutdown();
+    // no need to close anything
+  }
+
+  private class FileWatcherService implements Service, AutoCloseable {
+    private final FileWatcher flagWatcher;
+    private final FileWatcher segmentWatcher;
+
+    private final Updater updater;
+
+    private FileWatcherService(@NonNull final Updater updater) throws IOException {
+      this.updater = updater;
+      flagWatcher = new FileWatcher("flag", Paths.get(source, "flags"), updater);
+      segmentWatcher = new FileWatcher("target-segment", Paths.get(source, "segments"), updater);
+
+      this.updater.onReady();
+    }
+
+    @Override
+    public void start() {
+      flagWatcher.start();
+      segmentWatcher.start();
+      updater.onConnected();
+    }
+
+    @Override
+    public void stop() throws InterruptedException {
+      flagWatcher.stop();
+      segmentWatcher.stop();
+      updater.onDisconnected();
+    }
+
+    @Override
+    public void close() throws InterruptedException {
+      stop();
+    }
   }
 }

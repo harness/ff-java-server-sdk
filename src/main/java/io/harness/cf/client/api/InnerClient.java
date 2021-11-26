@@ -31,6 +31,7 @@ class InnerClient
     METRICS,
   }
 
+  private Connector connector;
   private Evaluation evaluator;
   private Repository repository;
   private Config options;
@@ -52,37 +53,37 @@ class InnerClient
     this(sdkKey, Config.builder().build());
   }
 
-  public InnerClient(@NonNull final String sdkKey, final Config options) {
+  public InnerClient(@NonNull final String sdkKey, @NonNull final Config options) {
     if (Strings.isNullOrEmpty(sdkKey)) {
       log.error("SDK key cannot be empty!");
       return;
     }
-    HarnessConnector harnessConnector = new HarnessConnector(sdkKey, this::onUnauthorized);
-    setUp(harnessConnector, options);
+    setUp(new HarnessConnector(sdkKey, this::onUnauthorized), options);
   }
 
   public InnerClient(@NonNull final Connector connector) {
     this(connector, Config.builder().build());
   }
 
-  public InnerClient(@NonNull Connector connector, final Config options) {
+  public InnerClient(@NonNull Connector connector, @NonNull final Config options) {
     setUp(connector, options);
   }
 
-  protected void setUp(@NonNull Connector connector, final Config options) {
+  protected void setUp(@NonNull final Connector connector, @NonNull final Config options) {
     log.info(
         "SDK is not initialized yet! If store is used then values will be loaded from store \n"
             + " otherwise default values will be used in meantime. You can use waitForInitialization method for SDK to be ready.");
     this.options = options;
+    this.connector = connector;
 
     // initialization
     repository = new StorageRepository(options.getCache(), options.getStore(), this);
     evaluator = new Evaluator(repository);
-    authService = new AuthService(connector, options.getPollIntervalInSeconds(), this);
+    authService = new AuthService(this.connector, options.getPollIntervalInSeconds(), this);
     pollProcessor =
-        new PollingProcessor(connector, repository, options.getPollIntervalInSeconds(), this);
-    metricsProcessor = new MetricsProcessor(connector, this.options, this);
-    updateProcessor = new UpdateProcessor(connector, this.repository, this);
+        new PollingProcessor(this.connector, repository, options.getPollIntervalInSeconds(), this);
+    metricsProcessor = new MetricsProcessor(this.connector, this.options, this);
+    updateProcessor = new UpdateProcessor(this.connector, this.repository, this);
 
     // start with authentication
     authService.startAsync();
@@ -128,25 +129,25 @@ class InnerClient
   }
 
   @Override
-  public void onPollerError(@NonNull String error) {}
+  public void onPollerError(@NonNull final String error) {}
 
   @Override
-  public void onFlagStored(@NonNull String identifier) {
+  public void onFlagStored(@NonNull final String identifier) {
     notifyConsumers(Event.CHANGED, identifier);
   }
 
   @Override
-  public void onFlagDeleted(@NonNull String identifier) {
+  public void onFlagDeleted(@NonNull final String identifier) {
     notifyConsumers(Event.CHANGED, identifier);
   }
 
   @Override
-  public void onSegmentStored(@NonNull String identifier) {
+  public void onSegmentStored(@NonNull final String identifier) {
     repository.findFlagsBySegment(identifier).forEach(s -> notifyConsumers(Event.CHANGED, s));
   }
 
   @Override
-  public void onSegmentDeleted(@NonNull String identifier) {
+  public void onSegmentDeleted(@NonNull final String identifier) {
     repository.findFlagsBySegment(identifier).forEach(s -> notifyConsumers(Event.CHANGED, s));
   }
 
@@ -156,7 +157,7 @@ class InnerClient
   }
 
   @Override
-  public void onMetricsError(@NonNull String error) {}
+  public void onMetricsError(@NonNull final String error) {}
 
   @Override
   public void onMetricsFailure() {
@@ -187,17 +188,17 @@ class InnerClient
   }
 
   @Override
-  public void onFailure() {
+  public void onFailure(@NonNull final String error) {
     failure = true;
     notify();
   }
 
   @Override
-  public void update(@NonNull Message message) {
+  public void update(@NonNull final Message message) {
     updateProcessor.update(message);
   }
 
-  public void update(@NonNull Message message, boolean manual) {
+  public void update(@NonNull final Message message, final boolean manual) {
     if (options.isStreamEnabled() && manual) {
       log.warn(
           "You run the update method manually with the stream enabled. Please turn off the stream in this case.");
@@ -205,7 +206,7 @@ class InnerClient
     update(message);
   }
 
-  private synchronized void initialize(Processor processor) {
+  private synchronized void initialize(@NonNull final Processor processor) {
     if (closing) {
       return;
     }
@@ -236,7 +237,7 @@ class InnerClient
     log.info("Initialization is complete");
   }
 
-  protected void notifyConsumers(@NonNull Event event, String value) {
+  protected void notifyConsumers(@NonNull final Event event, final String value) {
     events.get(event).forEach(c -> c.accept(value));
   }
 
@@ -253,7 +254,7 @@ class InnerClient
     }
   }
 
-  public void on(@NonNull Event event, @NonNull Consumer<String> consumer) {
+  public void on(@NonNull final Event event, @NonNull final Consumer<String> consumer) {
     final CopyOnWriteArrayList<Consumer<String>> consumers =
         events.getOrDefault(event, new CopyOnWriteArrayList<>());
     consumers.add(consumer);
@@ -264,24 +265,26 @@ class InnerClient
     events.clear();
   }
 
-  public void off(@NonNull Event event) {
+  public void off(@NonNull final Event event) {
     events.get(event).clear();
   }
 
-  public void off(@NonNull Event event, @NonNull Consumer<String> consumer) {
+  public void off(@NonNull final Event event, @NonNull final Consumer<String> consumer) {
     events.get(event).removeIf(next -> next == consumer);
   }
 
-  public boolean boolVariation(@NonNull String identifier, Target target, boolean defaultValue) {
+  public boolean boolVariation(
+      @NonNull final String identifier, final Target target, final boolean defaultValue) {
     return evaluator.boolVariation(identifier, target, defaultValue, this);
   }
 
   public String stringVariation(
-      @NonNull String identifier, Target target, @NonNull String defaultValue) {
+      @NonNull final String identifier, final Target target, @NonNull final String defaultValue) {
     return evaluator.stringVariation(identifier, target, defaultValue, this);
   }
 
-  public double numberVariation(@NonNull String identifier, Target target, double defaultValue) {
+  public double numberVariation(
+      @NonNull final String identifier, final Target target, final double defaultValue) {
     return evaluator.numberVariation(identifier, target, defaultValue, this);
   }
 
@@ -305,5 +308,6 @@ class InnerClient
     pollProcessor.close();
     updateProcessor.close();
     metricsProcessor.close();
+    connector.close();
   }
 }

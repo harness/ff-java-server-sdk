@@ -34,6 +34,5 @@ class ExampleTry {
     } catch (FeatureFlagInitializeException e) {
       log.error("Exception: {}", e.getMessage());
     }
-    System.exit(0);
   }
 }

@@ -22,7 +22,10 @@ public class UpdateProcessor implements AutoCloseable {
 
   private Service stream;
 
-  public UpdateProcessor(Connector connector, Repository repository, Updater callback) {
+  public UpdateProcessor(
+      @NonNull final Connector connector,
+      @NonNull final Repository repository,
+      @NonNull final Updater callback) {
     this.connector = connector;
     this.repository = repository;
     this.updater = callback;
@@ -33,16 +36,16 @@ public class UpdateProcessor implements AutoCloseable {
     try {
       stream = connector.stream(this.updater);
       stream.start();
-    } catch (ConnectorException e) {
+    } catch (ConnectorException | InterruptedException e) {
       log.error("Starting updater failed with exc: {}", e.getMessage());
     }
   }
 
   public void stop() {
-    if (stream != null) {
-      stream.stop();
-    }
     try {
+      if (stream != null) {
+        stream.stop();
+      }
       boolean result = executor.awaitTermination(3, TimeUnit.SECONDS);
       if (result) {
         log.debug("All tasks done");
@@ -56,7 +59,7 @@ public class UpdateProcessor implements AutoCloseable {
     executor.shutdown();
   }
 
-  public void update(@NonNull Message message) {
+  public void update(@NonNull final Message message) {
     if (message.getDomain().equals("flag")) {
       executor.submit(processFlag(message));
     }
@@ -66,11 +69,11 @@ public class UpdateProcessor implements AutoCloseable {
     }
   }
 
-  protected Runnable processFlag(@NonNull Message message) {
+  protected Runnable processFlag(@NonNull final Message message) {
 
     return () -> {
       try {
-        FeatureConfig config = connector.getFlag(message.getIdentifier());
+        final FeatureConfig config = connector.getFlag(message.getIdentifier());
         if (config != null) {
           if (message.getEvent().equals("create") || message.getEvent().equals("patch")) {
             repository.setFlag(message.getIdentifier(), config);
@@ -87,10 +90,10 @@ public class UpdateProcessor implements AutoCloseable {
     };
   }
 
-  protected Runnable processSegment(@NonNull Message message) {
+  protected Runnable processSegment(@NonNull final Message message) {
     return () -> {
       try {
-        Segment segment = connector.getSegment(message.getIdentifier());
+        final Segment segment = connector.getSegment(message.getIdentifier());
         if (segment != null) {
           if (message.getEvent().equals("create") || message.getEvent().equals("patch")) {
             repository.setSegment(message.getIdentifier(), segment);
@@ -111,5 +114,13 @@ public class UpdateProcessor implements AutoCloseable {
   public void close() {
     log.info("Closing UpdateProcessor");
     stop();
+    if (stream != null) {
+      try {
+        stream.close();
+      } catch (InterruptedException e) {
+        log.error("Exception was raised while trying to close the stream, err: {}", e.getMessage());
+      }
+    }
+    log.info("UpdateProcessor closed");
   }
 }
