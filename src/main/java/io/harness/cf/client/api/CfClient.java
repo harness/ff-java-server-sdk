@@ -20,7 +20,12 @@ public class CfClient implements AutoCloseable {
     client = new InnerClient(sdkKey);
   }
 
+  @Deprecated
   public CfClient(@NonNull final String sdkKey, final Config options) {
+    client = new InnerClient(sdkKey, options);
+  }
+
+  public CfClient(@NonNull final String sdkKey, final BaseConfig options) {
     client = new InnerClient(sdkKey, options);
   }
 
@@ -28,7 +33,7 @@ public class CfClient implements AutoCloseable {
     client = new InnerClient(connector);
   }
 
-  public CfClient(@NonNull final Connector connector, final Config options) {
+  public CfClient(@NonNull final Connector connector, final BaseConfig options) {
     client = new InnerClient(connector, options);
   }
 
@@ -48,7 +53,12 @@ public class CfClient implements AutoCloseable {
     initialize(apiKey, Config.builder().build());
   }
 
+  @Deprecated
   public void initialize(final String apiKey, final Config config) {
+    client = new InnerClient(apiKey, config);
+  }
+
+  public void initialize(final String apiKey, final BaseConfig config) {
     client = new InnerClient(apiKey, config);
   }
 

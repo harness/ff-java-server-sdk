@@ -10,6 +10,8 @@ public interface Connector {
 
   String authenticate() throws ConnectorException;
 
+  void setOnUnauthorized(Runnable runnable);
+
   List<FeatureConfig> getFlags() throws ConnectorException;
 
   FeatureConfig getFlag(@NonNull String identifier) throws ConnectorException;

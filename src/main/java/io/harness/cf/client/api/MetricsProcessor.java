@@ -34,13 +34,13 @@ class MetricsProcessor extends AbstractScheduledService {
 
   private final Connector connector;
   private final MetricsCallback callback;
-  private final Config config;
+  private final BaseConfig config;
   private final BlockingQueue<MetricEvent> queue;
 
   private String jarVersion = "";
 
   public MetricsProcessor(
-      @NonNull Connector connector, @NonNull Config config, @NonNull MetricsCallback callback) {
+      @NonNull Connector connector, @NonNull BaseConfig config, @NonNull MetricsCallback callback) {
     this.connector = connector;
     this.config = config;
     this.callback = callback;
