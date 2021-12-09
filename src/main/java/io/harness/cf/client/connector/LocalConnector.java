@@ -35,6 +35,12 @@ public class LocalConnector implements Connector, AutoCloseable {
     return "success";
   }
 
+  @Override
+  public void setOnUnauthorized(Runnable runnable) {
+    // no need for this in local connector because there is no
+    // authentication check
+  }
+
   protected Stream<File> listFiles(@NonNull final String source, @NonNull final String domain)
       throws ConnectorException {
     try {

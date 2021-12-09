@@ -3,6 +3,7 @@ package io.harness.cf.client.api;
 import com.google.common.base.Strings;
 import com.google.gson.JsonObject;
 import io.harness.cf.client.connector.Connector;
+import io.harness.cf.client.connector.HarnessConfig;
 import io.harness.cf.client.connector.HarnessConnector;
 import io.harness.cf.client.connector.Updater;
 import io.harness.cf.client.dto.Message;
@@ -34,7 +35,7 @@ class InnerClient
   private Connector connector;
   private Evaluation evaluator;
   private Repository repository;
-  private Config options;
+  private BaseConfig options;
   private AuthService authService;
   private PollingProcessor pollProcessor;
   private MetricsProcessor metricsProcessor;
@@ -50,31 +51,52 @@ class InnerClient
       new ConcurrentHashMap<>();
 
   public InnerClient(@NonNull final String sdkKey) {
-    this(sdkKey, Config.builder().build());
+    this(sdkKey, BaseConfig.builder().build());
   }
 
+  @Deprecated
   public InnerClient(@NonNull final String sdkKey, @NonNull final Config options) {
     if (Strings.isNullOrEmpty(sdkKey)) {
       log.error("SDK key cannot be empty!");
       return;
     }
-    setUp(new HarnessConnector(sdkKey, this::onUnauthorized), options);
+    HarnessConfig config =
+        HarnessConfig.builder()
+            .configUrl(options.getConfigUrl())
+            .eventUrl(options.getEventUrl())
+            .connectionTimeout(options.getConnectionTimeout())
+            .readTimeout(options.readTimeout)
+            .writeTimeout(options.getWriteTimeout())
+            .build();
+    HarnessConnector harnessConnector = new HarnessConnector(sdkKey, config);
+    setUp(harnessConnector, options);
+  }
+
+  public InnerClient(@NonNull final String sdkKey, @NonNull final BaseConfig options) {
+    if (Strings.isNullOrEmpty(sdkKey)) {
+      log.error("SDK key cannot be empty!");
+      return;
+    }
+    HarnessConfig config = HarnessConfig.builder().build();
+    HarnessConnector harnessConnector = new HarnessConnector(sdkKey, config);
+    setUp(harnessConnector, options);
   }
 
   public InnerClient(@NonNull final Connector connector) {
-    this(connector, Config.builder().build());
+    this(connector, BaseConfig.builder().build());
   }
 
-  public InnerClient(@NonNull Connector connector, @NonNull final Config options) {
+  public InnerClient(@NonNull Connector connector, @NonNull final BaseConfig options) {
     setUp(connector, options);
   }
 
-  protected void setUp(@NonNull final Connector connector, @NonNull final Config options) {
+  protected void setUp(@NonNull final Connector connector, @NonNull final BaseConfig options) {
     log.info(
         "SDK is not initialized yet! If store is used then values will be loaded from store \n"
             + " otherwise default values will be used in meantime. You can use waitForInitialization method for SDK to be ready.");
     this.options = options;
     this.connector = connector;
+    this.connector.setOnUnauthorized(this::onUnauthorized);
 
     // initialization
     repository = new StorageRepository(options.getCache(), options.getStore(), this);
@@ -238,7 +260,10 @@ class InnerClient
   }
 
   protected void notifyConsumers(@NonNull final Event event, final String value) {
-    events.get(event).forEach(c -> c.accept(value));
+    CopyOnWriteArrayList<Consumer<String>> consumers = events.get(event);
+    if (consumers != null && !consumers.isEmpty()) {
+      consumers.forEach(c -> c.accept(value));
+    }
   }
 
   /** if waitForInitialization is used then on(READY) will never be triggered */

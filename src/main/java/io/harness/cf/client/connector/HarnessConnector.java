@@ -20,7 +20,6 @@ public class HarnessConnector implements Connector, AutoCloseable {
   private final ClientApi api;
   private final MetricsApi metricsApi;
   private final String apiKey;
-  private final Runnable onUnauthorized;
   private final HarnessConfig options;
 
   private String token;
@@ -28,20 +27,17 @@ public class HarnessConnector implements Connector, AutoCloseable {
   private String cluster;
 
   private EventSource eventSource;
+  private Runnable onUnauthorized;
 
-  public HarnessConnector(@NonNull String apiKey, final Runnable onUnauthorized) {
-    this(apiKey, HarnessConfig.builder().build(), onUnauthorized);
+  public HarnessConnector(@NonNull String apiKey) {
+    this(apiKey, HarnessConfig.builder().build());
   }
 
-  public HarnessConnector(
-      @NonNull final String apiKey,
-      @NonNull final HarnessConfig options,
-      final Runnable onUnauthorized) {
+  public HarnessConnector(@NonNull final String apiKey, @NonNull final HarnessConfig options) {
     this.apiKey = apiKey;
     this.options = options;
     this.api = new ClientApi(makeApiClient());
     this.metricsApi = new MetricsApi(makeMetricsApiClient());
-    this.onUnauthorized = onUnauthorized;
   }
 
   protected ApiClient makeApiClient() {
@@ -100,6 +96,11 @@ public class HarnessConnector implements Connector, AutoCloseable {
       }
       throw new ConnectorException(apiException.getMessage());
     }
+  }
+
+  @Override
+  public void setOnUnauthorized(Runnable runnable) {
+    onUnauthorized = runnable;
   }
 
   protected void processToken(@NonNull final String token) {
