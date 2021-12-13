@@ -17,8 +17,6 @@ public class FileWatcher implements Runnable, AutoCloseable, Service {
   private final WatchService watcher;
   private Thread thread;
 
-  private boolean isRunning = false;
-
   public FileWatcher(
       @NonNull final String domain, @NonNull final Path path, @NonNull final Updater updater)
       throws IOException {
@@ -102,17 +100,22 @@ public class FileWatcher implements Runnable, AutoCloseable, Service {
 
   @Override
   public void start() {
-    if (isRunning) return;
-    log.trace("starting monitor");
+    if (thread != null) {
+      // thread is already created
+      return;
+    }
+    log.debug("starting monitor");
     thread = new Thread(this);
     thread.start();
-    log.trace("monitor started");
+    log.debug("monitor started");
   }
 
   @Override
   public void stop() throws InterruptedException {
-    if (!isRunning) return;
-    log.trace("stopping monitor");
+    if (thread == null) {
+      return;
+    }
+    log.debug("stopping monitor");
     thread.interrupt();
     thread.join();
     thread = null;
