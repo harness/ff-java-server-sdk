@@ -179,6 +179,8 @@ public class HarnessConnector implements Connector, AutoCloseable {
   public void close() {
     api.getApiClient().getHttpClient().connectionPool().evictAll();
     metricsApi.getApiClient().getHttpClient().connectionPool().evictAll();
-    eventSource.close();
+    if (eventSource != null) {
+      eventSource.close();
+    }
   }
 }
