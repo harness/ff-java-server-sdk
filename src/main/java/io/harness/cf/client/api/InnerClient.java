@@ -115,6 +115,7 @@ class InnerClient
     if (closing) {
       return;
     }
+    log.info("Unauthorized event received. Stopping all processors and run auth service");
     authService.startAsync();
     pollProcessor.stop();
     if (options.isStreamEnabled()) {
@@ -235,15 +236,15 @@ class InnerClient
     switch (processor) {
       case POLL:
         pollerReady = true;
-        log.debug("PollingProcessor ready");
+        log.info("PollingProcessor ready");
         break;
       case STREAM:
         streamReady = true;
-        log.debug("Updater ready");
+        log.info("Updater ready");
         break;
       case METRICS:
         metricReady = true;
-        log.debug("MetricsProcessor ready");
+        log.info("MetricsProcessor ready");
         break;
     }
 

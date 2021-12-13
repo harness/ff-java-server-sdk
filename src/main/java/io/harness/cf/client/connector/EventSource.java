@@ -37,7 +37,7 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
 
   @Override
   public void onMessage(ServerSentEvent sse, String id, String event, String message) {
-    log.info("SSE message received {}", message);
+    log.debug("EventSource message received {}", message);
     Message msg = gson.fromJson(message, Message.class);
     updater.update(msg);
   }
@@ -47,17 +47,18 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
 
   @Override
   public boolean onRetryTime(ServerSentEvent serverSentEvent, long l) {
-    return false;
+    return true;
   }
 
   @Override
   public boolean onRetryError(
       ServerSentEvent serverSentEvent, Throwable throwable, Response response) {
-    return false;
+    return true;
   }
 
   @Override
   public void onClosed(ServerSentEvent serverSentEvent) {
+    log.info("EventSource disconnected");
     updater.onDisconnected();
   }
 
@@ -68,11 +69,13 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
 
   @Override
   public void start() {
+    log.info("Starting EventSource service.");
     sse = okSse.newServerSentEvent(builder.build(), this);
   }
 
   @Override
   public void stop() {
+    log.info("Stopping EventSource service.");
     sse.close();
   }
 

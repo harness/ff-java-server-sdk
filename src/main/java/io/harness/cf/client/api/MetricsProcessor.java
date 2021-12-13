@@ -85,13 +85,13 @@ class MetricsProcessor extends AbstractScheduledService {
           if ((endTime - startTime) > config.getMetricsServiceAcceptableDuration()) {
             log.warn("Metrics service API duration=[{}]", (endTime - startTime));
           }
+          log.info("Successfully sent analytics data to the server");
         } catch (ConnectorException e) {
-          log.error("Exception whil posting metrics to the event server");
+          log.error("Exception while posting metrics to the event server");
         }
       }
       globalTargetSet.addAll(stagingTargetSet);
       stagingTargetSet.clear();
-      log.info("Successfully sent analytics data to the server");
     }
   }
 
