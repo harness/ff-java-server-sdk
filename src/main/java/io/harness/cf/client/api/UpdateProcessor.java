@@ -32,7 +32,7 @@ public class UpdateProcessor implements AutoCloseable {
   }
 
   public void start() {
-    log.debug("Starting updater (stream)");
+    log.info("Starting updater (EventSource)");
     try {
       stream = connector.stream(this.updater);
       stream.start();
@@ -44,6 +44,7 @@ public class UpdateProcessor implements AutoCloseable {
   public void stop() {
     try {
       if (stream != null) {
+        log.info("Stopping updater (EventSource)");
         stream.stop();
       }
       boolean result = executor.awaitTermination(3, TimeUnit.SECONDS);
