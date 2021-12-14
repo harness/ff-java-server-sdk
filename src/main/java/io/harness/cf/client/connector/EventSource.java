@@ -31,6 +31,7 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
   @Override
   public void onOpen(ServerSentEvent serverSentEvent, Response response) {
     if (updater != null) {
+      log.info("EventSource connected!");
       updater.onConnected();
     }
   }
@@ -47,12 +48,14 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
 
   @Override
   public boolean onRetryTime(ServerSentEvent serverSentEvent, long l) {
+    log.warn("onRetryTime {}", l);
     return true;
   }
 
   @Override
   public boolean onRetryError(
       ServerSentEvent serverSentEvent, Throwable throwable, Response response) {
+    log.warn("onRetryError {}", response.message());
     return true;
   }
 
