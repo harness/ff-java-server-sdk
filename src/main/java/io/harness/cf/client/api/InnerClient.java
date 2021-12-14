@@ -116,7 +116,6 @@ class InnerClient
       return;
     }
     log.info("Unauthorized event received. Stopping all processors and run auth service");
-    authService.startAsync();
     pollProcessor.stop();
     if (options.isStreamEnabled()) {
       updateProcessor.stop();
@@ -125,6 +124,7 @@ class InnerClient
     if (options.isAnalyticsEnabled()) {
       metricsProcessor.stop();
     }
+    authService.startAsync();
   }
 
   @Override
@@ -152,7 +152,14 @@ class InnerClient
   }
 
   @Override
-  public void onPollerError(@NonNull final String error) {}
+  public void onPollerError(@NonNull final String error) {
+    log.error("PollerProcessor error: {}", error);
+  }
+
+  @Override
+  public void onPollerFailed(@NonNull String error) {
+    log.error("PollerProcessor failed while initializing, err: {}", error);
+  }
 
   @Override
   public void onFlagStored(@NonNull final String identifier) {

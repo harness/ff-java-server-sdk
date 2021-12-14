@@ -12,7 +12,6 @@ import java.lang.reflect.Field;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-import javax.annotation.Nonnull;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -29,7 +28,7 @@ class Evaluator implements Evaluation {
     this.query = query;
   }
 
-  protected Optional<Object> getAttrValue(Target target, @Nonnull String attribute) {
+  protected Optional<Object> getAttrValue(Target target, @NonNull String attribute) {
     if (Strings.isNullOrEmpty(attribute)) {
       return Optional.empty();
     }
@@ -47,7 +46,7 @@ class Evaluator implements Evaluation {
   }
 
   protected Optional<Variation> findVariation(
-      @Nonnull List<Variation> variations, String identifier) {
+      @NonNull List<Variation> variations, String identifier) {
     if (identifier == null || CollectionUtils.isEmpty(variations)) return Optional.empty();
     return variations.stream().filter(v -> v.getIdentifier().equals(identifier)).findFirst();
   }
