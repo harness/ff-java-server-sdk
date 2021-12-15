@@ -39,24 +39,24 @@ class Example {
 
     Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdown));
 
-    final String random = getRandom();
-
-    final Target target =
-        Target.builder()
-            .identifier("Target_" + random)
-            .isPrivate(false)
-            .attribute("Test_key_" + getRandom(), getRandom())
-            .attribute("Test_key_" + getRandom(), getRandom())
-            .attribute("Test_key_" + getRandom(), getRandom())
-            .name("Target_" + random)
-            .build();
-
     for (final String keyName : keys.keySet()) {
 
       final String apiKey = keys.get(keyName);
       final FileMapStore fileStore = new FileMapStore(keyName);
       final CfClient client = new CfClient(apiKey, Config.builder().store(fileStore).build());
       final String logPrefix = keyName + " :: " + client.hashCode() + " ";
+
+      final String random = getRandom();
+
+      final Target target =
+          Target.builder()
+              .identifier("Target_" + random)
+              .isPrivate(false)
+              .attribute("Test_key_" + getRandom(), getRandom())
+              .attribute("Test_key_" + getRandom(), getRandom())
+              .attribute("Test_key_" + getRandom(), getRandom())
+              .name("Target_" + random)
+              .build();
 
       scheduler.scheduleAtFixedRate(
           () -> {
