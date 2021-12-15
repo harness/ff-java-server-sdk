@@ -22,7 +22,7 @@ class Example {
   private static final ScheduledExecutorService scheduler;
 
   private static final String FREEMIUM_API_KEY = "45d2a13a-c62f-4116-a1a7-86f25d715a2e";
-  private static final String FREEMIUM_API_KEY_2 = "75821279-f8f7-49b2-9f2b-b10c2ba36a32";
+  private static final String FREEMIUM_API_KEY_2 = "44255167-bc3e-4831-a79a-640234fdced8";
   private static final String NON_FREEMIUM_API_KEY = "9ecc4ced-afc1-45af-9b54-c899cbff4b62";
   private static final String NON_FREEMIUM_API_KEY_2 = "32ba37eb-2c12-4143-9d05-fb4d6782b083";
 
