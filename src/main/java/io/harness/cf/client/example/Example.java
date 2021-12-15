@@ -6,7 +6,7 @@ import io.harness.cf.client.api.Config;
 import io.harness.cf.client.api.FileMapStore;
 import io.harness.cf.client.dto.Target;
 import java.util.HashMap;
-import java.util.UUID;
+import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -38,13 +38,13 @@ class Example {
 
     Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdown));
 
+    final String random = String.valueOf(new Random().nextDouble());
+
     Target target =
         Target.builder()
-            .identifier("Target " + UUID.randomUUID())
+            .identifier("Target_" + random)
             .isPrivate(false)
-            .attribute("Test key " + UUID.randomUUID(), UUID.randomUUID())
-            .attribute("Test key " + UUID.randomUUID(), UUID.randomUUID())
-            .attribute("Test key " + UUID.randomUUID(), UUID.randomUUID())
+            .attribute("Test_key_" + random, random)
             .name("target1")
             .build();
 
