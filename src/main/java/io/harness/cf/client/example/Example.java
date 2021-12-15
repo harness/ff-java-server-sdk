@@ -6,6 +6,7 @@ import io.harness.cf.client.api.Config;
 import io.harness.cf.client.api.FileMapStore;
 import io.harness.cf.client.dto.Target;
 import java.util.HashMap;
+import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -37,20 +38,22 @@ class Example {
 
     Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdown));
 
+    Target target =
+        Target.builder()
+            .identifier("Target " + UUID.randomUUID())
+            .isPrivate(false)
+            .attribute("Test key " + UUID.randomUUID(), UUID.randomUUID())
+            .attribute("Test key " + UUID.randomUUID(), UUID.randomUUID())
+            .attribute("Test key " + UUID.randomUUID(), UUID.randomUUID())
+            .name("target1")
+            .build();
+
     for (final String keyName : keys.keySet()) {
 
       final String apiKey = keys.get(keyName);
       final FileMapStore fileStore = new FileMapStore(keyName);
       final CfClient client = new CfClient(apiKey, Config.builder().store(fileStore).build());
       final String logPrefix = keyName + " :: " + client.hashCode() + " ";
-
-      Target target =
-          Target.builder()
-              .identifier("target1")
-              .isPrivate(false)
-              .attribute("testKey", "TestValue")
-              .name("target1")
-              .build();
 
       scheduler.scheduleAtFixedRate(
           () -> {
