@@ -3,6 +3,7 @@ package io.harness.cf.client.example;
 import com.google.gson.JsonObject;
 import io.harness.cf.client.api.CfClient;
 import io.harness.cf.client.api.Config;
+import io.harness.cf.client.api.FeatureFlagInitializeException;
 import io.harness.cf.client.api.FileMapStore;
 import io.harness.cf.client.dto.Target;
 import java.util.HashMap;
@@ -57,6 +58,18 @@ class Example {
               .attribute("Test_key_" + getRandom(), getRandom())
               .name("Target_" + random)
               .build();
+
+      try {
+
+        client.waitForInitialization();
+
+      } catch (InterruptedException | FeatureFlagInitializeException e) {
+
+        log.error(e.getMessage());
+        System.exit(1);
+      }
+
+      log.info("Client is ready: " + keyName + ", " + client.hashCode());
 
       scheduler.scheduleAtFixedRate(
           () -> {
