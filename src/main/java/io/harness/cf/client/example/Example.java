@@ -11,6 +11,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 
 @Slf4j
 class Example {
@@ -38,14 +39,16 @@ class Example {
 
     Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdown));
 
-    final String random = String.valueOf(new Random().nextDouble());
+    final String random = getRandom();
 
-    Target target =
+    final Target target =
         Target.builder()
             .identifier("Target_" + random)
             .isPrivate(false)
-            .attribute("Test_key_" + random, random)
-            .name("target1")
+            .attribute("Test_key_" + getRandom(), getRandom())
+            .attribute("Test_key_" + getRandom(), getRandom())
+            .attribute("Test_key_" + getRandom(), getRandom())
+            .name("Target_" + random)
             .build();
 
     for (final String keyName : keys.keySet()) {
@@ -75,5 +78,10 @@ class Example {
     }
 
     Thread.yield();
+  }
+
+  @NotNull
+  private static String getRandom() {
+    return String.valueOf(new Random().nextDouble());
   }
 }
