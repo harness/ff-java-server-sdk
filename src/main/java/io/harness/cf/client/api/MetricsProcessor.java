@@ -110,15 +110,17 @@ class MetricsProcessor extends AbstractScheduledService {
       metricsData.setTimestamp(System.currentTimeMillis());
       metricsData.count(entry.getValue());
       metricsData.setMetricsType(MetricsData.MetricsTypeEnum.FFMETRICS);
-      metricsData.addAttributesItem(
-          new KeyValue(FEATURE_NAME_ATTRIBUTE, entry.getKey().getFeatureName()));
-      metricsData.addAttributesItem(
-          new KeyValue(VARIATION_IDENTIFIER_ATTRIBUTE, entry.getKey().getVariationIdentifier()));
-      metricsData.addAttributesItem(new KeyValue(TARGET_ATTRIBUTE, GLOBAL_TARGET));
-      metricsData.addAttributesItem(new KeyValue(SDK_TYPE, SERVER));
-      metricsData.addAttributesItem(new KeyValue(SDK_LANGUAGE, "java"));
-      metricsData.addAttributesItem(new KeyValue(SDK_VERSION, jarVersion));
-      metrics.addMetricsDataItem(metricsData);
+      metricsData.attributes(
+          Arrays.asList(
+              new KeyValue(FEATURE_NAME_ATTRIBUTE, entry.getKey().getFeatureName()),
+              new KeyValue(VARIATION_IDENTIFIER_ATTRIBUTE, entry.getKey().getVariationIdentifier()),
+              new KeyValue(TARGET_ATTRIBUTE, GLOBAL_TARGET),
+              new KeyValue(SDK_TYPE, SERVER),
+              new KeyValue(SDK_LANGUAGE, "java"),
+              new KeyValue(SDK_VERSION, jarVersion)));
+      if (metrics.getMetricsData() != null) {
+        metrics.getMetricsData().add(metricsData);
+      }
     }
     return metrics;
   }
@@ -151,7 +153,7 @@ class MetricsProcessor extends AbstractScheduledService {
               keyValue.setKey(k);
               keyValue.setValue(v.toString());
             }
-            targetData.addAttributesItem(keyValue);
+            targetData.getAttributes().add(keyValue);
           });
 
       targetData.setIdentifier(target.getIdentifier());
@@ -160,7 +162,9 @@ class MetricsProcessor extends AbstractScheduledService {
       } else {
         targetData.setName(target.getName());
       }
-      metrics.addTargetDataItem(targetData);
+      if (metrics.getTargetData() != null) {
+        metrics.getTargetData().add(targetData);
+      }
     }
   }
 
