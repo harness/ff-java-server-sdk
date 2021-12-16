@@ -63,7 +63,7 @@ class MetricsProcessor extends AbstractScheduledService {
 
   /** This method sends the metrics data to the analytics server and resets the cache */
   public void sendDataAndResetCache(final List<MetricEvent> data) {
-    log.debug("Reading from queue and building cache");
+    log.info("Reading from queue and preparing the metrics");
     jarVersion = getVersion();
 
     if (!data.isEmpty()) {
@@ -73,6 +73,7 @@ class MetricsProcessor extends AbstractScheduledService {
         map.put(event, map.getOrDefault(event, 0) + 1);
       }
 
+      log.info("Preparing summary metrics");
       // We will only submit summary metrics to the event server
       Metrics metrics = prepareSummaryMetricsBody(map);
       if (!metrics.getMetricsData().isEmpty() || !metrics.getTargetData().isEmpty()) {
@@ -95,6 +96,9 @@ class MetricsProcessor extends AbstractScheduledService {
 
   protected Metrics prepareSummaryMetricsBody(Map<MetricEvent, Integer> data) {
     Metrics metrics = new Metrics();
+    metrics.metricsData(new ArrayList<>());
+    metrics.targetData(new ArrayList<>());
+
     Map<SummaryMetrics, Integer> summaryMetricsData = new HashMap<>();
     addTargetData(
         metrics, Target.builder().name(GLOBAL_TARGET_NAME).identifier(GLOBAL_TARGET).build());
