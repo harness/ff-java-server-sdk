@@ -1,11 +1,13 @@
 package io.harness.cf.client.api.mock;
 
+import static io.harness.cf.client.api.DefaultApiFactory.addAuthHeader;
 
 import io.harness.cf.ApiException;
 import io.harness.cf.client.Evaluation;
 import io.harness.cf.client.api.CfClient;
 import io.harness.cf.client.api.CfClientException;
 import io.harness.cf.client.api.Config;
+import io.harness.cf.client.api.Evaluator;
 import io.harness.cf.client.api.analytics.AnalyticsManager;
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.FeatureConfig;
@@ -72,19 +74,20 @@ public class MockedCfClient extends CfClient {
     doInit();
   }
 
-  //  @Override
-  //  protected void doInit() throws ApiException, CfClientException {
-  //
-  //    addAuthHeader(defaultApi, jwtToken);
-  //    environmentID = getEnvironmentID(jwtToken);
-  //    cluster = getCluster(jwtToken);
-  //    evaluator = new Evaluator(segmentCache);
-  //
-  //    initCache(environmentID);
-  //
-  //    analyticsManager = getAnalyticsManager();
-  //    isInitialized = true;
-  //  }
+  @Override
+  protected void doInit() throws ApiException, CfClientException {
+
+    addAuthHeader(defaultApi, jwtToken);
+    environmentID = getEnvironmentID(jwtToken);
+    cluster = getCluster(jwtToken);
+    evaluator = new Evaluator(segmentCache);
+
+    initFlagCache(environmentID);
+    initSegmentCache(environmentID);
+
+    analyticsManager = getAnalyticsManager();
+    isInitialized = true;
+  }
 
   @Override
   protected String getCluster(String jwtToken) {
@@ -98,13 +101,16 @@ public class MockedCfClient extends CfClient {
     return String.valueOf(System.currentTimeMillis());
   }
 
-  //  @Override
-  //  protected void initCache(String environmentID) {
-  //
-  //    final FeatureConfig config = new FeatureConfig();
-  //    config.setKind(FeatureConfig.KindEnum.BOOLEAN);
-  //    featureCache.put(MockedFeatureRepository.MOCK_BOOL, config);
-  //  }
+  @Override
+  protected void initFlagCache(String environmentID) {
+
+    final FeatureConfig config = new FeatureConfig();
+    config.setKind(FeatureConfig.KindEnum.BOOLEAN);
+    featureCache.put(MockedFeatureRepository.MOCK_BOOL, config);
+  }
+
+  @Override
+  protected void initSegmentCache(String environmentID) {}
 
   @NotNull
   @Override
