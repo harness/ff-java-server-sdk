@@ -10,6 +10,10 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.here.oksse.OkSse;
 import com.here.oksse.ServerSentEvent;
+import io.github.resilience4j.core.IntervalFunction;
+import io.github.resilience4j.retry.Retry;
+import io.github.resilience4j.retry.RetryConfig;
+import io.github.resilience4j.retry.RetryRegistry;
 import io.harness.cf.ApiException;
 import io.harness.cf.api.DefaultApi;
 import io.harness.cf.client.Evaluation;
@@ -25,6 +29,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Header;
 import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.Jwts;
+import io.vavr.CheckedRunnable;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.Getter;
@@ -49,7 +54,7 @@ public class CfClient implements Destroyable {
   protected final Cache<String, Segment> segmentCache;
   protected final Cache<String, FeatureConfig> featureCache;
 
-  @Setter protected String jwtToken;
+  @Setter protected volatile String jwtToken;
 
   @Getter protected boolean isInitialized = false;
 
@@ -93,17 +98,22 @@ public class CfClient implements Destroyable {
     // Try to authenticate:
     final AuthService authService = getAuthService(apiKey, config);
     authService.startAsync();
+    waitForAuthentication();
+  }
+
+  protected synchronized void waitForAuthentication() {
+    try {
+      while (jwtToken == null) {}
+      doInit();
+    } catch (ApiException | CfClientException e) {
+      log.error("Failed to authenticate");
+    }
   }
 
   @NotNull
   protected AuthService getAuthService(String apiKey, Config config) {
 
     return new AuthService(defaultApi, apiKey, this, config.getPollIntervalInSeconds());
-  }
-
-  void init() throws ApiException, CfClientException {
-
-    doInit();
   }
 
   protected void doInit() throws ApiException, CfClientException {
@@ -117,7 +127,32 @@ public class CfClient implements Destroyable {
     cluster = getCluster(jwtToken);
     evaluator = getEvaluator();
 
-    initCache(environmentID);
+    final IntervalFunction function = IntervalFunction.ofExponentialBackoff(5000, 2);
+
+    final RetryConfig retryConfig =
+        RetryConfig.custom()
+            .maxAttempts(5)
+            .intervalFunction(function)
+            .retryExceptions(ApiException.class)
+            .build();
+
+    final RetryRegistry registry = RetryRegistry.of(retryConfig);
+    final Retry retry = registry.retry("cfClientInit", retryConfig);
+
+    final CheckedRunnable retryFlagSupplier =
+        Retry.decorateCheckedRunnable(retry, () -> initFlagCache(environmentID));
+
+    final CheckedRunnable retrySegmentSupplier =
+        Retry.decorateCheckedRunnable(retry, () -> initSegmentCache(environmentID));
+
+    try {
+      retryFlagSupplier.run();
+      retrySegmentSupplier.run();
+    } catch (Throwable throwable) {
+      log.error(
+          "exception was raised on fetch initial flags or segments, exc: {}",
+          throwable.getMessage());
+    }
 
     if (!config.isStreamEnabled()) {
       startPollingMode();
@@ -146,23 +181,46 @@ public class CfClient implements Destroyable {
     return new Evaluator(segmentCache);
   }
 
-  protected void initCache(String environmentID) throws io.harness.cf.ApiException {
+  protected void initFlagCache(String environmentID) throws ApiException {
 
     if (!Strings.isNullOrEmpty(environmentID)) {
+      try {
+        log.info("[FF-SDK] (initcache) - Getting the latest features");
+        List<FeatureConfig> featureConfigs = defaultApi.getFeatureConfig(environmentID, cluster);
+        if (featureConfigs != null) {
+          featureCache.putAll(
+              featureConfigs.stream()
+                  .collect(
+                      Collectors.toMap(FeatureConfig::getFeature, featureConfig -> featureConfig)));
+          log.info("[FF-SDK] (initcache) -latest features loaded into cache");
+        }
 
-      List<FeatureConfig> featureConfigs = defaultApi.getFeatureConfig(environmentID, cluster);
-      if (featureConfigs != null) {
-        featureCache.putAll(
-            featureConfigs.stream()
-                .collect(
-                    Collectors.toMap(FeatureConfig::getFeature, featureConfig -> featureConfig)));
+      } catch (Exception ex) {
+        log.error(
+            "[FF-SDK] (initcache) Failed to get FeatureConfigs, err: {}, retrying...",
+            ex.getMessage());
+        throw new ApiException(ex.getMessage());
       }
+    }
+  }
 
-      List<Segment> segments = defaultApi.getAllSegments(environmentID, cluster);
-      if (segments != null) {
-        segmentCache.putAll(
-            segments.stream()
-                .collect(Collectors.toMap(Segment::getIdentifier, segment -> segment)));
+  protected void initSegmentCache(String environmentID) throws ApiException {
+
+    if (!Strings.isNullOrEmpty(environmentID)) {
+      try {
+        log.info("[FF-SDK] (initcache) - Getting the latest target groups");
+        List<Segment> segments = defaultApi.getAllSegments(environmentID, cluster);
+        if (segments != null) {
+          segmentCache.putAll(
+              segments.stream()
+                  .collect(Collectors.toMap(Segment::getIdentifier, segment -> segment)));
+          log.info("[FF-SDK] (initcache) latest segments loaded into cache");
+        }
+      } catch (Exception ex) {
+        log.error(
+            "[FF-SDK] (initcache) Failed to get Target Groups, err: {}, retrying...",
+            ex.getMessage());
+        throw new ApiException(ex.getMessage());
       }
     }
   }

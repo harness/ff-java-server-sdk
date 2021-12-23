@@ -36,27 +36,28 @@ public class AuthService extends AbstractScheduledService {
     }
 
     try {
-
+      log.info("[FF-SDK] Starting Auth service");
       AuthenticationResponse authResponse =
           defaultApi.authenticate(
               AuthenticationRequestBuilder.anAuthenticationRequest().apiKey(apiKey).build());
 
       String jwtToken = authResponse.getAuthToken();
       cfClient.setJwtToken(jwtToken);
-      cfClient.init();
-      log.info("Stopping Auth service");
+      log.info("[FF-SDK] Successfully authenticated.");
+      log.info("[FF-SDK] Stopping Auth service");
       this.stopAsync();
-
     } catch (ApiException apiException) {
 
-      log.error("Failed to get auth token {}", apiException.getMessage());
+      log.error("[FF-SDK] Failed to get auth token {}", apiException.getMessage());
       if (apiException.getCode() == 401 || apiException.getCode() == 403) {
 
-        String errorMsg = String.format("Invalid apiKey %s. Serving default value. ", apiKey);
+        String errorMsg =
+            String.format("[FF-SDK] Invalid apiKey %s. Serving default value. ", apiKey);
         log.error(errorMsg);
         throw new CfClientException(errorMsg);
       }
     }
+    log.info("[FF-SDK] Exiting from auth thread");
   }
 
   @Override

@@ -7,7 +7,9 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Getter
 @Builder
 @AllArgsConstructor
@@ -43,7 +45,8 @@ public class Config {
   /** timeout in milliseconds to connect to CF Server */
   @Builder.Default int connectionTimeout = 10000;
   /** timeout in milliseconds for reading data from CF Server */
-  @Builder.Default int readTimeout = 30000;
+  private int readTimeout = 60000;
+
   /** timeout in milliseconds for writing data to CF Server */
   @Builder.Default int writeTimeout = 10000;
 
@@ -64,5 +67,16 @@ public class Config {
       throw new CfClientException("BufferSize must be a power of 2");
     }
     return bufferSize;
+  }
+
+  public static class ConfigBuilder {
+    public ConfigBuilder readTimeout(int timeout) {
+      if (timeout > 60000) {
+        this.readTimeout = timeout;
+      } else {
+        log.warn("[FF-SDK] readTimeout cannot be lower than 60000 ms, readTimeout set to 60000ms");
+      }
+      return this;
+    }
   }
 }
