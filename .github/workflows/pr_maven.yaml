@@ -1,11 +1,9 @@
-# This workflow will build a package using Maven and then publish it to GitHub packages when a release is created
-# For more information see: https://github.com/actions/setup-java/blob/main/docs/advanced-usage.md#apache-maven-with-a-settings-path
-
-name: Maven Package
+name: PR Maven Package
 
 on:
-  release:
-    types: [created]
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
@@ -34,7 +32,7 @@ jobs:
         with:
           java-version: '8'
           distribution: 'adopt'
-          server-id: sonatype-nexus-staging
+          server-id: sonatype-nexus-snapshots
           server-username: MAVEN_USERNAME
           server-password: MAVEN_PASSWORD
           gpg-private-key: ${{ secrets.OSSRH_GPG_SECRET_KEY }}
