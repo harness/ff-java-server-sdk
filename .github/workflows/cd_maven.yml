@@ -33,7 +33,7 @@ jobs:
         username: ${{ secrets.OSSRH_USERNAME }}
         password: ${{ secrets.OSSRH_PASSWORD }}
         format: maven2
-        repository: maven-releases
+        repository: maven-staging
         coordinates: groupId=io.harness artifactId=ff-java-server-sdk version=1.0.0
         assets: extension=jar
         filename: ./target/app-1.0.0.jar
