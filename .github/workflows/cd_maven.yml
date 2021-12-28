@@ -29,7 +29,7 @@ jobs:
     - name: Nexus Repo Publish
       uses: sonatype-nexus-community/nexus-repo-github-action@master
       with:
-        serverUrl: https://s01.oss.sonatype.org/content/groups/staging/
+        serverUrl: https://s01.oss.sonatype.org
         username: ${{ secrets.OSSRH_USERNAME }}
         password: ${{ secrets.OSSRH_PASSWORD }}
         format: maven2
