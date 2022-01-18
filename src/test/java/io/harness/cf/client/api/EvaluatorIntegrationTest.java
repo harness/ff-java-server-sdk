@@ -1,19 +1,15 @@
 package io.harness.cf.client.api;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import io.harness.cf.client.common.Cache;
-import io.harness.cf.client.dto.Target;
-import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Segment;
-import io.harness.cf.model.Variation;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -21,25 +17,13 @@ import java.util.stream.Stream;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.testng.Assert;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
+import org.testng.annotations.Factory;
 
 @Slf4j
 public class EvaluatorIntegrationTest {
+  private final Gson gson = new Gson();
+  private final List<TestFileData> testData = new LinkedList<>();
 
-  private final EvaluatorTester tester = new EvaluatorTester();
-  private final List<TestModel> testData = new LinkedList<>();
-
-  @Test
-  public void testEvaluator() {
-
-    for (final TestModel model : testData) {
-
-      tester.process(model);
-    }
-  }
-
-  @BeforeClass
   public void prepareTestData() {
 
     try {
@@ -59,8 +43,6 @@ public class EvaluatorIntegrationTest {
 
       testData.clear();
 
-      final Gson gson = new Gson();
-
       for (final File file : files) {
 
         log.info(String.format("Processing the test file: '%s'", file.getName()));
@@ -71,16 +53,16 @@ public class EvaluatorIntegrationTest {
         Assert.assertFalse(json.trim().isEmpty());
 
         try {
-          final TestModel model = gson.fromJson(json, TestModel.class);
-          Assert.assertNotNull(model);
+          final TestFileData fileData = gson.fromJson(json, TestFileData.class);
+          Assert.assertNotNull(fileData);
 
           final String testFile = file.getName();
-          final String feature = model.flag.getFeature() + testFile;
+          final String feature = fileData.getFlag().getFeature() + testFile;
 
-          model.testFile = testFile;
-          model.flag.setFeature(feature);
+          fileData.setTestFile(testFile);
+          fileData.getFlag().setFeature(feature);
 
-          Assert.assertTrue(testData.add(model));
+          Assert.assertTrue(testData.add(fileData));
 
         } catch (JsonSyntaxException e) {
           Assert.fail(e.getMessage());
@@ -91,7 +73,39 @@ public class EvaluatorIntegrationTest {
     }
   }
 
-  private static String read(final String path) {
+  @Factory
+  public Object[] getTestCases() {
+    prepareTestData();
+    log.info("getTestCases invoked");
+    final Cache cache = new CaffeineCache(10000);
+
+    Repository repository = new StorageRepository(cache, null);
+    Evaluator evaluator = new Evaluator(repository);
+
+    List<Object> list = new ArrayList<>();
+
+    for (TestFileData file : testData) {
+      repository.setFlag(file.getFlag().getFeature(), file.getFlag());
+
+      final List<Segment> segments = file.getSegments();
+      if (segments != null) {
+        for (final Segment segment : segments) {
+          repository.setSegment(segment.getIdentifier(), segment);
+        }
+      }
+
+      for (final String key : file.getExpected().keySet()) {
+        final Object expected = file.getExpected().get(key);
+        final TestCase testCase = new TestCase(file.getTestFile(), key, expected, file);
+        final FFUseCaseTest useCase = new FFUseCaseTest(testCase, evaluator);
+        Assert.assertTrue(list.add(useCase));
+      }
+    }
+    return list.toArray();
+  }
+
+  @NonNull
+  private String read(@NonNull final String path) {
 
     final StringBuilder builder = new StringBuilder();
     try (final Stream<String> stream = Files.lines(Paths.get(path), StandardCharsets.UTF_8)) {
@@ -100,147 +114,5 @@ public class EvaluatorIntegrationTest {
       Assert.fail(e.getMessage());
     }
     return builder.toString();
-  }
-
-  private static class EvaluatorTester {
-
-    private final String noTarget;
-    private final Evaluation evaluator;
-    private final Repository repository;
-    private final List<TestResult> results;
-
-    private final FlagEvaluateCallback flagEvaluateCallback =
-        new FlagEvaluateCallback() {
-
-          @Override
-          public void processEvaluation(
-              @NonNull FeatureConfig featureConfig, Target target, @NonNull Variation variation) {
-
-            log.info(
-                String.format(
-                    "processEvaluation: '%s', '%s', '%s'",
-                    featureConfig.getFeature(),
-                    target != null ? target.getName() : noTarget,
-                    variation.getValue()));
-          }
-        };
-
-    {
-      noTarget = "_no_target";
-
-      final Cache cache = new CaffeineCache(10000);
-
-      repository = new StorageRepository(cache, null);
-
-      results = new LinkedList<>();
-      evaluator = new Evaluator(repository);
-    }
-
-    public void process(final TestModel data) {
-
-      log.info(String.format("Processing the test data '%s' started", data.testFile));
-
-      repository.setFlag(data.flag.getFeature(), data.flag);
-
-      final List<Segment> segments = data.segments;
-      if (segments != null) {
-
-        for (final Segment segment : segments) {
-
-          repository.setSegment(segment.getIdentifier(), segment);
-        }
-      }
-
-      for (final String key : data.expected.keySet()) {
-
-        final boolean expected = data.expected.get(key);
-
-        final TestResult result = new TestResult(data.testFile, key, expected, data);
-
-        Assert.assertTrue(results.add(result));
-      }
-
-      for (final TestResult result : results) {
-
-        log.info(
-            String.format(
-                "Use case '%s' with target '%s' and expected value '%b'",
-                result.file, result.targetIdentifier, result.value));
-
-        Target target = null;
-        if (!noTarget.equals(result.targetIdentifier)) {
-          if (result.useCase.targets != null) {
-            for (final Target item : result.useCase.targets) {
-              if (item != null && item.getIdentifier().equals(result.targetIdentifier)) {
-                target = item;
-                break;
-              }
-            }
-          }
-        }
-
-        Object received = null;
-        switch (result.useCase.flag.getKind()) {
-          case BOOLEAN:
-            received =
-                evaluator.boolVariation(
-                    result.useCase.flag.getFeature(), target, false, flagEvaluateCallback);
-            break;
-
-          case STRING:
-            received =
-                evaluator.stringVariation(
-                    result.useCase.flag.getFeature(), target, "", flagEvaluateCallback);
-            break;
-
-          case INT:
-            received =
-                evaluator.numberVariation(
-                    result.useCase.flag.getFeature(), target, 0, flagEvaluateCallback);
-            break;
-
-          case JSON:
-            received =
-                evaluator.jsonVariation(
-                    result.useCase.flag.getFeature(),
-                    target,
-                    new JsonObject(),
-                    flagEvaluateCallback);
-            break;
-        }
-        Assert.assertEquals(result.value, received);
-      }
-      log.info(String.format("Processing the test data '%s' completed", data.testFile));
-    }
-  }
-
-  private static class TestModel {
-
-    public volatile String testFile;
-
-    public FeatureConfig flag;
-    public List<Target> targets;
-    public List<Segment> segments;
-    public HashMap<String, Boolean> expected;
-  }
-
-  private static class TestResult {
-
-    final String file;
-    final String targetIdentifier;
-    final Boolean value;
-    final TestModel useCase;
-
-    public TestResult(
-        final String file,
-        final String targetIdentifier,
-        final Boolean value,
-        final TestModel useCase) {
-
-      this.file = file;
-      this.targetIdentifier = targetIdentifier;
-      this.value = value;
-      this.useCase = useCase;
-    }
   }
 }
