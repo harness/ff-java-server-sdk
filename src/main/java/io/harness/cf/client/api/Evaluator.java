@@ -92,14 +92,22 @@ class Evaluator implements Evaluation {
       return false;
     }
 
+    if (operator.equals(SEGMENT_MATCH)) {
+      return isTargetIncludedOrExcludedInSegment(clause.getValues(), target);
+    }
+
+    if (clause.getValues().size() == 0) {
+      return false;
+    }
+
+    String value = clause.getValues().get(0);
     Optional<Object> attrValue = getAttrValue(target, clause.getAttribute());
+
     if (!attrValue.isPresent()) {
       return false;
     }
 
     String object = attrValue.get().toString();
-    String value = clause.getValues().get(0);
-
     switch (operator) {
       case STARTS_WITH:
         return object.startsWith(value);
@@ -115,8 +123,6 @@ class Evaluator implements Evaluation {
         return object.equals(value);
       case IN:
         return value.contains(object);
-      case SEGMENT_MATCH:
-        return isTargetIncludedOrExcludedInSegment(clause.getValues(), target);
       default:
         return false;
     }

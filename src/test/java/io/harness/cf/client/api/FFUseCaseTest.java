@@ -63,6 +63,10 @@ public class FFUseCaseTest {
                 testCase.getFileData().getFlag().getFeature(), target, new JsonObject(), null);
         break;
     }
-    Assert.assertEquals(testCase.getExpectedValue(), got);
+    String msg =
+        String.format(
+            "Test case: %s with identifier %s ",
+            testCase.getFile(), testCase.getTargetIdentifier());
+    Assert.assertEquals(testCase.getExpectedValue(), got, msg);
   }
 }
