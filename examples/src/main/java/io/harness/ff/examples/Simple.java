@@ -19,7 +19,7 @@ class Simple {
 
     private static CfClient client;
 
-    public static void main(String... args) throws InterruptedException {
+    public static void main(String... args) {
 
         Runtime.getRuntime()
                 .addShutdownHook(
