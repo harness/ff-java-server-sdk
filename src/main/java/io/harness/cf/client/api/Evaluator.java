@@ -354,10 +354,13 @@ class Evaluator implements Evaluation {
       Target target,
       FeatureConfig.KindEnum expected,
       FlagEvaluateCallback callback) {
-    MDC.put("flag", identifier);
-    MDC.put("target", "no target");
+    final String targetKey = "target";
+    final String flagKey = "flag";
+    MDC.put(flagKey, identifier);
+    MDC.put(targetKey, "no target");
+    MDC.put("version", io.harness.cf.Version.VERSION);
     if (target != null) {
-      MDC.put("target", target.getIdentifier());
+      MDC.put(targetKey, target.getIdentifier());
     }
     Optional<FeatureConfig> flag = query.getFlag(identifier);
     if (!flag.isPresent() || flag.get().getKind() != expected) {
@@ -380,7 +383,8 @@ class Evaluator implements Evaluation {
         return variation;
       }
     } finally {
-      MDC.clear();
+      MDC.remove(flagKey);
+      MDC.remove(targetKey);
     }
     return Optional.empty();
   }
