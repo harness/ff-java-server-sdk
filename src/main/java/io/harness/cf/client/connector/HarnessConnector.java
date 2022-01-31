@@ -13,10 +13,11 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Request;
 import okhttp3.Response;
+import org.slf4j.MDC;
 
 @Slf4j
 public class HarnessConnector implements Connector, AutoCloseable {
-
+  public static final String REQUEST_ID_KEY = "requestId";
   private final ClientApi api;
   private final MetricsApi metricsApi;
   private final String apiKey;
@@ -51,21 +52,29 @@ public class HarnessConnector implements Connector, AutoCloseable {
     apiClient.setDebugging(log.isDebugEnabled());
     apiClient.setUserAgent("JavaSDK " + io.harness.cf.Version.VERSION);
     // if http client response is 403 we need to reauthenticate
-    apiClient
-        .getHttpClient()
-        .newBuilder()
-        .addInterceptor(
-            chain -> {
-              final Request request = chain.request();
-              // if you need to do something before request replace this
-              // comment with code
-              Response response = chain.proceed(request);
-              if (response.code() == 403 && onUnauthorized != null) {
-                onUnauthorized.run();
-              }
-              return response;
-            })
-        .addInterceptor(new RetryInterceptor(3, 2000));
+    apiClient.setHttpClient(
+        apiClient
+            .getHttpClient()
+            .newBuilder()
+            .addInterceptor(
+                chain -> {
+                  final Request request =
+                      chain
+                          .request()
+                          .newBuilder()
+                          .addHeader("X-Request-ID", getRequestID())
+                          .build();
+                  log.info("requesting url {}", request.url().url());
+                  Response response = chain.proceed(request);
+                  if (response.code() == 403 && onUnauthorized != null) {
+                    onUnauthorized.run();
+                  }
+
+                  return response;
+                })
+            .addInterceptor(new RetryInterceptor(3, 2000))
+            .build());
+
     return apiClient;
   }
 
@@ -77,16 +86,45 @@ public class HarnessConnector implements Connector, AutoCloseable {
     apiClient.setReadTimeout(maxTimeout);
     apiClient.setWriteTimeout(maxTimeout);
     apiClient.setDebugging(log.isDebugEnabled());
-    apiClient.getHttpClient().newBuilder().addInterceptor(new RetryInterceptor(3, 2000));
+    apiClient.setHttpClient(
+        apiClient
+            .getHttpClient()
+            .newBuilder()
+            .addInterceptor(
+                chain -> {
+                  final Request request =
+                      chain
+                          .request()
+                          .newBuilder()
+                          .addHeader("X-Request-ID", getRequestID())
+                          .build();
+                  return chain.proceed(request);
+                })
+            .addInterceptor(new RetryInterceptor(3, 2000))
+            .build());
     return apiClient;
+  }
+
+  protected String getRequestID() {
+    log.debug("run getRequestID");
+    String requestId = MDC.get(REQUEST_ID_KEY);
+    if (requestId == null) {
+      requestId = "";
+    }
+    return requestId;
   }
 
   @Override
   public String authenticate() throws ConnectorException {
+    final String requestId = UUID.randomUUID().toString();
+    MDC.put(REQUEST_ID_KEY, requestId);
+    log.info("run authenticate");
     try {
       final AuthenticationRequest request = AuthenticationRequest.builder().apiKey(apiKey).build();
       final AuthenticationResponse response = api.authenticate(request);
+      log.info("authenticate -> successfully authenticated");
       token = response.getAuthToken();
+      log.debug("authenticate -> token generated");
       processToken(token);
       return token;
     } catch (ApiException apiException) {
@@ -97,6 +135,8 @@ public class HarnessConnector implements Connector, AutoCloseable {
         throw new ConnectorException(errorMsg);
       }
       throw new ConnectorException(apiException.getMessage());
+    } finally {
+      MDC.remove(REQUEST_ID_KEY);
     }
   }
 
@@ -106,8 +146,10 @@ public class HarnessConnector implements Connector, AutoCloseable {
   }
 
   protected void processToken(@NonNull final String token) {
-    api.getApiClient().addDefaultHeader("Authorization", String.format("Bearer %s", token));
-    metricsApi.getApiClient().addDefaultHeader("Authorization", "Bearer " + token);
+    final String authorizationKey = "Authorization";
+    final String bearerToken = "Bearer " + token;
+    api.getApiClient().addDefaultHeader(authorizationKey, bearerToken);
+    metricsApi.getApiClient().addDefaultHeader(authorizationKey, bearerToken);
 
     // get claims
     String decoded =
@@ -121,10 +163,18 @@ public class HarnessConnector implements Connector, AutoCloseable {
 
   @Override
   public List<FeatureConfig> getFlags() throws ConnectorException {
+    final String requestId = UUID.randomUUID().toString();
+    MDC.put(REQUEST_ID_KEY, requestId);
+    log.info("run getFlags");
     try {
-      return api.getFeatureConfig(environment, cluster);
+      List<FeatureConfig> featureConfig = api.getFeatureConfig(environment, cluster);
+      log.info("getFlags -> total flags fetched: {}", featureConfig.size());
+      return featureConfig;
     } catch (ApiException e) {
+      log.info("getFlags raised exception {}", e.getMessage());
       throw new ConnectorException(e.getMessage());
+    } finally {
+      MDC.remove(REQUEST_ID_KEY);
     }
   }
 
@@ -139,6 +189,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
 
   @Override
   public List<Segment> getSegments() throws ConnectorException {
+    log.info("poll segments from server");
     try {
       return api.getAllSegments(environment, cluster);
     } catch (ApiException e) {
