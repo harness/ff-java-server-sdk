@@ -6,8 +6,8 @@ import io.harness.cf.client.api.Config;
 import io.harness.cf.client.api.FeatureFlagInitializeException;
 import io.harness.cf.client.api.FileMapStore;
 import io.harness.cf.client.dto.Target;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.Random;
@@ -93,7 +93,7 @@ public class Example {
         Thread.yield();
     }
 
-    @NotNull
+    @NonNull
     private static String getRandom() {
         return String.valueOf(new Random().nextDouble());
     }

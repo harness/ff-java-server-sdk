@@ -361,27 +361,27 @@ class Evaluator implements Evaluation {
     }
     Optional<FeatureConfig> flag = query.getFlag(identifier);
     if (!flag.isPresent() || flag.get().getKind() != expected) {
-      MDC.clear();
       return Optional.empty();
     }
 
-    if (!CollectionUtils.isEmpty(flag.get().getPrerequisites())) {
-      boolean prereq = checkPreRequisite(flag.get(), target);
-      if (!prereq) {
-        MDC.clear();
-        return findVariation(flag.get().getVariations(), flag.get().getOffVariation());
+    try {
+      if (!CollectionUtils.isEmpty(flag.get().getPrerequisites())) {
+        boolean prereq = checkPreRequisite(flag.get(), target);
+        if (!prereq) {
+          return findVariation(flag.get().getVariations(), flag.get().getOffVariation());
+        }
       }
-    }
 
-    final Optional<Variation> variation = evaluateFlag(flag.get(), target);
-    if (variation.isPresent()) {
-      if (callback != null) {
-        callback.processEvaluation(flag.get(), target, variation.get());
+      final Optional<Variation> variation = evaluateFlag(flag.get(), target);
+      if (variation.isPresent()) {
+        if (callback != null) {
+          callback.processEvaluation(flag.get(), target, variation.get());
+        }
+        return variation;
       }
+    } finally {
       MDC.clear();
-      return variation;
     }
-    MDC.clear();
     return Optional.empty();
   }
 

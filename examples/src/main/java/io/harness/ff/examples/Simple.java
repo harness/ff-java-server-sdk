@@ -45,7 +45,7 @@ class Simple {
 
         scheduler.scheduleAtFixedRate(
                 () -> {
-                    final boolean bResult = client.boolVariation("flag1", target, false);
+                    final boolean bResult = client.boolVariation("harnessappdemoenablecimodule", target, false);
                     log.info("Boolean variation: {}", bResult);
                     final JsonObject jsonResult = client.jsonVariation("flag4", target, new JsonObject());
                     log.info("JSON variation: {}", jsonResult);

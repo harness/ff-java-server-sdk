@@ -1,13 +1,13 @@
 package io.harness.cf.client.connector;
 
+import com.google.gson.Gson;
 import io.harness.cf.ApiClient;
 import io.harness.cf.ApiException;
 import io.harness.cf.api.ClientApi;
 import io.harness.cf.api.MetricsApi;
+import io.harness.cf.client.dto.Claim;
 import io.harness.cf.model.*;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwt;
-import io.jsonwebtoken.Jwts;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +28,8 @@ public class HarnessConnector implements Connector, AutoCloseable {
 
   private EventSource eventSource;
   private Runnable onUnauthorized;
+
+  private final Gson gson = new Gson();
 
   public HarnessConnector(@NonNull String apiKey) {
     this(apiKey, HarnessConfig.builder().build());
@@ -108,12 +110,13 @@ public class HarnessConnector implements Connector, AutoCloseable {
     metricsApi.getApiClient().addDefaultHeader("Authorization", "Bearer " + token);
 
     // get claims
-    int i = token.lastIndexOf('.');
-    String unsignedJwt = token.substring(0, i + 1);
-    Jwt<?, Claims> untrusted = Jwts.parserBuilder().build().parseClaimsJwt(unsignedJwt);
+    String decoded =
+        new String(Base64.getUrlDecoder().decode(token.split("\\.")[1]), StandardCharsets.UTF_8);
 
-    environment = (String) untrusted.getBody().get("environment");
-    cluster = (String) untrusted.getBody().get("clusterIdentifier");
+    Claim claim = gson.fromJson(decoded, Claim.class);
+
+    environment = claim.getEnvironment();
+    cluster = claim.getClusterIdentifier();
   }
 
   @Override
