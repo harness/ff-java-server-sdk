@@ -41,6 +41,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
     this.options = options;
     this.api = new ClientApi(makeApiClient());
     this.metricsApi = new MetricsApi(makeMetricsApiClient());
+    log.info("Connector initialized");
   }
 
   protected ApiClient makeApiClient() {
@@ -64,7 +65,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
                           .newBuilder()
                           .addHeader("X-Request-ID", getRequestID())
                           .build();
-                  log.info("requesting url {}", request.url().url());
+                  log.info("interceptor: requesting url {}", request.url().url());
                   Response response = chain.proceed(request);
                   if (response.code() == 403 && onUnauthorized != null) {
                     onUnauthorized.run();
@@ -74,7 +75,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
                 })
             .addInterceptor(new RetryInterceptor(3, 2000))
             .build());
-
+    log.info("apiClient definition complete");
     return apiClient;
   }
 
@@ -98,15 +99,16 @@ public class HarnessConnector implements Connector, AutoCloseable {
                           .newBuilder()
                           .addHeader("X-Request-ID", getRequestID())
                           .build();
+                  log.info("metrics interceptor: requesting url {}", request.url().url());
                   return chain.proceed(request);
                 })
             .addInterceptor(new RetryInterceptor(3, 2000))
             .build());
+    log.info("metricsApiClient definition complete");
     return apiClient;
   }
 
   protected String getRequestID() {
-    log.debug("run getRequestID");
     String requestId = MDC.get(REQUEST_ID_KEY);
     if (requestId == null) {
       requestId = "";
@@ -118,24 +120,23 @@ public class HarnessConnector implements Connector, AutoCloseable {
   public String authenticate() throws ConnectorException {
     final String requestId = UUID.randomUUID().toString();
     MDC.put(REQUEST_ID_KEY, requestId);
-    log.info("run authenticate");
     try {
       final AuthenticationRequest request = AuthenticationRequest.builder().apiKey(apiKey).build();
       final AuthenticationResponse response = api.authenticate(request);
-      log.info("authenticate -> successfully authenticated");
       token = response.getAuthToken();
-      log.debug("authenticate -> token generated");
+      log.debug("Token generated");
       processToken(token);
       return token;
     } catch (ApiException apiException) {
-      log.error("Failed to get auth token {}", apiException.getMessage());
       if (apiException.getCode() == 401 || apiException.getCode() == 403) {
-        String errorMsg = String.format("Invalid apiKey %s. Serving default value. ", apiKey);
+        String errorMsg = String.format("Invalid apiKey %s. SDK will serve default values", apiKey);
         log.error(errorMsg);
         throw new ConnectorException(errorMsg);
       }
+      log.error("Failed to get auth token", apiException);
       throw new ConnectorException(apiException.getMessage());
     } finally {
+      log.info("Successfully authenticated");
       MDC.remove(REQUEST_ID_KEY);
     }
   }
@@ -149,75 +150,149 @@ public class HarnessConnector implements Connector, AutoCloseable {
     final String authorizationKey = "Authorization";
     final String bearerToken = "Bearer " + token;
     api.getApiClient().addDefaultHeader(authorizationKey, bearerToken);
+    log.debug("Authorization header added to apiClient");
     metricsApi.getApiClient().addDefaultHeader(authorizationKey, bearerToken);
-
+    log.debug("Authorization header added to metricsApi");
     // get claims
     String decoded =
         new String(Base64.getUrlDecoder().decode(token.split("\\.")[1]), StandardCharsets.UTF_8);
 
     Claim claim = gson.fromJson(decoded, Claim.class);
-
+    log.debug("Claims successfully parsed from decoded payload");
     environment = claim.getEnvironment();
     cluster = claim.getClusterIdentifier();
+    log.info("Token successfully processed, environment {}, cluster {}", environment, cluster);
   }
 
   @Override
   public List<FeatureConfig> getFlags() throws ConnectorException {
     final String requestId = UUID.randomUUID().toString();
     MDC.put(REQUEST_ID_KEY, requestId);
-    log.info("run getFlags");
+    log.info("Fetching flags on env {} and cluster {}", this.environment, this.cluster);
+    List<FeatureConfig> featureConfig = new ArrayList<>();
     try {
-      List<FeatureConfig> featureConfig = api.getFeatureConfig(environment, cluster);
-      log.info("getFlags -> total flags fetched: {}", featureConfig.size());
+      featureConfig = api.getFeatureConfig(environment, cluster);
       return featureConfig;
     } catch (ApiException e) {
-      log.info("getFlags raised exception {}", e.getMessage());
+      log.error(
+          "Exception was raised while fetching the flags on env {} and cluster {}",
+          this.environment,
+          this.cluster,
+          e);
       throw new ConnectorException(e.getMessage());
     } finally {
+      log.info(
+          "Total configurations fetched: {} on env {} and cluster {}",
+          featureConfig.size(),
+          this.environment,
+          this.cluster);
       MDC.remove(REQUEST_ID_KEY);
     }
   }
 
   @Override
   public FeatureConfig getFlag(@NonNull final String identifier) throws ConnectorException {
+    final String requestId = UUID.randomUUID().toString();
+    MDC.put(REQUEST_ID_KEY, requestId);
+    log.debug(
+        "Fetch flag {} from env {} and cluster {}", identifier, this.environment, this.cluster);
     try {
       return api.getFeatureConfigByIdentifier(identifier, environment, cluster);
     } catch (ApiException e) {
+      log.error(
+          "Exception was raised while fetching the flag {} on env {} and cluster {}",
+          identifier,
+          this.environment,
+          this.cluster,
+          e);
       throw new ConnectorException(e.getMessage());
+    } finally {
+      log.debug(
+          "Flag {} successfully fetched from env {} and cluster {}",
+          identifier,
+          this.environment,
+          this.cluster);
+      MDC.remove(REQUEST_ID_KEY);
     }
   }
 
   @Override
   public List<Segment> getSegments() throws ConnectorException {
-    log.info("poll segments from server");
+    final String requestId = UUID.randomUUID().toString();
+    MDC.put(REQUEST_ID_KEY, requestId);
+    log.debug(
+        "Fetching target groups on environment {} and cluster {}", this.environment, this.cluster);
+    List<Segment> allSegments = new ArrayList<>();
     try {
-      return api.getAllSegments(environment, cluster);
+      allSegments = api.getAllSegments(environment, cluster);
+      return allSegments;
     } catch (ApiException e) {
+      log.error(
+          "Exception was raised while fetching the target groups on env {} and cluster {}",
+          this.environment,
+          this.cluster,
+          e);
       throw new ConnectorException(e.getMessage());
+    } finally {
+      log.debug(
+          "Total target groups fetched: {} on env {} and cluster {}",
+          allSegments.size(),
+          this.environment,
+          this.cluster);
+      MDC.remove(REQUEST_ID_KEY);
     }
   }
 
   @Override
   public Segment getSegment(@NonNull final String identifier) throws ConnectorException {
+    log.debug(
+        "Fetching the target group {} on environment {} and cluster {}",
+        identifier,
+        this.environment,
+        this.cluster);
     try {
       return api.getSegmentByIdentifier(identifier, environment, cluster);
     } catch (ApiException e) {
+      log.error(
+          "Exception was raised while fetching the target group {} on env {} and cluster {}",
+          identifier,
+          this.environment,
+          this.cluster,
+          e);
       throw new ConnectorException(e.getMessage());
+    } finally {
+      log.debug(
+          "Segment {} successfully fetched from env {} and cluster {}",
+          identifier,
+          this.environment,
+          this.cluster);
     }
   }
 
   @Override
   public void postMetrics(@NonNull final Metrics metrics) throws ConnectorException {
+    log.debug("Uploading metrics on environment {} and cluster {}", this.environment, this.cluster);
     try {
       metricsApi.postMetrics(environment, cluster, metrics);
+      log.debug(
+          "Metrics uploaded successfully on environment {} and cluster {}",
+          this.environment,
+          this.cluster);
     } catch (ApiException e) {
+      log.error(
+          "Exception was raised while uploading metrics on env {} and cluster {}",
+          this.environment,
+          this.cluster,
+          e);
       throw new ConnectorException(e.getMessage());
     }
   }
 
   @Override
   public Service stream(@NonNull final Updater updater) {
+    log.debug("Check if eventsource is already initialized");
     if (eventSource != null) {
+      log.debug("EventSource is already initialized, closing ...");
       eventSource.close();
       eventSource = null;
     }
@@ -225,16 +300,21 @@ public class HarnessConnector implements Connector, AutoCloseable {
     final Map<String, String> map = new HashMap<>();
     map.put("Authorization", "Bearer " + token);
     map.put("API-Key", apiKey);
+    log.info("Initialize new EventSource instance");
     eventSource = new EventSource(sseUrl, map, updater);
     return eventSource;
   }
 
   @Override
   public void close() {
+    log.info("closing connector");
     api.getApiClient().getHttpClient().connectionPool().evictAll();
+    log.info("All apiClient connections evicted");
     metricsApi.getApiClient().getHttpClient().connectionPool().evictAll();
+    log.info("All metricsApiClient connections evicted");
     if (eventSource != null) {
       eventSource.close();
     }
+    log.info("connector closed!");
   }
 }

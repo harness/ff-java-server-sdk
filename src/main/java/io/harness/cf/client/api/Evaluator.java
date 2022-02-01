@@ -31,9 +31,8 @@ class Evaluator implements Evaluation {
   }
 
   protected Optional<Object> getAttrValue(Target target, @NonNull String attribute) {
-    log.debug("getAttrValue started with {}", attribute);
     if (Strings.isNullOrEmpty(attribute)) {
-      log.debug("getAttrValue -> attribute is empty");
+      log.debug("Attribute is empty");
       return Optional.empty();
     }
     try {
@@ -42,88 +41,83 @@ class Evaluator implements Evaluation {
       return Optional.of(field.get(target));
     } catch (NoSuchFieldException | IllegalAccessException e) {
       if (target.getAttributes() != null) {
-        log.debug("getAttrValue -> checking attributes field {}", attribute);
+        log.debug("Checking attributes field {}", attribute);
         return Optional.of(target.getAttributes().get(attribute));
       }
     }
-    log.error("getAttrValue -> attribute {} does not exist", attribute);
+    log.error("Attribute {} does not exist", attribute);
     return Optional.empty();
   }
 
   protected Optional<Variation> findVariation(
       @NonNull List<Variation> variations, String identifier) {
-    log.debug("run findVariation with {}, {}", variations, identifier);
     if (identifier == null || CollectionUtils.isEmpty(variations)) {
-      log.debug(
-          "findVariation -> empty identifier {} or variations {} occurred", identifier, variations);
+      log.debug("Empty identifier {} or variations {} occurred", identifier, variations);
       return Optional.empty();
     }
-    log.debug("findVariation -> finding variation {} in variations {}", identifier, variations);
-    return variations.stream().filter(v -> v.getIdentifier().equals(identifier)).findFirst();
+    try {
+      return variations.stream().filter(v -> v.getIdentifier().equals(identifier)).findFirst();
+    } finally {
+      log.debug("Variation {} found in variations {}", identifier, variations);
+    }
   }
 
   protected int getNormalizedNumber(@NonNull Object property, @NonNull String bucketBy) {
-    log.debug("run getNormalizedNumber with {}, {}", property, bucketBy);
     byte[] value = String.join(":", bucketBy, property.toString()).getBytes();
     long hasher = Murmur3.hash_x86_32(value, value.length, MurmurConstants.UINT_MASK);
     int result = (int) (hasher % Evaluator.ONE_HUNDRED) + 1;
-    log.debug("getNormalizedNumber -> for {} = {}", Arrays.toString(value), result);
+    log.debug("normalized number for {} = {}", Arrays.toString(value), result);
     return result;
   }
 
   protected boolean isEnabled(Target target, String bucketBy, int percentage) {
-    log.debug("run isEnabled with {}, {}", bucketBy, percentage);
     final Optional<Object> attrValue = getAttrValue(target, bucketBy);
     if (!attrValue.isPresent()) {
-      log.debug("isEnabled -> returns false attribute not present {}", bucketBy);
+      log.debug("Returns false attribute not present {}", bucketBy);
       return false;
     }
     int bucketId = getNormalizedNumber(attrValue.get(), bucketBy);
-    boolean result = percentage > 0 && bucketId <= percentage;
-    log.debug("isEnabled -> result {} for bucketBy {}", result, bucketBy);
-    return result;
+    return percentage > 0 && bucketId <= percentage;
   }
 
   protected Optional<String> evaluateDistribution(Distribution distribution, Target target) {
-    log.debug("run evaluateDistribution with {}", distribution);
     if (distribution == null) {
-      log.debug("evaluateDistribution -> distribution is empty");
+      log.debug("Distribution is empty");
       return Optional.empty();
     }
 
     String variation = "";
     for (WeightedVariation weightedVariation : distribution.getVariations()) {
       variation = weightedVariation.getVariation();
-      log.debug("evaluateDistribution -> checking variation {}", variation);
+      log.debug("Checking variation {}", variation);
       if (isEnabled(target, distribution.getBucketBy(), weightedVariation.getWeight())) {
-        log.debug("evaluateDistribution -> enabled on distribution {}", distribution);
+        log.debug("Enabled for distribution {}", distribution);
         return Optional.of(weightedVariation.getVariation());
       }
     }
-    log.debug("evaluateDistribution -> result variation = {}", variation);
+    log.debug("Variation of distribution evaluation {}", variation);
     return Optional.of(variation);
   }
 
   protected boolean evaluateClause(Clause clause, Target target) {
-    log.debug("run evaluateClause with {}", clause);
     if (clause == null) {
-      log.debug("evaluateClause -> clause is empty");
+      log.debug("Clause is empty");
       return false;
     }
     // operator is required
     final String operator = clause.getOp();
     if (operator.isEmpty()) {
-      log.debug("evaluateClause -> clause {} operator is empty!", clause);
+      log.debug("Clause {} operator is empty!", clause);
       return false;
     }
 
     if (operator.equals(SEGMENT_MATCH)) {
-      log.debug("evaluateClause -> clause operator is {}, run evaluation on segment", operator);
+      log.debug("Clause operator is {}, evaluate on segment", operator);
       return isTargetIncludedOrExcludedInSegment(clause.getValues(), target);
     }
 
     if (clause.getValues().isEmpty()) {
-      log.debug("evaluateClause -> clause values is empty");
+      log.debug("Clause values is empty");
       return false;
     }
 
@@ -131,12 +125,12 @@ class Evaluator implements Evaluation {
     Optional<Object> attrValue = getAttrValue(target, clause.getAttribute());
 
     if (!attrValue.isPresent()) {
-      log.debug("evaluateClause -> attrValue is empty on clause {}", clause);
+      log.debug("AttrValue is empty on clause {}", clause);
       return false;
     }
 
     String object = attrValue.get().toString();
-    log.debug("evaluateClause -> {} {} {}", object, operator, value);
+    log.debug("evaluate clause with object {} operator {} and value {}", object, operator, value);
     switch (operator) {
       case STARTS_WITH:
         return object.startsWith(value);
@@ -153,20 +147,19 @@ class Evaluator implements Evaluation {
       case IN:
         return value.contains(object);
       default:
-        log.debug("evaluateClause -> {} not found", operator);
+        log.debug("operator {} not found", operator);
         return false;
     }
   }
 
   protected boolean evaluateClauses(List<Clause> clauses, Target target) {
-    log.debug("run evaluateClauses with {}", clauses);
     for (Clause clause : clauses) {
       if (!evaluateClause(clause, target)) {
-        log.debug("evaluateClauses ->  unsuccessfully evaluation of clause {}", clause);
+        log.debug("Unsuccessful evaluation of clause {}", clause);
         return false;
       }
     }
-    log.debug("evaluateClauses -> all clauses {} passed", clauses);
+    log.debug("All clauses {} evaluated", clauses);
     return true;
   }
 
@@ -178,87 +171,76 @@ class Evaluator implements Evaluation {
    * @return true if the target is included in the segment via rules
    */
   private boolean isTargetIncludedOrExcludedInSegment(List<String> segmentList, Target target) {
-    log.debug("run isTargetIncludedOrExcludedInSegment with {}", segmentList);
     for (String segmentIdentifier : segmentList) {
       final Optional<Segment> optionalSegment = query.getSegment(segmentIdentifier);
       if (optionalSegment.isPresent()) {
         final Segment segment = optionalSegment.get();
         // Should Target be excluded - if in excluded list we return false
         if (isTargetInList(target, segment.getExcluded())) {
-          log.debug(
-              "isTargetIncludedOrExcludedInSegment -> target excluded from segment {} via exclude list",
-              segment.getIdentifier());
+          log.debug("Target excluded from segment {} via exclude list", segment.getIdentifier());
           return false;
         }
 
         // Should Target be included - if in included list we return true
         if (isTargetInList(target, segment.getIncluded())) {
-          log.debug(
-              "isTargetIncludedOrExcludedInSegment -> target included in segment {} via include list",
-              segment.getIdentifier());
+          log.debug("Target included in segment {} via include list", segment.getIdentifier());
           return true;
         }
 
         // Should Target be included via segment rules
         List<Clause> rules = segment.getRules();
         if ((rules != null) && !rules.isEmpty() && evaluateClauses(rules, target)) {
-          log.debug(
-              "isTargetIncludedOrExcludedInSegment -> target included in segment {} via rules",
-              segment.getName());
+          log.debug("Target included in segment {} via rules", segment.getName());
           return true;
         }
       }
     }
-    log.debug("isTargetIncludedOrExcludedInSegment -> segment list empty return false");
+    log.debug("Target groups empty return false");
     return false;
   }
 
   protected boolean evaluateRule(ServingRule servingRule, Target target) {
-    log.debug("run evaluateRule with rule {}", servingRule);
     return this.evaluateClauses(servingRule.getClauses(), target);
   }
 
   protected Optional<String> evaluateRules(List<ServingRule> servingRules, Target target) {
-    log.debug("run evaluateRules with rule {}", servingRules);
     if (target == null || servingRules == null) {
-      log.debug("evaluateRules -> target or serving rule is null");
+      log.debug("Target or serving rule is {}", servingRules);
       return Optional.empty();
     }
 
-    log.debug("evaluateRules -> sorting serving rules {}", servingRules);
+    log.debug("Sorting serving rules {}", servingRules);
     servingRules.sort(Comparator.comparing(ServingRule::getPriority));
-    log.debug("evaluateRules -> sorted serving rules {}", servingRules);
+    log.debug("Sorted serving rules {}", servingRules);
     for (ServingRule rule : servingRules) {
       // if evaluation is false just continue to next rule
       if (!this.evaluateRule(rule, target)) {
-        log.debug(
-            "evaluateRules -> unsuccessful evaluation of rule {} continue to next rule", rule);
+        log.debug("Unsuccessful evaluation of rule {} continue to next rule", rule);
         continue;
       }
 
       // rule matched, check if there is distribution
       Distribution distribution = rule.getServe().getDistribution();
       if (distribution != null) {
-        log.debug("evaluateRules -> evaluate distribution {}", distribution);
+        log.debug("Evaluate distribution {}", distribution);
         return evaluateDistribution(distribution, target);
       }
 
       // rule matched, here must be variation if distribution is undefined or null
       String identifier = rule.getServe().getVariation();
       if (identifier != null) {
-        log.debug("evaluateRules -> return rule variation identifier {}", identifier);
+        log.debug("Return rule variation identifier {}", identifier);
         return Optional.of(identifier);
       }
     }
-    log.debug("evaluateRules -> all rules failed, return empty identifier");
+    log.debug("All rules failed, return empty identifier");
     return Optional.empty();
   }
 
   protected Optional<String> evaluateVariationMap(
       @NonNull List<VariationMap> variationMaps, Target target) {
-    log.debug("run evaluateVariationMap with variationMap {}", variationMaps);
     if (target == null) {
-      log.debug("evaluateVariationMap -> target is null");
+      log.debug("Target is null");
       return Optional.empty();
     }
     for (VariationMap variationMap : variationMaps) {
@@ -273,12 +255,19 @@ class Evaluator implements Evaluation {
                       return false;
                     })
                 .findFirst();
-        if (found.isPresent()) return Optional.of(variationMap.getVariation());
+        if (found.isPresent()) {
+          log.debug("Evaluate variationMap with result {}", variationMap.getVariation());
+          return Optional.of(variationMap.getVariation());
+        }
       }
 
       List<String> segmentIdentifiers = variationMap.getTargetSegments();
       if (segmentIdentifiers != null
           && isTargetIncludedOrExcludedInSegment(segmentIdentifiers, target)) {
+        log.debug(
+            "Evaluate variationMap with segment identifiers {} and return {}",
+            segmentIdentifiers,
+            variationMap.getVariation());
         return Optional.of(variationMap.getVariation());
       }
     }
@@ -298,6 +287,7 @@ class Evaluator implements Evaluation {
         variation = Optional.ofNullable(featureConfig.getDefaultServe().getVariation());
     }
     if (variation.isPresent()) return findVariation(featureConfig.getVariations(), variation.get());
+    log.debug("No variation found return empty");
     return Optional.empty();
   }
 

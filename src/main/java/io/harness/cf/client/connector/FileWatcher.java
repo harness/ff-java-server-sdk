@@ -32,6 +32,7 @@ public class FileWatcher implements Runnable, AutoCloseable, Service {
           StandardWatchEventKinds.ENTRY_MODIFY
         },
         SensitivityWatchEventModifier.HIGH);
+    log.info("FileWatcher initialized with path {}/{}", path, domain);
   }
 
   @SneakyThrows
@@ -84,7 +85,7 @@ public class FileWatcher implements Runnable, AutoCloseable, Service {
     try {
       stop();
     } catch (InterruptedException e) {
-      log.warn("request to stop failed!");
+      log.warn("stop failed!");
     }
   }
 
@@ -101,7 +102,7 @@ public class FileWatcher implements Runnable, AutoCloseable, Service {
   @Override
   public void start() {
     if (thread != null) {
-      // thread is already created
+      log.debug("watcher thread is already running");
       return;
     }
     log.debug("starting monitor");
@@ -113,12 +114,13 @@ public class FileWatcher implements Runnable, AutoCloseable, Service {
   @Override
   public void stop() throws InterruptedException {
     if (thread == null) {
+      log.debug("watcher thread is null");
       return;
     }
     log.debug("stopping monitor");
     thread.interrupt();
     thread.join();
     thread = null;
-    log.trace("monitor stopped");
+    log.debug("monitor stopped");
   }
 }
