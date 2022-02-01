@@ -205,7 +205,7 @@ class Evaluator implements Evaluation {
 
   protected Optional<String> evaluateRules(List<ServingRule> servingRules, Target target) {
     if (target == null || servingRules == null) {
-      log.debug("Target or serving rule is {}", servingRules);
+      log.debug("There is no target or serving rule");
       return Optional.empty();
     }
 

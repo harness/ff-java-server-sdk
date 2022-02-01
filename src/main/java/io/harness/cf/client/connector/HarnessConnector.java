@@ -245,6 +245,8 @@ public class HarnessConnector implements Connector, AutoCloseable {
 
   @Override
   public Segment getSegment(@NonNull final String identifier) throws ConnectorException {
+    final String requestId = UUID.randomUUID().toString();
+    MDC.put(REQUEST_ID_KEY, requestId);
     log.debug(
         "Fetching the target group {} on environment {} and cluster {}",
         identifier,
@@ -266,11 +268,14 @@ public class HarnessConnector implements Connector, AutoCloseable {
           identifier,
           this.environment,
           this.cluster);
+      MDC.remove(REQUEST_ID_KEY);
     }
   }
 
   @Override
   public void postMetrics(@NonNull final Metrics metrics) throws ConnectorException {
+    final String requestId = UUID.randomUUID().toString();
+    MDC.put(REQUEST_ID_KEY, requestId);
     log.debug("Uploading metrics on environment {} and cluster {}", this.environment, this.cluster);
     try {
       metricsApi.postMetrics(environment, cluster, metrics);
@@ -285,6 +290,8 @@ public class HarnessConnector implements Connector, AutoCloseable {
           this.cluster,
           e);
       throw new ConnectorException(e.getMessage());
+    } finally {
+      MDC.remove(REQUEST_ID_KEY);
     }
   }
 
