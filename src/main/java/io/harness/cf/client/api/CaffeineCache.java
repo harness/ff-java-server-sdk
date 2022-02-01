@@ -26,7 +26,11 @@ public class CaffeineCache implements Cache {
   @Override
   public Object get(@NonNull String key) {
     Object value = cache.getIfPresent(key);
-    log.debug("Key {} found in cache with value {}", key, value);
+    if (value != null) {
+      log.debug("Key {} found in cache with value {}", key, value);
+    } else {
+      log.debug("Key {} not found in cache", key);
+    }
     return value;
   }
 

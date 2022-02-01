@@ -12,6 +12,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 
 @Slf4j
 public class UpdateProcessor implements AutoCloseable {
@@ -26,6 +27,7 @@ public class UpdateProcessor implements AutoCloseable {
       @NonNull final Connector connector,
       @NonNull final Repository repository,
       @NonNull final Updater callback) {
+    MDC.put("version", io.harness.cf.Version.VERSION);
     this.connector = connector;
     this.repository = repository;
     this.updater = callback;
@@ -119,6 +121,7 @@ public class UpdateProcessor implements AutoCloseable {
 
   @Override
   public void close() {
+    MDC.remove("version");
     log.info("Closing UpdateProcessor");
     stop();
     if (stream != null) {
