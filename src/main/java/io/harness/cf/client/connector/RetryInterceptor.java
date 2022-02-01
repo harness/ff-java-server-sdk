@@ -11,8 +11,8 @@ import okhttp3.Response;
 @Slf4j
 @AllArgsConstructor
 class RetryInterceptor implements Interceptor {
-  private long maxTryCount;
-  private long retryBackoffDelay;
+  private final long maxTryCount;
+  private final long retryBackoffDelay;
 
   @NonNull
   @Override
@@ -28,8 +28,8 @@ class RetryInterceptor implements Interceptor {
 
       try {
         Thread.sleep(retryBackoffDelay * tryCount);
-      } catch (InterruptedException e1) {
-        log.debug("Request is not successful - {}", tryCount);
+      } catch (InterruptedException e) {
+        log.debug("Request is not successful - {}", tryCount, e);
       }
       // retry the request
       response = chain.proceed(request);

@@ -6,7 +6,6 @@ import io.harness.cf.client.connector.Connector;
 import io.harness.cf.client.connector.ConnectorException;
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.*;
-import io.jsonwebtoken.lang.Collections;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -76,8 +75,7 @@ class MetricsProcessor extends AbstractScheduledService {
 
       // We will only submit summary metrics to the event server
       Metrics metrics = prepareSummaryMetricsBody(map);
-      if (!Collections.isEmpty(metrics.getMetricsData())
-          || !Collections.isEmpty(metrics.getTargetData())) {
+      if (!metrics.getMetricsData().isEmpty() || !metrics.getTargetData().isEmpty()) {
         try {
           long startTime = System.currentTimeMillis();
           connector.postMetrics(metrics);
@@ -144,7 +142,7 @@ class MetricsProcessor extends AbstractScheduledService {
       attributes.forEach(
           (k, v) -> {
             KeyValue keyValue = new KeyValue();
-            if ((!Collections.isEmpty(privateAttributes))) {
+            if ((!privateAttributes.isEmpty())) {
               if (!privateAttributes.contains(k)) {
                 keyValue.setKey(k);
                 keyValue.setValue(v.toString());

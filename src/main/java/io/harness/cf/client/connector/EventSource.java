@@ -26,6 +26,7 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
     builder = new Request.Builder().url(url);
     headers.forEach(builder::header);
     updater.onReady();
+    log.info("EventSource initialized with url {} and headers {}", url, headers);
   }
 
   @Override
@@ -44,18 +45,20 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
   }
 
   @Override
-  public void onComment(ServerSentEvent serverSentEvent, String s) {}
+  public void onComment(ServerSentEvent serverSentEvent, String s) {
+    /* comment is not used */
+  }
 
   @Override
   public boolean onRetryTime(ServerSentEvent serverSentEvent, long l) {
-    log.warn("onRetryTime {}", l);
+    log.warn("EventSource onRetryTime {}", l);
     return true;
   }
 
   @Override
   public boolean onRetryError(
       ServerSentEvent serverSentEvent, Throwable throwable, Response response) {
-    log.warn("onRetryError {}", response.message());
+    log.warn("EventSource onRetryError {}", response.message());
     return true;
   }
 
@@ -85,5 +88,6 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
   public void close() {
     stop();
     okSse.getClient().connectionPool().evictAll();
+    log.info("EventSource closed");
   }
 }

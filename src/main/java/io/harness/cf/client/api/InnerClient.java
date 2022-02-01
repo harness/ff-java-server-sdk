@@ -15,6 +15,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 
 @Slf4j
 class InnerClient
@@ -91,6 +92,7 @@ class InnerClient
   }
 
   protected void setUp(@NonNull final Connector connector, @NonNull final BaseConfig options) {
+    MDC.put("version", io.harness.cf.Version.VERSION);
     log.info(
         "SDK is not initialized yet! If store is used then values will be loaded from store \n"
             + " otherwise default values will be used in meantime. You can use waitForInitialization method for SDK to be ready.");
@@ -342,5 +344,6 @@ class InnerClient
     updateProcessor.close();
     metricsProcessor.close();
     connector.close();
+    MDC.clear();
   }
 }
