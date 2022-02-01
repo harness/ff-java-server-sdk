@@ -14,11 +14,12 @@ import org.mapdb.Serializer;
 public class FileMapStore implements Storage, AutoCloseable {
 
   private final DB db;
-  private final HTreeMap<String, Object> map;
+  private HTreeMap<String, Object> map;
 
   public FileMapStore(@NonNull String name) {
     db = DBMaker.fileDB(name).closeOnJvmShutdown().fileChannelEnable().transactionEnable().make();
     map = db.hashMap("map", Serializer.STRING, Serializer.JAVA).createOrOpen();
+    log.info("FileMapStore initialized");
   }
 
   @Override
@@ -26,6 +27,7 @@ public class FileMapStore implements Storage, AutoCloseable {
     try {
       map.put(key, value);
       db.commit();
+      log.debug("FileMapStore stored successfully key {} with value {}", key, value);
     } catch (UnsupportedOperationException
         | ClassCastException
         | NullPointerException
@@ -55,6 +57,7 @@ public class FileMapStore implements Storage, AutoCloseable {
     try {
       map.remove(key);
       db.commit();
+      log.debug("FileMapStore successfully delete key {}", key);
     } catch (UnsupportedOperationException | ClassCastException | NullPointerException e) {
       log.error(
           "Exception was raised while deleting the key {} with the error message {}",
@@ -65,11 +68,14 @@ public class FileMapStore implements Storage, AutoCloseable {
 
   @Override
   public List<String> keys() {
-    return new ArrayList<>(map.keySet());
+    ArrayList<String> keys = new ArrayList<>(map.keySet());
+    log.debug("FileMapStore list keys {}", keys);
+    return keys;
   }
 
   @Override
   public void close() {
     db.close();
+    log.debug("FileMapStore closed");
   }
 }

@@ -136,14 +136,16 @@ class InnerClient
       return;
     }
 
-    // run services only after token is processed
+    log.debug("start poller processor");
     pollProcessor.start();
 
     if (options.isStreamEnabled()) {
+      log.debug("Stream enabled, start update processor");
       updateProcessor.start();
     }
 
     if (options.isAnalyticsEnabled()) {
+      log.debug("Analytics enabled, start metrics processor");
       metricsProcessor.start();
     }
   }
@@ -154,13 +156,13 @@ class InnerClient
   }
 
   @Override
-  public void onPollerError(@NonNull final String error) {
-    log.error("PollerProcessor error: {}", error);
+  public void onPollerError(@NonNull final Exception exc) {
+    log.error("PollerProcessor exception", exc);
   }
 
   @Override
-  public void onPollerFailed(@NonNull String error) {
-    log.error("PollerProcessor failed while initializing, err: {}", error);
+  public void onPollerFailed(@NonNull final Exception exc) {
+    log.error("PollerProcessor failed while initializing, exception: ", exc);
   }
 
   @Override
@@ -233,7 +235,7 @@ class InnerClient
   public void update(@NonNull final Message message, final boolean manual) {
     if (options.isStreamEnabled() && manual) {
       log.warn(
-          "You run the update method manually with the stream enabled. Please turn off the stream in this case.");
+          "You have run update method manually with the stream enabled. Please turn off the stream in this case.");
     }
     update(message);
   }
@@ -284,6 +286,7 @@ class InnerClient
       wait();
 
       if (failure) {
+        log.error("Failure while initializing SDK!");
         throw new FeatureFlagInitializeException();
       }
     }
@@ -345,5 +348,6 @@ class InnerClient
     metricsProcessor.close();
     connector.close();
     MDC.clear();
+    log.info("All resources released and client closed");
   }
 }

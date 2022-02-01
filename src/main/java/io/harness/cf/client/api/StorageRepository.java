@@ -78,21 +78,25 @@ class StorageRepository implements Repository {
     List<String> result = new ArrayList<>();
     List<String> keys = this.cache.keys();
     if (store != null) {
+      log.debug("Store is available, load all keys");
       keys = store.keys();
     }
     for (String key : keys) {
       final Optional<FeatureConfig> optionalFeatureConfig = getFlag(key);
       if (!optionalFeatureConfig.isPresent()) {
+        log.debug("Flag not found {}, continue...", key);
         continue;
       }
       final FeatureConfig flag = optionalFeatureConfig.get();
       if (CollectionUtils.isEmpty(flag.getRules())) {
+        log.debug("Flag {} doesn't contain any rule, continue...", key);
         continue;
       }
       for (ServingRule rule : flag.getRules()) {
         for (Clause clause : rule.getClauses()) {
           if (clause.getOp().equals(Operators.SEGMENT_MATCH)
               && clause.getValues().contains(segment)) {
+            log.debug("Flag {} evaluated in segments", flag.getFeature());
             result.add(flag.getFeature());
           }
         }
@@ -177,6 +181,7 @@ class StorageRepository implements Repository {
       if (flag.getVersion() != null && newFeatureConfig.getVersion() != null)
         return flag.getVersion() >= newFeatureConfig.getVersion();
     }
+    log.debug("Flag is outdated {}", identifier);
     return false;
   }
 
@@ -187,6 +192,7 @@ class StorageRepository implements Repository {
       if (segment.getVersion() != null && newSegment.getVersion() != null)
         return segment.getVersion() >= newSegment.getVersion();
     }
+    log.debug("Segment is outdated {}", identifier);
     return false;
   }
 
@@ -204,6 +210,7 @@ class StorageRepository implements Repository {
   public void close() {
     if (store != null) {
       store.close();
+      log.debug("store closed");
     }
   }
 }

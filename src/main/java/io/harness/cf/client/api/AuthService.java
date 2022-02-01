@@ -22,6 +22,7 @@ class AuthService extends AbstractScheduledService {
     this.connector = connector;
     this.pollIntervalInSec = pollIntervalInSec;
     this.callback = callback;
+    log.info("Authentication service initialized");
   }
 
   @Override
@@ -48,5 +49,6 @@ class AuthService extends AbstractScheduledService {
 
   public void close() {
     stopAsync();
+    log.info("Authentication service closed");
   }
 }
