@@ -4,6 +4,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import io.harness.cf.client.common.Cache;
 import java.util.ArrayList;
 import java.util.List;
+import javax.annotation.Nullable;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -24,6 +25,7 @@ public class CaffeineCache implements Cache {
   }
 
   @Override
+  @Nullable
   public Object get(@NonNull String key) {
     Object value = cache.getIfPresent(key);
     if (value != null) {
