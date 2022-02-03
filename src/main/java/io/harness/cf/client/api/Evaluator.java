@@ -205,7 +205,7 @@ class Evaluator implements Evaluation {
 
   protected Optional<String> evaluateRules(List<ServingRule> servingRules, Target target) {
     if (target == null || servingRules == null) {
-      log.debug("Target or serving rule is {}", servingRules);
+      log.debug("There is no target or serving rule");
       return Optional.empty();
     }
 
@@ -348,7 +348,6 @@ class Evaluator implements Evaluation {
     final String flagKey = "flag";
     MDC.put(flagKey, identifier);
     MDC.put(targetKey, "no target");
-    MDC.put("version", io.harness.cf.Version.VERSION);
     if (target != null) {
       MDC.put(targetKey, target.getIdentifier());
     }

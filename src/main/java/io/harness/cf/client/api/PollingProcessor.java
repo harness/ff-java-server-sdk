@@ -85,9 +85,9 @@ class PollingProcessor extends AbstractScheduledService {
       }
     } catch (Exception exc) {
       if (!initialized) {
-        callback.onPollerFailed(exc.getMessage());
+        callback.onPollerFailed(exc);
       } else {
-        callback.onPollerError(exc.getMessage());
+        callback.onPollerError(exc);
       }
     }
   }
