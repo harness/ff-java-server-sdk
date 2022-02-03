@@ -15,7 +15,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.MDC;
 
 @Slf4j
 class InnerClient
@@ -50,6 +49,10 @@ class InnerClient
 
   private final ConcurrentHashMap<Event, CopyOnWriteArrayList<Consumer<String>>> events =
       new ConcurrentHashMap<>();
+
+  static {
+    System.setProperty("version", io.harness.cf.Version.VERSION);
+  }
 
   public InnerClient(@NonNull final String sdkKey) {
     this(sdkKey, BaseConfig.builder().build());
@@ -92,11 +95,11 @@ class InnerClient
   }
 
   protected void setUp(@NonNull final Connector connector, @NonNull final BaseConfig options) {
-    MDC.put("version", io.harness.cf.Version.VERSION);
-    log.info(
-        "SDK is not initialized yet! If store is used then values will be loaded from store \n"
-            + " otherwise default values will be used in meantime. You can use waitForInitialization method for SDK to be ready.");
     this.options = options;
+    log.info(
+        "Starting SDK client {} with configuration: {}",
+        io.harness.cf.Version.VERSION,
+        this.options);
     this.connector = connector;
     this.connector.setOnUnauthorized(this::onUnauthorized);
 
@@ -289,7 +292,7 @@ class InnerClient
         log.error("Failure while initializing SDK!");
         throw new FeatureFlagInitializeException();
       }
-    }
+    } else log.info("SDK already initialized");
   }
 
   public void on(@NonNull final Event event, @NonNull final Consumer<String> consumer) {
@@ -347,7 +350,6 @@ class InnerClient
     updateProcessor.close();
     metricsProcessor.close();
     connector.close();
-    MDC.clear();
     log.info("All resources released and client closed");
   }
 }

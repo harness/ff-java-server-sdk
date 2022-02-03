@@ -348,7 +348,6 @@ class Evaluator implements Evaluation {
     final String flagKey = "flag";
     MDC.put(flagKey, identifier);
     MDC.put(targetKey, "no target");
-    MDC.put("version", io.harness.cf.Version.VERSION);
     if (target != null) {
       MDC.put(targetKey, target.getIdentifier());
     }

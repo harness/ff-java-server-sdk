@@ -9,7 +9,6 @@ import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.HTreeMap;
 import org.mapdb.Serializer;
-import org.slf4j.MDC;
 
 @Slf4j
 public class FileMapStore implements Storage, AutoCloseable {
@@ -18,7 +17,6 @@ public class FileMapStore implements Storage, AutoCloseable {
   private HTreeMap<String, Object> map;
 
   public FileMapStore(@NonNull String name) {
-    MDC.put("version", io.harness.cf.Version.VERSION);
     db = DBMaker.fileDB(name).closeOnJvmShutdown().fileChannelEnable().transactionEnable().make();
     map = db.hashMap("map", Serializer.STRING, Serializer.JAVA).createOrOpen();
     log.info("FileMapStore initialized");
@@ -79,7 +77,6 @@ public class FileMapStore implements Storage, AutoCloseable {
 
   @Override
   public void close() {
-    MDC.remove("version");
     db.close();
     log.debug("FileMapStore closed");
   }
