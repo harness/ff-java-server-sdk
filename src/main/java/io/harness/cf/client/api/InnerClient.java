@@ -92,10 +92,7 @@ class InnerClient
 
   protected void setUp(@NonNull final Connector connector, @NonNull final BaseConfig options) {
     this.options = options;
-    log.info(
-        "Starting SDK client {} with configuration: {}",
-        io.harness.cf.Version.VERSION,
-        this.options);
+    log.info("Starting SDK client with configuration: {}", this.options);
     this.connector = connector;
     this.connector.setOnUnauthorized(this::onUnauthorized);
 
