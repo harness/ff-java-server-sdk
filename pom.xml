@@ -179,17 +179,11 @@
             <version>1.7.30</version>
         </dependency>
 
-        <!-- logging library is only for testing purposes
-        application log library should be used in production -->
-
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <version>1.2.10</version>
-            <scope>test</scope>
         </dependency>
-
-        <!-- end logging -->
 
         <dependency>
             <groupId>org.mapdb</groupId>
@@ -397,6 +391,17 @@
                 <version>3.0.4</version>
             </plugin>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.0.0-M5</version>
+                <configuration>
+                    <systemPropertyVariables>
+                        <SDK>JAVA</SDK>
+                        <version>${project.version}</version>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>0.8.7</version>
@@ -414,6 +419,10 @@
                         </goals>
                     </execution>
                 </executions>
+                <configuration>
+                    <propertyName>SDK</propertyName>
+                    <propertyName>version</propertyName>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

@@ -9,6 +9,11 @@ import lombok.NonNull;
 
 public class CfClient implements AutoCloseable {
 
+  static {
+    System.setProperty("version", io.harness.cf.Version.VERSION);
+    System.setProperty("SDK", "Java");
+  }
+
   private static volatile CfClient instance;
   private InnerClient client;
 

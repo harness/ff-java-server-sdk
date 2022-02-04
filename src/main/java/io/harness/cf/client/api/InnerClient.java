@@ -50,10 +50,6 @@ class InnerClient
   private final ConcurrentHashMap<Event, CopyOnWriteArrayList<Consumer<String>>> events =
       new ConcurrentHashMap<>();
 
-  static {
-    System.setProperty("version", io.harness.cf.Version.VERSION);
-  }
-
   public InnerClient(@NonNull final String sdkKey) {
     this(sdkKey, BaseConfig.builder().build());
   }

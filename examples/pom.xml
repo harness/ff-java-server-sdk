@@ -20,7 +20,13 @@
             <artifactId>ff-java-server-sdk</artifactId>
             <version>1.1.3-SNAPSHOT</version>
             <scope>system</scope>
-            <systemPath>${pom.basedir}/../target/ff-java-server-sdk-1.1.3-SNAPSHOT-ff.jar</systemPath>
+            <systemPath>${pom.basedir}/../target/ff-java-server-sdk-1.1.3-SNAPSHOT.jar</systemPath>
+            <exclusions>
+                <exclusion>
+                    <groupId>ch.qos.logback</groupId>
+                    <artifactId>logback-classic</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -37,15 +43,14 @@
         </dependency>
 
         <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-core</artifactId>
-            <version>1.2.10</version>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+            <version>2.6.1</version>
         </dependency>
-
         <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>1.2.10</version>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>2.6.1</version>
         </dependency>
 
     </dependencies>
