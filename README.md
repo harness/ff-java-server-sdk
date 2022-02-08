@@ -200,32 +200,32 @@ and we provide variables for your configuration file.
 
 Supported variables:
 ```
-version - version of SDK, system property
+SDK - sdk language
+version - version of SDK
 flag - current flag evaluation, context variable
 target - target used for evaluation, context variable
 requestId - request identifer for interacting with FF backend, context variable
 ```
 
-put Logback dependency inside dependencies tag in pom file 
-```pom
-    <dependency>
-        <groupId>ch.qos.logback</groupId>
-        <artifactId>logback-classic</artifactId>
-        <version>1.2.10</version>
-    </dependency>
-```
-
 sample logback configuration
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<configuration>
+
+<configuration debug="false" scan="true">
+    <define name="SDK" class="io.harness.cf.client.logger.LoggingPropertiesDefiner">
+        <propertyLookupKey>SDK</propertyLookupKey>
+    </define>
+
+    <define name="version" class="io.harness.cf.client.logger.LoggingPropertiesDefiner">
+        <propertyLookupKey>version</propertyLookupKey>
+    </define>
+
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36}.%M - SDK=Java, Version=%property{version}, flag=%X{flag}, target=%X{target}, RequestID=%X{requestId} - %msg%n
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36}.%M\(%line\) - SDK=${SDK}, Version=${version}, flag=%X{flag}, target=%X{target}, requestID=%X{requestId} - %msg%n
             </pattern>
         </encoder>
     </appender>
-
     <root level="INFO">
         <appender-ref ref="STDOUT" />
     </root>
