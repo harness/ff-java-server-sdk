@@ -2,6 +2,7 @@ package io.harness.cf.client.api;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.harness.cf.client.common.Cache;
+import io.harness.cf.client.logger.LogUtil;
 import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nullable;
@@ -12,6 +13,10 @@ import lombok.extern.slf4j.Slf4j;
 public class CaffeineCache implements Cache {
 
   private final com.github.benmanes.caffeine.cache.Cache<String, Object> cache;
+
+  static {
+    LogUtil.setSystemProps();
+  }
 
   public CaffeineCache(int size) {
     cache = Caffeine.newBuilder().maximumSize(size).build();

@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import io.harness.cf.client.connector.Connector;
 import io.harness.cf.client.dto.Message;
 import io.harness.cf.client.dto.Target;
+import io.harness.cf.client.logger.LogUtil;
 import java.util.function.Consumer;
 import lombok.NonNull;
 
@@ -11,6 +12,10 @@ public class CfClient implements AutoCloseable {
 
   private static volatile CfClient instance;
   private InnerClient client;
+
+  static {
+    LogUtil.setSystemProps();
+  }
 
   public CfClient() {
     client = null;

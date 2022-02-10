@@ -13,13 +13,44 @@ test features quicker.
 
 Add the following snippet to your project's `pom.xml` file:
 
-```
+```pom
 <dependency>
     <groupId>io.harness</groupId>
     <artifactId>ff-java-server-sdk</artifactId>
     <version>[1.1.2,)</version>
 </dependency>
 ```
+
+### Logger dependencies
+
+Logback
+```pom
+<dependency> 
+    <groupId>ch.qos.logback</groupId> 
+    <artifactId>logback-classic</artifactId> 
+    <version>VERSION</version> 
+</dependency>
+```
+
+Log4j
+```pom
+<dependency>
+    <groupId>org.apache.logging.log4j</groupId>
+    <artifactId>log4j-api</artifactId>
+    <version>VERSION</version>
+</dependency>
+<dependency>
+    <groupId>org.apache.logging.log4j</groupId>
+    <artifactId>log4j-core</artifactId>
+    <version>VERSION</version>
+</dependency>
+<dependency>
+    <groupId>org.apache.logging.log4j</groupId>
+    <artifactId>log4j-slf4j-impl</artifactId>
+    <version>VERSION</version>
+</dependency>
+```
+
 
 ## Cloning the SDK repository
 
@@ -192,4 +223,58 @@ To avoid potential memory leak, when SDK is no longer needed
 cfClient.close();
 ```
 
+## Logger configuration
 
+SDK uses Sl4j as facade to any MDC supported logging library like logback, log4j2 and others.
+You probably already have log4j or logback in your project, 
+and we provide variables for your log layout file.
+
+Supported variables:
+```
+variables     description                                           scope
+SDK         - sdk language                                          system
+version     - version of SDK                                        system
+flag        - current flag evaluation                               context
+target      - target used for evaluation                            context
+requestId   - request identifer for interacting with FF backend     context
+```
+
+sample logback file
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<configuration debug="false" scan="true">
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36}.%M\(%line\) - SDK=property{SDK}, Version=property{version}, flag=%X{flag}, target=%X{target}, requestID=%X{requestId} - %msg%n
+            </pattern>
+        </encoder>
+    </appender>
+    <root level="INFO">
+        <appender-ref ref="STDOUT" />
+    </root>
+</configuration>
+```
+
+sample log4j file
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN" monitorInterval="30">
+    <Properties>
+        <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1} SDK=${sys:SDK} flag=${sys:version} target=%mdc{target} - %m%n</Property>
+    </Properties>
+
+    <Appenders>
+        <Console name="console" target="SYSTEM_OUT" follow="true">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+        </Console>
+    </Appenders>
+
+    <Loggers>
+        <Root level="info">
+            <AppenderRef ref="console"/>
+        </Root>
+    </Loggers>
+</Configuration>
+```

@@ -7,6 +7,7 @@ import io.harness.cf.client.api.Event;
 import io.harness.cf.client.api.FileMapStore;
 import io.harness.cf.client.dto.Target;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -46,8 +47,13 @@ class Simple {
         scheduler.scheduleAtFixedRate(
                 () -> {
                     final boolean bResult = client.boolVariation("harnessappdemoenablecimodule", target, false);
+                    MDC.put("flag", "harnessappdemoenablecimodule");
+                    MDC.put("target", target.getIdentifier());
                     log.info("Boolean variation: {}", bResult);
+
                     final JsonObject jsonResult = client.jsonVariation("flag4", target, new JsonObject());
+                    MDC.put("flag", "flag4");
+                    MDC.put("target", target.getIdentifier());
                     log.info("JSON variation: {}", jsonResult);
                 },
                 0,

@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.here.oksse.OkSse;
 import com.here.oksse.ServerSentEvent;
 import io.harness.cf.client.dto.Message;
+import io.harness.cf.client.logger.LogUtil;
 import java.util.Map;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +20,10 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
   private final Request.Builder builder;
 
   private ServerSentEvent sse;
+
+  static {
+    LogUtil.setSystemProps();
+  }
 
   public EventSource(@NonNull String url, Map<String, String> headers, @NonNull Updater updater) {
     this.updater = updater;

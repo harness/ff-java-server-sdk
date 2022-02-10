@@ -6,6 +6,7 @@ import io.harness.cf.ApiException;
 import io.harness.cf.api.ClientApi;
 import io.harness.cf.api.MetricsApi;
 import io.harness.cf.client.dto.Claim;
+import io.harness.cf.client.logger.LogUtil;
 import io.harness.cf.model.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -31,6 +32,10 @@ public class HarnessConnector implements Connector, AutoCloseable {
   private Runnable onUnauthorized;
 
   private final Gson gson = new Gson();
+
+  static {
+    LogUtil.setSystemProps();
+  }
 
   public HarnessConnector(@NonNull String apiKey) {
     this(apiKey, HarnessConfig.builder().build());
