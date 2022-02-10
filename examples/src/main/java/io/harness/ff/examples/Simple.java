@@ -48,10 +48,12 @@ class Simple {
                 () -> {
                     final boolean bResult = client.boolVariation("harnessappdemoenablecimodule", target, false);
                     MDC.put("flag", "harnessappdemoenablecimodule");
+                    MDC.put("target", target.getIdentifier());
                     log.info("Boolean variation: {}", bResult);
 
                     final JsonObject jsonResult = client.jsonVariation("flag4", target, new JsonObject());
                     MDC.put("flag", "flag4");
+                    MDC.put("target", target.getIdentifier());
                     log.info("JSON variation: {}", jsonResult);
                 },
                 0,
