@@ -347,16 +347,16 @@ class Evaluator implements Evaluation {
     final String targetKey = "target";
     final String flagKey = "flag";
     MDC.put(flagKey, identifier);
-    MDC.put(targetKey, "no target");
+    MDC.put(targetKey, "_no_target");
     if (target != null) {
       MDC.put(targetKey, target.getIdentifier());
     }
-    Optional<FeatureConfig> flag = query.getFlag(identifier);
-    if (!flag.isPresent() || flag.get().getKind() != expected) {
-      return Optional.empty();
-    }
-
     try {
+      Optional<FeatureConfig> flag = query.getFlag(identifier);
+      if (!flag.isPresent() || flag.get().getKind() != expected) {
+        return Optional.empty();
+      }
+
       if (!CollectionUtils.isEmpty(flag.get().getPrerequisites())) {
         boolean prereq = checkPreRequisite(flag.get(), target);
         if (!prereq) {

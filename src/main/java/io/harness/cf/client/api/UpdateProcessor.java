@@ -14,7 +14,7 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class UpdateProcessor implements AutoCloseable {
+class UpdateProcessor implements AutoCloseable {
   private final Connector connector;
   private final Repository repository;
   private final Updater updater;

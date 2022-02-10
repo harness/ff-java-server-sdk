@@ -1,6 +1,7 @@
 package io.harness.cf.client.api;
 
 import io.harness.cf.client.common.Storage;
+import io.harness.cf.client.logger.LogUtil;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.NonNull;
@@ -15,6 +16,10 @@ public class FileMapStore implements Storage, AutoCloseable {
 
   private final DB db;
   private HTreeMap<String, Object> map;
+
+  static {
+    LogUtil.setSystemProps();
+  }
 
   public FileMapStore(@NonNull String name) {
     db = DBMaker.fileDB(name).closeOnJvmShutdown().fileChannelEnable().transactionEnable().make();

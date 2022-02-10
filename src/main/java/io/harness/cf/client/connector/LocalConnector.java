@@ -1,6 +1,7 @@
 package io.harness.cf.client.connector;
 
 import com.google.gson.Gson;
+import io.harness.cf.client.logger.LogUtil;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Metrics;
 import io.harness.cf.model.Segment;
@@ -27,6 +28,10 @@ public class LocalConnector implements Connector, AutoCloseable {
   private static final String SEGMENTS = "segments";
   private final String source;
   private final Gson gson = new Gson();
+
+  static {
+    LogUtil.setSystemProps();
+  }
 
   public LocalConnector(@NonNull final String source) {
     this.source = source;

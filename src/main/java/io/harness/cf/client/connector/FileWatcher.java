@@ -10,7 +10,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class FileWatcher implements Runnable, AutoCloseable, Service {
+class FileWatcher implements Runnable, AutoCloseable, Service {
 
   private final Updater updater;
   private final String domain;
