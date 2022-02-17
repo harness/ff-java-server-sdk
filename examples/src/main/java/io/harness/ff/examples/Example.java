@@ -45,7 +45,7 @@ public class Example {
             final FileMapStore fileStore = new FileMapStore(keyName);
             final Config.ConfigBuilder<?, ?> builder = Config.builder();
 
-            if (keyName.equals(UAT_API_KEY)) {
+            if (keyName.equals("UAT")) {
 
                 builder
                         .configUrl("https://config.feature-flags.uat.harness.io/api/1.0")
