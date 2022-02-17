@@ -1,1 +1,7 @@
 target/
+
+# example stores
+Freemium*
+Non-Freemium*
+UAT
+UAT.wal.*

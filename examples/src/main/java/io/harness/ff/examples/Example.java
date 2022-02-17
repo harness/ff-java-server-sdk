@@ -1,10 +1,7 @@
 package io.harness.ff.examples;
 
 import com.google.gson.JsonObject;
-import io.harness.cf.client.api.CfClient;
-import io.harness.cf.client.api.Config;
-import io.harness.cf.client.api.FeatureFlagInitializeException;
-import io.harness.cf.client.api.FileMapStore;
+import io.harness.cf.client.api.*;
 import io.harness.cf.client.dto.Target;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +18,7 @@ public class Example {
     private static final HashMap<String, String> keys;
     private static final ScheduledExecutorService scheduler;
 
+    private static final String UAT_API_KEY = "397ca7c2-c36b-4f29-8842-79b856e8a4d7";
     private static final String FREEMIUM_API_KEY = "45d2a13a-c62f-4116-a1a7-86f25d715a2e";
     private static final String FREEMIUM_API_KEY_2 = "44255167-bc3e-4831-a79a-640234fdced8";
     private static final String NON_FREEMIUM_API_KEY = "9ecc4ced-afc1-45af-9b54-c899cbff4b62";
@@ -29,6 +27,7 @@ public class Example {
     static {
         capacity = 5;
         keys = new HashMap<>(capacity);
+        keys.put("UAT", UAT_API_KEY);
         keys.put("Freemium", FREEMIUM_API_KEY);
         keys.put("Freemium-2", FREEMIUM_API_KEY_2);
         keys.put("Non-Freemium", NON_FREEMIUM_API_KEY);
@@ -44,7 +43,16 @@ public class Example {
 
             final String apiKey = keys.get(keyName);
             final FileMapStore fileStore = new FileMapStore(keyName);
-            final CfClient client = new CfClient(apiKey, Config.builder().store(fileStore).build());
+            final Config.ConfigBuilder<?, ?> builder = Config.builder();
+
+            if (keyName.equals(UAT_API_KEY)) {
+
+                builder
+                        .configUrl("https://config.feature-flags.uat.harness.io/api/1.0")
+                        .eventUrl("https://event.feature-flags.uat.harness.io/api/1.0");
+            }
+
+            final CfClient client = new CfClient(apiKey, builder.store(fileStore).build());
             final String logPrefix = keyName + " :: " + client.hashCode() + " ";
 
             final String random = getRandom();
