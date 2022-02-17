@@ -15,7 +15,7 @@ import org.mapdb.Serializer;
 public class FileMapStore implements Storage, AutoCloseable {
 
   private final DB db;
-  private HTreeMap<String, Object> map;
+  private final HTreeMap<String, Object> map;
 
   static {
     LogUtil.setSystemProps();
