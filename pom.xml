@@ -81,12 +81,12 @@
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
-            <version>4.9.1</version>
+            <version>3.9.1</version>
         </dependency>
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>logging-interceptor</artifactId>
-            <version>4.9.1</version>
+            <version>3.9.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.maven</groupId>
@@ -146,13 +146,11 @@
             <version>3.0.8</version>
         </dependency>
 
-        <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-collections4 -->
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-collections4</artifactId>
             <version>4.4</version>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
 
         <dependency>
             <groupId>javax.annotation</groupId>
@@ -195,7 +193,7 @@
             <plugin>
                 <groupId>org.openapitools</groupId>
                 <artifactId>openapi-generator-maven-plugin</artifactId>
-                <version>5.2.1</version>
+                <version>4.3.1</version>
                 <executions>
                     <execution>
                         <id>client</id>
