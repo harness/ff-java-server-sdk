@@ -187,12 +187,14 @@ class InnerClient
   }
 
   @Override
-  public void onMetricsError(@NonNull final String error) {}
+  public void onMetricsError(@NonNull final String error) {
+    log.error("Metrics error: {}", error);
+  }
 
   @Override
-  public void onMetricsFailure() {
+  public synchronized void onMetricsFailure() {
     failure = true;
-    notify();
+    notifyAll();
   }
 
   @Override
@@ -218,9 +220,9 @@ class InnerClient
   }
 
   @Override
-  public void onFailure(@NonNull final String error) {
+  public synchronized void onFailure(@NonNull final String error) {
     failure = true;
-    notify();
+    notifyAll();
   }
 
   @Override
@@ -262,7 +264,7 @@ class InnerClient
     }
 
     initialized = true;
-    notify();
+    notifyAll();
     notifyConsumers(Event.READY, null);
     log.info("Initialization is complete");
   }
@@ -277,15 +279,15 @@ class InnerClient
   /** if waitForInitialization is used then on(READY) will never be triggered */
   public synchronized void waitForInitialization()
       throws InterruptedException, FeatureFlagInitializeException {
-    if (!initialized) {
+    while (!initialized) {
       log.info("Wait for initialization to finish");
       wait();
 
       if (failure) {
         log.error("Failure while initializing SDK!");
         throw new FeatureFlagInitializeException();
-      }
-    } else log.info("SDK already initialized");
+      } else log.info("SDK already initialized");
+    }
   }
 
   public void on(@NonNull final Event event, @NonNull final Consumer<String> consumer) {
