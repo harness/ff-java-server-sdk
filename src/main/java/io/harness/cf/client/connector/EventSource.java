@@ -75,7 +75,7 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
 
   @Override
   public Request onPreRetry(ServerSentEvent serverSentEvent, Request request) {
-    return null;
+    return request;
   }
 
   @Override

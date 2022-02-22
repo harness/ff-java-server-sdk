@@ -32,8 +32,8 @@ public class ConfigExample {
                 new HarnessConnector(
                         SDK_KEY,
                         HarnessConfig.builder()
-                                .configUrl("http://localhost:9090/api/1.0")
-                                .eventUrl("http://localhost:9090/api/1.0")
+                                .configUrl("http://localhost:3000/api/1.0")
+                                .eventUrl("http://localhost:3000/api/1.0")
                                 .build());
         client = new CfClient(hc);
         client.waitForInitialization();
