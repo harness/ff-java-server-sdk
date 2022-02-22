@@ -23,7 +23,7 @@ Add the following snippet to your project's `pom.xml` file:
 
 ### General dependencies
 
-All SDK dependencies are defined in the main project pom [pom](./pom.xml) file.
+All SDK dependencies are defined in the main project [pom](./pom.xml) file.
 
 ### Logger dependencies
 
