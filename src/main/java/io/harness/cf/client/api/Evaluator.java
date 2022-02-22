@@ -55,11 +55,10 @@ class Evaluator implements Evaluation {
       log.debug("Empty identifier {} or variations {} occurred", identifier, variations);
       return Optional.empty();
     }
-    try {
-      return variations.stream().filter(v -> v.getIdentifier().equals(identifier)).findFirst();
-    } finally {
-      log.debug("Variation {} found in variations {}", identifier, variations);
-    }
+    Optional<Variation> variation =
+        variations.stream().filter(v -> v.getIdentifier().equals(identifier)).findFirst();
+    log.debug("Variation {} found in variations {}", identifier, variations);
+    return variation;
   }
 
   protected int getNormalizedNumber(@NonNull Object property, @NonNull String bucketBy) {
