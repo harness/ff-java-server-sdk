@@ -286,7 +286,7 @@ class InnerClient
       if (failure) {
         log.error("Failure while initializing SDK!");
         throw new FeatureFlagInitializeException();
-      } else log.info("SDK already initialized");
+      }
     }
   }
 

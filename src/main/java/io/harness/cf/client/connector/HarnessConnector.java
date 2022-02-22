@@ -128,6 +128,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
     try {
       final AuthenticationRequest request = AuthenticationRequest.builder().apiKey(apiKey).build();
       final AuthenticationResponse response = api.authenticate(request);
+      log.info("Successfully authenticated");
       token = response.getAuthToken();
       log.debug("Token generated");
       processToken(token);
@@ -141,7 +142,6 @@ public class HarnessConnector implements Connector, AutoCloseable {
       log.error("Failed to get auth token", apiException);
       throw new ConnectorException(apiException.getMessage());
     } finally {
-      log.info("Successfully authenticated");
       MDC.remove(REQUEST_ID_KEY);
     }
   }
@@ -177,6 +177,11 @@ public class HarnessConnector implements Connector, AutoCloseable {
     List<FeatureConfig> featureConfig = new ArrayList<>();
     try {
       featureConfig = api.getFeatureConfig(environment, cluster);
+      log.info(
+          "Total configurations fetched: {} on env {} and cluster {}",
+          featureConfig.size(),
+          this.environment,
+          this.cluster);
       return featureConfig;
     } catch (ApiException e) {
       log.error(
@@ -186,11 +191,6 @@ public class HarnessConnector implements Connector, AutoCloseable {
           e);
       throw new ConnectorException(e.getMessage());
     } finally {
-      log.info(
-          "Total configurations fetched: {} on env {} and cluster {}",
-          featureConfig.size(),
-          this.environment,
-          this.cluster);
       MDC.remove(REQUEST_ID_KEY);
     }
   }
@@ -202,7 +202,14 @@ public class HarnessConnector implements Connector, AutoCloseable {
     log.debug(
         "Fetch flag {} from env {} and cluster {}", identifier, this.environment, this.cluster);
     try {
-      return api.getFeatureConfigByIdentifier(identifier, environment, cluster);
+      FeatureConfig featureConfigByIdentifier =
+          api.getFeatureConfigByIdentifier(identifier, environment, cluster);
+      log.debug(
+          "Flag {} successfully fetched from env {} and cluster {}",
+          identifier,
+          this.environment,
+          this.cluster);
+      return featureConfigByIdentifier;
     } catch (ApiException e) {
       log.error(
           "Exception was raised while fetching the flag {} on env {} and cluster {}",
@@ -212,11 +219,6 @@ public class HarnessConnector implements Connector, AutoCloseable {
           e);
       throw new ConnectorException(e.getMessage());
     } finally {
-      log.debug(
-          "Flag {} successfully fetched from env {} and cluster {}",
-          identifier,
-          this.environment,
-          this.cluster);
       MDC.remove(REQUEST_ID_KEY);
     }
   }
@@ -230,6 +232,11 @@ public class HarnessConnector implements Connector, AutoCloseable {
     List<Segment> allSegments = new ArrayList<>();
     try {
       allSegments = api.getAllSegments(environment, cluster);
+      log.debug(
+          "Total target groups fetched: {} on env {} and cluster {}",
+          allSegments.size(),
+          this.environment,
+          this.cluster);
       return allSegments;
     } catch (ApiException e) {
       log.error(
@@ -239,11 +246,6 @@ public class HarnessConnector implements Connector, AutoCloseable {
           e);
       throw new ConnectorException(e.getMessage());
     } finally {
-      log.debug(
-          "Total target groups fetched: {} on env {} and cluster {}",
-          allSegments.size(),
-          this.environment,
-          this.cluster);
       MDC.remove(REQUEST_ID_KEY);
     }
   }
@@ -258,7 +260,13 @@ public class HarnessConnector implements Connector, AutoCloseable {
         this.environment,
         this.cluster);
     try {
-      return api.getSegmentByIdentifier(identifier, environment, cluster);
+      Segment segmentByIdentifier = api.getSegmentByIdentifier(identifier, environment, cluster);
+      log.debug(
+          "Segment {} successfully fetched from env {} and cluster {}",
+          identifier,
+          this.environment,
+          this.cluster);
+      return segmentByIdentifier;
     } catch (ApiException e) {
       log.error(
           "Exception was raised while fetching the target group {} on env {} and cluster {}",
@@ -268,11 +276,6 @@ public class HarnessConnector implements Connector, AutoCloseable {
           e);
       throw new ConnectorException(e.getMessage());
     } finally {
-      log.debug(
-          "Segment {} successfully fetched from env {} and cluster {}",
-          identifier,
-          this.environment,
-          this.cluster);
       MDC.remove(REQUEST_ID_KEY);
     }
   }

@@ -55,17 +55,17 @@ public class LocalConnector implements Connector, AutoCloseable {
       throws ConnectorException {
     log.debug("List files in {} with {}", source, domain);
     try {
-      return Files.list(Paths.get(source, domain))
-          .filter(Files::isRegularFile)
-          .filter(path -> path.toString().endsWith(JSON_EXTENSION))
-          .map(Path::toFile);
-
+      Stream<File> fileStream =
+          Files.list(Paths.get(source, domain))
+              .filter(Files::isRegularFile)
+              .filter(path -> path.toString().endsWith(JSON_EXTENSION))
+              .map(Path::toFile);
+      log.debug("List files successfully executed");
+      return fileStream;
     } catch (IOException e) {
       log.error(
           "Exception was raised while listing the files in {} and domain {}", source, domain, e);
       throw new ConnectorException(e.getMessage());
-    } finally {
-      log.debug("List files successfully executed");
     }
   }
 
@@ -74,12 +74,11 @@ public class LocalConnector implements Connector, AutoCloseable {
     log.debug("Loading file {}", file);
     try {
       final String content = new String(Files.readAllBytes(file.toPath()));
+      log.debug("File was successfully loaded {}", file);
       return ImmutablePair.of(gson.fromJson(content, classOfT), null);
     } catch (Exception e) {
       log.error("Exception was raised while loading file {}", file, e);
       return ImmutablePair.of(null, e);
-    } finally {
-      log.debug("File was successfully loaded {}", file);
     }
   }
 
@@ -97,14 +96,14 @@ public class LocalConnector implements Connector, AutoCloseable {
 
   @Override
   public List<FeatureConfig> getFlags() throws ConnectorException {
-    try {
-      return listFiles(source, FLAGS)
-          .map(file -> load(file, FeatureConfig.class))
-          .filter(Objects::nonNull)
-          .collect(Collectors.toList());
-    } finally {
-      log.info("Flags successfully loaded from {}/{}", source, FLAGS);
-    }
+
+    List<FeatureConfig> configs =
+        listFiles(source, FLAGS)
+            .map(file -> load(file, FeatureConfig.class))
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
+    log.info("Flags successfully loaded from {}/{}", source, FLAGS);
+    return configs;
   }
 
   @Override
@@ -123,14 +122,14 @@ public class LocalConnector implements Connector, AutoCloseable {
   @Override
   public List<Segment> getSegments() throws ConnectorException {
     log.debug("Loading target groups from path {}/{}", source, SEGMENTS);
-    try {
-      return listFiles(source, SEGMENTS)
-          .map(file -> load(file, Segment.class))
-          .filter(Objects::nonNull)
-          .collect(Collectors.toList());
-    } finally {
-      log.debug("Target groups successfully loaded from {}/{}", source, SEGMENTS);
-    }
+
+    List<Segment> list =
+        listFiles(source, SEGMENTS)
+            .map(file -> load(file, Segment.class))
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
+    log.debug("Target groups successfully loaded from {}/{}", source, SEGMENTS);
+    return list;
   }
 
   @Override
@@ -157,11 +156,10 @@ public class LocalConnector implements Connector, AutoCloseable {
           content.getBytes(),
           StandardOpenOption.CREATE,
           StandardOpenOption.APPEND);
+      log.debug("Metrics stored successfully");
     } catch (IOException e) {
       log.error("Exception was raised while storing metrics", e);
       throw new ConnectorException(e.getMessage());
-    } finally {
-      log.debug("Metrics stored successfully");
     }
   }
 
@@ -169,12 +167,12 @@ public class LocalConnector implements Connector, AutoCloseable {
   public Service stream(@NonNull final Updater updater) throws ConnectorException {
     log.debug("Initializing stream");
     try {
-      return new FileWatcherService(updater);
+      FileWatcherService fileWatcherService = new FileWatcherService(updater);
+      log.debug("Stream successfully initialized");
+      return fileWatcherService;
     } catch (IOException e) {
       log.error("Error initializing stream", e);
       throw new ConnectorException(e.getMessage());
-    } finally {
-      log.debug("Stream successfully initialized");
     }
   }
 
