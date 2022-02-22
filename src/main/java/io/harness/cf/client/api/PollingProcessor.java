@@ -100,14 +100,17 @@ class PollingProcessor extends AbstractScheduledService {
   }
 
   public void start() {
+    if (isRunning()) {
+      return;
+    }
     log.info("Starting PollingProcessor with request interval: {}", pollIntervalSeconds);
     startAsync();
   }
 
   public void stop() {
     log.info("Stopping PollingProcessor");
-    stopAsync();
-    if (!isRunning()) {
+    if (isRunning()) {
+      stopAsync();
       log.info("PollingProcessor stopped");
     }
   }

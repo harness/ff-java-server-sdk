@@ -63,8 +63,8 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
   @Override
   public boolean onRetryError(
       ServerSentEvent serverSentEvent, Throwable throwable, Response response) {
-    log.warn("EventSource onRetryError {}", response.message());
-    return false;
+    log.warn("EventSource onRetryError");
+    return true;
   }
 
   @Override
