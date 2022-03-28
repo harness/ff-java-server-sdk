@@ -18,6 +18,7 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.testng.Assert;
 import org.testng.annotations.Factory;
+import java.nio.file.Files;
 
 @Slf4j
 public class EvaluatorIntegrationTest {
@@ -96,7 +97,8 @@ public class EvaluatorIntegrationTest {
 
       for (final String key : file.getExpected().keySet()) {
         final Object expected = file.getExpected().get(key);
-        final TestCase testCase = new TestCase(file.getTestFile(), key, expected, file);
+        final String testName =  removeExtension(file.getTestFile());
+        final TestCase testCase = new TestCase(file.getTestFile(), key, expected, file, testName);
         final FFUseCaseTest useCase = new FFUseCaseTest(testCase, evaluator);
         Assert.assertTrue(list.add(useCase));
       }
@@ -115,4 +117,13 @@ public class EvaluatorIntegrationTest {
     }
     return builder.toString();
   }
+
+  public static String removeExtension(String fname) {
+    int pos = fname.lastIndexOf('.');
+    if(pos > -1)
+      return fname.substring(0, pos);
+    else
+      return fname;
+  }
 }
+

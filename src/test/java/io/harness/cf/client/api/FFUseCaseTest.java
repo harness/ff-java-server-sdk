@@ -5,17 +5,33 @@ import io.harness.cf.client.dto.Target;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.testng.Assert;
+import org.testng.ITest;
 import org.testng.annotations.Test;
+import org.testng.annotations.BeforeMethod;
+
+import java.lang.reflect.Method;
 
 @Slf4j
-public class FFUseCaseTest {
+public class FFUseCaseTest implements ITest {
 
   private final TestCase testCase;
   private final Evaluator evaluator;
 
+  private ThreadLocal<String> testName = new ThreadLocal<>();
+
   public FFUseCaseTest(@NonNull final TestCase testCase, @NonNull final Evaluator evaluator) {
     this.testCase = testCase;
     this.evaluator = evaluator;
+  }
+
+  @BeforeMethod
+  public void BeforeMethod(Method method, Object[] testData){
+    testName.set(testCase.getTestName());
+  }
+
+  @Override
+  public String getTestName() {
+    return testName.get();
   }
 
   @Test

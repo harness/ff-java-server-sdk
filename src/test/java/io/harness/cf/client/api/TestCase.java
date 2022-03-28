@@ -10,4 +10,5 @@ public class TestCase {
   private final String targetIdentifier;
   private final Object expectedValue;
   private final TestFileData fileData;
+  private final String testName;
 }
