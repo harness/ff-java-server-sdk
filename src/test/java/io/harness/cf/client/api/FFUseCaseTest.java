@@ -17,7 +17,7 @@ public class FFUseCaseTest implements ITest {
   private final TestCase testCase;
   private final Evaluator evaluator;
 
-  private ThreadLocal<String> testName = new ThreadLocal<>();
+  private final ThreadLocal<String> testName = new ThreadLocal<>();
 
   public FFUseCaseTest(@NonNull final TestCase testCase, @NonNull final Evaluator evaluator) {
     this.testCase = testCase;
