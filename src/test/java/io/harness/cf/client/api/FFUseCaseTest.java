@@ -26,7 +26,7 @@ public class FFUseCaseTest implements ITest {
 
   @BeforeMethod
   public void BeforeMethod(Method method, Object[] testData){
-    testName.set(testCase.getTestName());
+    testName.set(testCase.getTestName() + "_with_target_" +testCase.getTargetIdentifier());
   }
 
   @Override
