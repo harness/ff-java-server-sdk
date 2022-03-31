@@ -30,20 +30,22 @@ class Evaluator implements Evaluation {
     this.query = query;
   }
 
-  protected Optional<Object> getAttrValue(Target target, @NonNull String attribute) {
+  protected Optional<Object> getAttrValue(@NonNull Target target, @NonNull String attribute) {
     if (Strings.isNullOrEmpty(attribute)) {
       log.debug("Attribute is empty");
       return Optional.empty();
     }
-    try {
-      Field field = Target.class.getDeclaredField(attribute);
-      field.setAccessible(true);
-      return Optional.of(field.get(target));
-    } catch (NoSuchFieldException | IllegalAccessException e) {
-      if (target.getAttributes() != null) {
-        log.debug("Checking attributes field {}", attribute);
-        return Optional.of(target.getAttributes().get(attribute));
-      }
+
+    switch(attribute) {
+      case "identifier":
+        return Optional.of(target.getIdentifier());
+      case "name":
+        return Optional.ofNullable(target.getName());
+      default:
+        if (target.getAttributes() != null) {
+          log.debug("Checking attributes field {}", attribute);
+          return Optional.ofNullable(target.getAttributes().get(attribute));
+        }
     }
     log.error("Attribute {} does not exist", attribute);
     return Optional.empty();
