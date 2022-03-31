@@ -241,7 +241,7 @@ class InnerClient
   }
 
   private synchronized void initialize(@NonNull final Processor processor) {
-    if (closing) {
+    if (initialized || closing) {
       return;
     }
     switch (processor) {
