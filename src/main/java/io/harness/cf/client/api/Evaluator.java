@@ -30,9 +30,14 @@ class Evaluator implements Evaluation {
     this.query = query;
   }
 
-  protected Optional<Object> getAttrValue(@NonNull Target target, @NonNull String attribute) {
+  protected Optional<Object> getAttrValue(Target target, @NonNull String attribute) {
     if (Strings.isNullOrEmpty(attribute)) {
       log.debug("Attribute is empty");
+      return Optional.empty();
+    }
+
+    if (target == null) {
+      log.debug("Target is null");
       return Optional.empty();
     }
 
