@@ -135,6 +135,11 @@ class InnerClient
     log.debug("start poller processor");
     pollProcessor.start();
 
+    if (options.isStreamEnabled()) {
+      log.debug("Stream enabled, start update processor");
+      updateProcessor.start();
+    }
+
     if (options.isAnalyticsEnabled()) {
       log.debug("Analytics enabled, start metrics processor");
       metricsProcessor.start();
@@ -144,11 +149,6 @@ class InnerClient
   @Override
   public void onPollerReady() {
     initialize(Processor.POLL);
-
-    if (options.isStreamEnabled()) {
-      log.debug("Stream enabled, start update processor");
-      updateProcessor.start();
-    }
   }
 
   @Override

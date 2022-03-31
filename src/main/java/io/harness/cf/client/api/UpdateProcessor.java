@@ -22,6 +22,8 @@ class UpdateProcessor implements AutoCloseable {
 
   private Service stream;
 
+  private boolean running = false;
+
   public UpdateProcessor(
       @NonNull final Connector connector,
       @NonNull final Repository repository,
@@ -34,9 +36,15 @@ class UpdateProcessor implements AutoCloseable {
 
   public void start() {
     log.info("Starting updater (EventSource)");
+    if (running) {
+      log.info("updater already started");
+      return;
+    }
+
     try {
       stream = connector.stream(this.updater);
       stream.start();
+      running = true;
     } catch (ConnectorException | InterruptedException e) {
       log.error("Starting updater failed with exc: {}", e.getMessage());
     }
@@ -45,8 +53,13 @@ class UpdateProcessor implements AutoCloseable {
   public void stop() {
     try {
       if (stream != null) {
+        if (!running) {
+          log.info("updater cannot be stopped because it is not in running state");
+          return;
+        }
         log.info("Stopping updater (EventSource)");
         stream.stop();
+        running = false;
       }
       boolean result = executor.awaitTermination(3, TimeUnit.SECONDS);
       if (result) {
