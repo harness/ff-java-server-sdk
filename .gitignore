@@ -31,3 +31,5 @@ gradlew*
 wrapper.json
 
 local/metrics/*
+Non-Freemium
+src/main/java/io/harness/cf/client/example
