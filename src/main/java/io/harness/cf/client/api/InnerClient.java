@@ -261,6 +261,7 @@ class InnerClient
 
   private synchronized void initialize(@NonNull final Processor processor) {
     if (initialized || closing) {
+      log.debug("client is already initialized {} or closing {}", initialized, closing);
       return;
     }
     switch (processor) {
