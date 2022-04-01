@@ -7,6 +7,7 @@ import io.harness.cf.client.dto.Message;
 import io.harness.cf.client.logger.LogUtil;
 import java.util.Map;
 import lombok.NonNull;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -18,6 +19,7 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
   private final Updater updater;
   private final Gson gson = new Gson();
   private final Request.Builder builder;
+  private int retryTime = 2_000;
 
   private ServerSentEvent sse;
 
@@ -64,7 +66,11 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
   public boolean onRetryError(
       ServerSentEvent serverSentEvent, Throwable throwable, Response response) {
     log.warn("EventSource onRetryError");
-    return response.code() == 429 || response.code() >= 500;
+    updater.onError();
+    if (response != null) {
+      return response.code() == 429 || response.code() >= 500;
+    }
+    return true;
   }
 
   @Override
@@ -73,9 +79,13 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
     updater.onDisconnected();
   }
 
+  @SneakyThrows
   @Override
   public Request onPreRetry(ServerSentEvent serverSentEvent, Request request) {
-    log.warn("EventSource onRetryError -> prepare to retry");
+    log.info("EventSource onPreRetry, retry after {}ms", retryTime);
+    Thread.sleep(retryTime);
+    retryTime = retryTime * 2;
+    log.info("EventSource retrying");
     return request;
   }
 

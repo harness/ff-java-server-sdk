@@ -1,6 +1,7 @@
 package io.harness.cf.client.api;
 
 import com.google.common.base.Strings;
+import com.google.common.util.concurrent.Service;
 import com.google.gson.JsonObject;
 import io.harness.cf.client.connector.Connector;
 import io.harness.cf.client.connector.HarnessConfig;
@@ -10,6 +11,8 @@ import io.harness.cf.client.dto.Message;
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Variation;
+import java.time.Instant;
+import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
@@ -46,6 +49,8 @@ class InnerClient
   private boolean pollerReady = false;
   private boolean streamReady = false;
   private boolean metricReady = false;
+
+  private Date pollerStartedAt;
 
   private final ConcurrentHashMap<Event, CopyOnWriteArrayList<Consumer<String>>> events =
       new ConcurrentHashMap<>();
@@ -199,15 +204,28 @@ class InnerClient
 
   @Override
   public void onConnected() {
-    pollProcessor.stop();
+    if (pollProcessor.state() == Service.State.RUNNING) {
+      pollProcessor.stop();
+    }
   }
 
   @Override
   public void onDisconnected() {
-    if (!closing) {
+    // onDisconnected can be called multiple times from updater because of retries
+    // and we cannot create many poller instances so we need to check if
+    // on closing the client, state of the poller and when poller is last time started
+    Date now = new Date();
+    if (pollerStartedAt == null) {
+      pollerStartedAt = new Date();
+    }
+    Instant instant = pollerStartedAt.toInstant().plusSeconds(options.getPollIntervalInSeconds());
+    if (!closing
+        && pollProcessor.state() == Service.State.TERMINATED
+        && now.after(Date.from(instant))) {
       pollProcessor =
           new PollingProcessor(connector, repository, options.getPollIntervalInSeconds(), this);
       pollProcessor.start();
+      pollerStartedAt = new Date();
     }
   }
 
@@ -218,7 +236,8 @@ class InnerClient
 
   @Override
   public void onError() {
-    // on updater error
+    // when error happens on updater (stream)
+    onDisconnected();
   }
 
   @Override
