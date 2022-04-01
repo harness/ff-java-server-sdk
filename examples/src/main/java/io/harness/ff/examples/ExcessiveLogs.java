@@ -14,8 +14,7 @@ import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class ExcessiveLogs {
-//    private static final String SDK_KEY = "97432269-f803-4efa-bca9-36c22d77ad5d";
-    private static final String SDK_KEY = "2e182b14-9944-4bd4-9c9f-3e859e2a2954";
+    private static final String SDK_KEY = System.getenv("SDK_KEY");
     private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     private static CfClient client;
