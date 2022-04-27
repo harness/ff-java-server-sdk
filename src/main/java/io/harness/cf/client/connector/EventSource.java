@@ -11,6 +11,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Request;
 import okhttp3.Response;
+import okhttp3.logging.HttpLoggingInterceptor;
 
 @Slf4j
 public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Service {
@@ -20,6 +21,7 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
   private final Gson gson = new Gson();
   private final Request.Builder builder;
   private int retryTime = 2_000;
+  private HttpLoggingInterceptor loggingInterceptor;
 
   private ServerSentEvent sse;
 
@@ -30,6 +32,16 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
   public EventSource(@NonNull String url, Map<String, String> headers, @NonNull Updater updater) {
     this.updater = updater;
     okSse = new OkSse();
+
+    if (log.isDebugEnabled()) {
+      loggingInterceptor = new HttpLoggingInterceptor();
+      loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
+      okSse.getClient().interceptors().add(loggingInterceptor);
+    } else {
+      okSse.getClient().interceptors().remove(loggingInterceptor);
+      loggingInterceptor = null;
+    }
+
     builder = new Request.Builder().url(url);
     headers.forEach(builder::header);
     updater.onReady();
