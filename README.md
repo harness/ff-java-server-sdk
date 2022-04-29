@@ -1,31 +1,33 @@
-Harness CF Java Server SDK
+Harness Feature Flag Java SDK
 ========================
 
-## Overview
+## Table of Contents
+**[Intro](#Intro)**<br>
+**[Requirements](#Requirements)**<br>
+**[Quickstart](#Quickstart)**<br>
+**[Further Reading](docs/further_reading.md)**<br>
+**[Build Instructions](docs/build.md)**<br>
 
--------------------------
-[Harness](https://www.harness.io/) is a feature management platform that helps teams to build better software and to
-test features quicker.
 
--------------------------
+## Intro
 
-## Setup
+Harness Feature Flags (FF) is a feature management solution that enables users to change the software’s functionality, without deploying new code. FF uses feature flags to hide code or behaviours without having to ship new versions of the software. A feature flag is like a powerful if statement.
+* For more information, see https://harness.io/products/feature-flags/
+* To read more, see https://ngdocs.harness.io/category/vjolt35atg-feature-flags
+* To sign up, https://app.harness.io/auth/#/signup/
 
-Add the following snippet to your project's `pom.xml` file:
+![FeatureFlags](https://github.com/harness/ff-java-server-sdk/raw/main/docs/images/ff-gui.png)
 
-```pom
-<dependency>
-    <groupId>io.harness</groupId>
-    <artifactId>ff-java-server-sdk</artifactId>
-    <version>[1.1.3,)</version>
-</dependency>
-```
+## Requirements
 
-### General dependencies
+[JDK 8](https://openjdk.java.net/install/) or newer<br>
+Maven or Gradle
 
-All SDK dependencies are defined in the main project [pom](./pom.xml) file.
+### General Dependencies
 
-### Logger dependencies
+[Defined in the main project](./pom.xml)
+
+### Logging Dependencies
 
 Logback
 ```pom
@@ -55,230 +57,82 @@ Log4j
 </dependency>
 ```
 
+## Quickstart
+The Feature Flag SDK provides a client that connects to the feature flag service, and fetches the value
+of feature flags. The following section provides an example of how to install the SDK and initialize it from an application.
 
-## Cloning the SDK repository
+This quickstart assumes you have followed the instructions to [setup a Feature Flag project and have created a flag called `harnessappdemodarkmode` and created a server API Key](https://ngdocs.harness.io/article/1j7pdkqh7j-create-a-feature-flag#step_1_create_a_project).
 
-In order to clone SDK repository properly perform cloning like in the following example:
+### Install the FF SDK Dependency
 
-```
-git clone --recurse-submodules git@github.com:drone/ff-java-server-sdk.git
-```
+The first step is to install the FF SDK as a dependency in your application using your application's dependency manager. You can use Maven, Gradle, SBT, etc. for your application.
 
-After dependency has been added, the SDK elements, primarily `CfClient` should be accessible in the main application.
+Refer to the [Harness Feature Flag Java Server SDK](https://mvnrepository.com/artifact/io.harness/ff-java-server-sdk) to identify the latest version for your build automation tool.
 
-## Initialization
+This section lists dependencies for Maven and Gradle and uses the 1.1.4 version as an example:
 
-`CfClient` is a base class that provides all features of SDK.
+#### Maven
 
-We can instantiate by calling the `getInstance()` method or by using public
-constructors (making multiple instances).
-
-```
-/**
- * Put the API Key here from your environment
- */
-String apiKey = "YOUR_API_KEY";
-
-CfClient cfClient = CfClient.getInstance();
-cfClient.initialize(apiKey);
-
-/**
- * if you want wait for initialization use method waitForInitialization()
- * otherwise it will do in asynchronous manner
- */
-
-/**
- * Define you target on which you would like to evaluate 
- * the featureFlag
- */
-Target target = Target.builder()
-                    .name("User1")
-                    .attributes(new HashMap<String, Object>())
-                    .identifier("user1@example.com")
-                    .build();
+Add the following Maven dependency in your project's pom.xml file:
+```pom
+<dependency>
+    <groupId>io.harness</groupId>
+    <artifactId>ff-java-server-sdk</artifactId>
+    <version>1.1.4</version>
+</dependency>
 ```
 
-`target` represents the desired target for which we want features to be evaluated.
-
-`"YOUR_API_KEY"` is an authentication key, needed for access to Harness services.
-
-**Your Harness SDK is now initialized. Congratulations!**
-
-### Public API Methods ###
-
-The Public API exposes a few methods that you can utilize:
-
-initialize:
-* `public void initialize(final String apiKey)`
-* `public void initialize(final String apiKey, final Config config)`
-* `public void initialize(@NonNull final Connector connector)`
-* `public void initialize(@NonNull Connector connector, final Config options)`
-* `public void waitForInitialization() throws InterruptedException, FeatureFlagInitializeException`
-
-evaluations:
-* `public boolean boolVariation(String key, Target target, boolean defaultValue)`
-* `public String stringVariation(String key, Target target, String defaultValue)`
-* `public double numberVariation(String key, Target target, int defaultValue)`
-* `public JsonObject jsonVariation(String key, Target target, JsonObject defaultValue)`
-
-react on event:
-* `public void on(@NonNull Event event, @NonNull Consumer<String> consumer)`
-* `public void off()`
-* `public void off(@NonNull Event event)`
-* `public void off(@NonNull Event event, @NonNull Consumer<String> consumer)`
-
-manual update (webpush):
-* `public void update(@NonNull Message message)`
-
-close SDK:
-* `public void destroy()` @deprecated
-* `public void close()`
-
-## Fetch evaluation's value
-
-It is possible to fetch a value for a given evaluation. Evaluation is performed based on a different type. In case there
-is no evaluation with provided id, the default value is returned.
-
-Use the appropriate method to fetch the desired Evaluation of a certain type.
-
-### Bool variation
+#### Gradle
 
 ```
-boolean result = cfClient.boolVariation("sample_boolean_flag", target, false);  
+implementation group: 'io.harness', name: 'ff-java-server-sdk', version: '1.1.4'
 ```
 
-### Number variation
+### A Simple Example
 
-```
-double result = cfClient.numberVariation("sample_number_flag", target, 0);  
-```
+After installing the SDK, enter the SDK keys that you created for your environment. The SDK keys authorize your application to connect to the FF client. All features of the Java SDK are provided by the base class called `CfClient`.
 
-### String variation
-
-```
-boolean result = cfClient.stringVariation("sample_string_flag", target, "");  
-```
-
-## Using feature flags metrics
-
-Metrics API endpoint can be changed like this:
-
-```
-Config.builder()
-              .eventUrl("METRICS_API_EVENTS_URL")
-              .build();
-```
-
-Otherwise, the default metrics endpoint URL will be used.
-
-## Listen on events
-
-```
-client.on(Event.READY, result -> log.info("READY"));
-
-client.on(Event.CHANGED, result -> log.info("Flag changed {}", result));
-```
-
-events will work even when streamEnabled is off.
-
-## Connector
-
-This is a new feature that allows you to create or use other connectors.
-Connector is just a proxy to your data. Currently supported connectors:
-* Harness
-* Local (used only in development)
-
-```
-LocalConnector connector = new LocalConnector("./local");
-client = new CfClient(connector);
+```java
+public class SimpleExample {
+    public static void main(String[] args) {
+        try {
+            /**
+             * Put the API Key here from your environment
+             * Initialize the CfClient
+             */
+            String apiKey = "<your api key here>";
+            CfClient cfClient = new CfClient(apiKey, Config.builder().build());
+            cfClient.waitForInitialization();
+    
+            while(true) {
+                /**
+                 * Sleep for sometime before printing the value of the flag
+                 */
+                Thread.sleep(2000);
+                /**
+                 * This is a sample boolean flag. You can replace the flag value with
+                 * the identifier of your feature flag
+                 */
+                boolean result = cfClient.boolVariation("<your feature flag id here>", target, <default value>);
+                log.info("Boolean variation is " + result);
+            }
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
 ```
 
-## Storage
 
-For offline support and asynchronous startup of SDK use storage interface.
-When SDK is used without waitForInitialization method then it starts in async mode.
-So all flags are loaded from last saved configurations and it will use that values.
-If there is no flag on storage then it will be evaluated from defaultValue argument.
+### Additional Reading
 
-```
-final FileMapStore fileStore = new FileMapStore("Non-Freemium");
-LocalConnector connector = new LocalConnector("./local");
-client = new CfClient(connector, Config.builder().store(fileStore).build());
-```
+Further examples and config options are in the further reading section:
 
-## Update from controller or handler
+[Further Reading](docs/further_reading.md)
 
-this is useful only if webpush is used and in that case you need to disable
-stream
-```
-Config.builder()
-      .streamEnabled(false)
-      .build();
 
-cfClient.update(Message message)
-```
+-------------------------
+[Harness](https://www.harness.io/) is a feature management platform that helps teams to build better software and to
+test features quicker.
 
-## Shutting down the SDK
-
-To avoid potential memory leak, when SDK is no longer needed
-(when the app is closed, for example), a caller should call this method:
-
-```
-cfClient.close();
-```
-
-## Logger configuration
-
-SDK uses Sl4j as facade to any MDC supported logging library like logback, log4j2 and others.
-You probably already have log4j or logback in your project, 
-and we provide variables for your log layout file.
-
-Supported variables:
-```
-variables     description                                           scope
-SDK         - sdk language                                          system
-version     - version of SDK                                        system
-flag        - current flag evaluation                               context
-target      - target used for evaluation                            context
-requestId   - request identifer for interacting with FF backend     context
-```
-
-sample logback file
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-
-<configuration debug="false" scan="true">
-
-    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36}.%M\(%line\) - SDK=property{SDK}, Version=property{version}, flag=%X{flag}, target=%X{target}, requestID=%X{requestId} - %msg%n
-            </pattern>
-        </encoder>
-    </appender>
-    <root level="INFO">
-        <appender-ref ref="STDOUT" />
-    </root>
-</configuration>
-```
-
-sample log4j file
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<Configuration status="WARN" monitorInterval="30">
-    <Properties>
-        <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1} SDK=${sys:SDK} flag=${sys:version} target=%mdc{target} - %m%n</Property>
-    </Properties>
-
-    <Appenders>
-        <Console name="console" target="SYSTEM_OUT" follow="true">
-            <PatternLayout pattern="${LOG_PATTERN}"/>
-        </Console>
-    </Appenders>
-
-    <Loggers>
-        <Root level="info">
-            <AppenderRef ref="console"/>
-        </Root>
-    </Loggers>
-</Configuration>
-```
+-------------------------
