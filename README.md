@@ -100,7 +100,9 @@ public class SimpleExample {
              * Put the API Key here from your environment
              * Initialize the CfClient
              */
-            String apiKey = "<your api key here>";
+            String apiKey = System.getProperty("FF_API_KEY", "<default api key>");
+            String flagName = System.getProperty("FF_FLAG_NAME", "<default flag name>");
+            
             CfClient cfClient = new CfClient(apiKey, Config.builder().build());
             cfClient.waitForInitialization();
     
@@ -113,7 +115,7 @@ public class SimpleExample {
                  * This is a sample boolean flag. You can replace the flag value with
                  * the identifier of your feature flag
                  */
-                boolean result = cfClient.boolVariation("<your feature flag id here>", target, <default value>);
+                boolean result = cfClient.boolVariation(flagName, target, <default value>);
                 log.info("Boolean variation is " + result);
             }
         } catch(Exception e) {
