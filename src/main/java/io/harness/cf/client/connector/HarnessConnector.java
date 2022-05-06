@@ -92,6 +92,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
     apiClient.setReadTimeout(maxTimeout);
     apiClient.setWriteTimeout(maxTimeout);
     apiClient.setDebugging(log.isDebugEnabled());
+    apiClient.setUserAgent("JavaSDK " + io.harness.cf.Version.VERSION);
     apiClient.setHttpClient(
         apiClient
             .getHttpClient()
