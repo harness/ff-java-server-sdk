@@ -6,7 +6,6 @@ Harness Feature Flag Java SDK
 **[Requirements](#Requirements)**<br>
 **[Quickstart](#Quickstart)**<br>
 **[Further Reading](docs/further_reading.md)**<br>
-**[Build Instructions](docs/build.md)**<br>
 
 
 ## Intro
