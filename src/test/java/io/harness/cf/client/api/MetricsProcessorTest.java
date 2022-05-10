@@ -43,11 +43,17 @@ public class MetricsProcessorTest implements MetricsCallback {
   }
 
   @Override
-  public void onMetricsReady() {}
+  public void onMetricsReady() {
+    // not used
+  }
 
   @Override
-  public void onMetricsError(@NonNull String error) {}
+  public void onMetricsError(@NonNull String error) {
+    // not used
+  }
 
   @Override
-  public void onMetricsFailure() {}
+  public void onMetricsFailure() {
+    // not used
+  }
 }
