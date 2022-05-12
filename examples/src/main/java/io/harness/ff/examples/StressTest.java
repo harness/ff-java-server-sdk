@@ -44,8 +44,8 @@ public class StressTest {
             final String apiKey = keys.get(keyName);
             final FileMapStore fileStore = new FileMapStore(keyName);
             final Config.ConfigBuilder<?, ?> builder = Config.builder()
-                    .configUrl("https://localhost/api/1.0")
-                    .eventUrl("https://localhost/api/1.0");
+                    .configUrl("https://localhost:3000/api/1.0")
+                    .eventUrl("https://localhost:3000/api/1.0");
 
             final CfClient client = new CfClient(apiKey, builder.store(fileStore).build());
             final String logPrefix = keyName + " :: " + client.hashCode() + " ";
