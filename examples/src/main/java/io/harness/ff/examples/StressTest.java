@@ -79,7 +79,7 @@ public class StressTest {
                     },
 
                     0,
-                    10,
+                    5,
                     TimeUnit.MILLISECONDS
             );
         }
