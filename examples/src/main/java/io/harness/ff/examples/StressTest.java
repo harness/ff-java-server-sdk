@@ -11,9 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.Random;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 /**
  * This application stress-test the SDK
@@ -24,6 +22,7 @@ public class StressTest {
 
     private static final String MOCK_SERVER_API_KEY;
     private static final HashMap<String, String> keys;
+    private static final ExecutorService executor;
     private static final ScheduledExecutorService scheduler;
 
     static {
@@ -32,6 +31,7 @@ public class StressTest {
 
         keys = new HashMap<>();
         keys.put("MOCK_SERVER_API", MOCK_SERVER_API_KEY);
+        executor = Executors.newFixedThreadPool(100);
         scheduler = Executors.newScheduledThreadPool(keys.size());
     }
 
@@ -44,6 +44,7 @@ public class StressTest {
             final String apiKey = keys.get(keyName);
             final FileMapStore fileStore = new FileMapStore(keyName);
             final Config.ConfigBuilder<?, ?> builder = Config.builder()
+                    .bufferSize(10)
                     .configUrl("http://localhost:3000/api/1.0")
                     .eventUrl("http://localhost:3000/api/1.0");
 
@@ -70,18 +71,24 @@ public class StressTest {
 
             log.info("Client is ready: " + keyName + ", " + client.hashCode());
 
-            scheduler.scheduleAtFixedRate(
+            for (int x = 0; x < 5; x++) {
 
-                    () -> {
+                executor.execute(
 
-                        final boolean bResult = client.boolVariation("bool-flag", target, false);
-                        log.info(logPrefix + "Boolean variation: {}", bResult);
-                    },
+                        () -> scheduler.scheduleAtFixedRate(
 
-                    0,
-                    5,
-                    TimeUnit.MILLISECONDS
-            );
+                                () -> {
+
+                                    final boolean bResult = client.boolVariation("bool-flag", target, false);
+                                    // log.info(logPrefix + "Boolean variation: {}", bResult);
+                                },
+
+                                0,
+                                50,
+                                TimeUnit.MILLISECONDS
+                        )
+                );
+            }
         }
     }
 

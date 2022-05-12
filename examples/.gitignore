@@ -3,5 +3,6 @@ target/
 # example stores
 Freemium*
 Non-Freemium*
+MOCK_SERVER_API
 UAT
 UAT.wal.*
