@@ -31,7 +31,7 @@ public class StressTest {
         MOCK_SERVER_API_KEY = "2e182b14-9944-4bd4-9c9f-3e859e2a2954";
 
         keys = new HashMap<>();
-        keys.put("MOCK_SERVER_API_KEY", MOCK_SERVER_API_KEY);
+        keys.put("MOCK_SERVER_API", MOCK_SERVER_API_KEY);
         scheduler = Executors.newScheduledThreadPool(keys.size());
     }
 
