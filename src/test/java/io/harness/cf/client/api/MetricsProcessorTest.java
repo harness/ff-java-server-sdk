@@ -3,10 +3,13 @@ package io.harness.cf.client.api;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import com.google.common.collect.Maps;
 import io.harness.cf.client.connector.Connector;
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.FeatureConfig;
+import io.harness.cf.model.Metrics;
 import io.harness.cf.model.Variation;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -69,5 +72,21 @@ public class MetricsProcessorTest implements MetricsCallback {
   @Override
   public void onMetricsFailure() {
     // not used
+  }
+
+  @Test
+  public void testPrepareSummaryMetricsBody() {
+    Target target = Target.builder().identifier("harness").build();
+    FeatureConfig feature = FeatureConfig.builder().feature("bool-flag").build();
+    Variation variation = Variation.builder().identifier("true").value("true").build();
+    MetricEvent event = new MetricEvent(feature, target, variation);
+
+    Map<MetricEvent, Integer> map = Maps.newHashMap();
+    map.put(event, 6);
+
+    Metrics metrics = metricsProcessor.prepareSummaryMetricsBody(map);
+
+    assert metrics.getTargetData() != null;
+    assert metrics.getTargetData().get(1).getIdentifier().equals(target.getIdentifier());
   }
 }

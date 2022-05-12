@@ -57,7 +57,7 @@ class MetricsProcessor extends AbstractScheduledService {
       queue.put(new MetricEvent(featureConfig, target, variation));
     } catch (InterruptedException e) {
       log.debug("Queue is blocked for a long time");
-      Thread.currentThread().interrupt();
+      if (Thread.currentThread().isAlive()) Thread.currentThread().interrupt();
     }
   }
 
