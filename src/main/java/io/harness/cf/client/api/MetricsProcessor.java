@@ -32,7 +32,6 @@ class MetricsProcessor extends AbstractScheduledService {
   private static final String SDK_VERSION = "SDK_VERSION";
 
   private final Connector connector;
-  private final MetricsCallback callback;
   private final BaseConfig config;
   private final BlockingQueue<MetricEvent> queue;
 
@@ -42,13 +41,13 @@ class MetricsProcessor extends AbstractScheduledService {
       @NonNull Connector connector, @NonNull BaseConfig config, @NonNull MetricsCallback callback) {
     this.connector = connector;
     this.config = config;
-    this.callback = callback;
     this.queue = new LinkedBlockingQueue<>(config.getBufferSize());
-    this.callback.onMetricsReady();
+    callback.onMetricsReady();
   }
 
-  // push the incoming data to the ring buffer
-  public void pushToQueue(Target target, FeatureConfig featureConfig, Variation variation) {
+  // push the incoming data to the queue
+  public synchronized void pushToQueue(
+      Target target, FeatureConfig featureConfig, Variation variation) {
 
     if (queue.remainingCapacity() == 0) {
       executor().submit(this::runOneIteration);
@@ -57,7 +56,8 @@ class MetricsProcessor extends AbstractScheduledService {
     try {
       queue.put(new MetricEvent(featureConfig, target, variation));
     } catch (InterruptedException e) {
-      log.debug("Long waiting");
+      log.debug("Queue is blocked for a long time");
+      if (Thread.currentThread().isAlive()) Thread.currentThread().interrupt();
     }
   }
 
@@ -76,7 +76,8 @@ class MetricsProcessor extends AbstractScheduledService {
       log.info("Preparing summary metrics");
       // We will only submit summary metrics to the event server
       Metrics metrics = prepareSummaryMetricsBody(map);
-      if (!metrics.getMetricsData().isEmpty() || !metrics.getTargetData().isEmpty()) {
+      if ((metrics.getMetricsData() != null && !metrics.getMetricsData().isEmpty())
+          || (metrics.getTargetData() != null && !metrics.getTargetData().isEmpty())) {
         try {
           long startTime = System.currentTimeMillis();
           connector.postMetrics(metrics);
@@ -140,25 +141,28 @@ class MetricsProcessor extends AbstractScheduledService {
   private void addTargetData(Metrics metrics, Target target) {
     Set<String> privateAttributes = target.getPrivateAttributes();
     TargetData targetData = new TargetData();
+
     if (!stagingTargetSet.contains(target)
         && !globalTargetSet.contains(target)
         && !target.isPrivate()) {
+
       stagingTargetSet.add(target);
       final Map<String, Object> attributes = target.getAttributes();
-      attributes.forEach(
-          (k, v) -> {
-            KeyValue keyValue = new KeyValue();
-            if ((!privateAttributes.isEmpty())) {
-              if (!privateAttributes.contains(k)) {
-                keyValue.setKey(k);
-                keyValue.setValue(v.toString());
-              }
-            } else {
-              keyValue.setKey(k);
-              keyValue.setValue(v.toString());
-            }
-            targetData.getAttributes().add(keyValue);
-          });
+      for (Map.Entry<String, Object> entry : attributes.entrySet()) {
+        String k = entry.getKey();
+        Object v = entry.getValue();
+        KeyValue keyValue = new KeyValue();
+        if ((!privateAttributes.isEmpty())) {
+          if (!privateAttributes.contains(k)) {
+            keyValue.setKey(k);
+            keyValue.setValue(v.toString());
+          }
+        } else {
+          keyValue.setKey(k);
+          keyValue.setValue(v.toString());
+        }
+        targetData.getAttributes().add(keyValue);
+      }
 
       targetData.setIdentifier(target.getIdentifier());
       if (Strings.isNullOrEmpty(target.getName())) {
