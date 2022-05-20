@@ -4,7 +4,7 @@ import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.Clause;
 import io.harness.cf.model.Serve;
 import io.harness.cf.model.ServingRule;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.*;
@@ -25,8 +25,8 @@ public class EvaluatorTest {
     final Query repository = new StorageRepository(new CaffeineCache(100), null, null);
     final Evaluator evaluator = new Evaluator(repository);
 
-    final List<String> values = new LinkedList<>();
-    final List<Clause> clauses = new LinkedList<>();
+    final List<String> values = new ArrayList<>();
+    final List<Clause> clauses = new ArrayList<>();
     values.add(test);
 
     final Clause clause = Clause.builder().id(test).op(test).values(values).attribute(test).build();
@@ -35,7 +35,7 @@ public class EvaluatorTest {
     final Serve serve = Serve.builder().variation(test).build();
     final Target target = Target.builder().identifier(test).name(test).build();
 
-    final List<ServingRule> rules = new LinkedList<>();
+    final List<ServingRule> rules = new ArrayList<>();
     for (int i = 0; i < 1000; i++) {
       final ServingRule rule =
           ServingRule.builder()
