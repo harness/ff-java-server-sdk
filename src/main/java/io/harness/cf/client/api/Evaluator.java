@@ -9,11 +9,7 @@ import com.sangupta.murmur.Murmur3;
 import com.sangupta.murmur.MurmurConstants;
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.*;
-import java.lang.reflect.Field;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -41,7 +37,7 @@ class Evaluator implements Evaluation {
       return Optional.empty();
     }
 
-    switch(attribute) {
+    switch (attribute) {
       case "identifier":
         return Optional.of(target.getIdentifier());
       case "name":
@@ -215,10 +211,12 @@ class Evaluator implements Evaluation {
       return Optional.empty();
     }
 
-    log.debug("Sorting serving rules {}", servingRules);
-    servingRules.sort(Comparator.comparing(ServingRule::getPriority));
-    log.debug("Sorted serving rules {}", servingRules);
-    for (ServingRule rule : servingRules) {
+    final List<ServingRule> rules = new ArrayList<>(servingRules);
+
+    log.debug("Sorting serving rules {}", rules);
+    rules.sort(Comparator.comparing(ServingRule::getPriority));
+    log.debug("Sorted serving rules {}", rules);
+    for (ServingRule rule : rules) {
       // if evaluation is false just continue to next rule
       if (!this.evaluateRule(rule, target)) {
         log.debug("Unsuccessful evaluation of rule {} continue to next rule", rule);
