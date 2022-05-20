@@ -5,6 +5,7 @@ import io.harness.cf.model.Clause;
 import io.harness.cf.model.Serve;
 import io.harness.cf.model.ServingRule;
 import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.*;
@@ -49,18 +50,22 @@ public class EvaluatorTest {
 
     // Stress-test against the ConcurrentModificationException:
     for (int threadNo = 0; threadNo < threadCount; threadNo++) {
-
-      executor.submit(
+      executor.execute(
           () -> {
-            for (int x = 0; x < 1000; x++) {
+            try {
+              for (int x = 0; x < 150; x++) {
 
-              try {
                 evaluator.evaluateRules(rules, target);
-              } catch (Exception e) {
-                Assert.fail("Error", e);
               }
+            } catch (ConcurrentModificationException e) {
+
+              Assert.fail("Error", e);
+              Thread.currentThread().interrupt();
+
+            } finally {
+
+              latch.countDown();
             }
-            latch.countDown();
           });
     }
 
