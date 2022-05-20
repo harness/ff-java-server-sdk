@@ -9,6 +9,7 @@ import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -21,6 +22,7 @@ public class EvaluatorTest {
 
     final int threadCount = 10;
     final String test = "test";
+    final AtomicBoolean failed = new AtomicBoolean();
     final CountDownLatch latch = new CountDownLatch(threadCount);
     final ExecutorService executor = Executors.newFixedThreadPool(threadCount);
     final Query repository = new StorageRepository(new CaffeineCache(100), null, null);
@@ -58,16 +60,14 @@ public class EvaluatorTest {
                 evaluator.evaluateRules(rules, target);
               }
             } catch (ConcurrentModificationException e) {
-
-              Assert.fail("Error", e);
-
+              e.printStackTrace();
+              failed.set(true);
             } finally {
-
               latch.countDown();
             }
           });
     }
-
-    latch.await(1, TimeUnit.MINUTES);
+    latch.await();
+    Assert.assertFalse(failed.get());
   }
 }
