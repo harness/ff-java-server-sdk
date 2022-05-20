@@ -4,10 +4,13 @@ import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.ServingRule;
 import java.util.LinkedList;
 import java.util.List;
-import junit.framework.TestCase;
+import lombok.extern.slf4j.Slf4j;
+import org.testng.annotations.Test;
 
-public class EvaluatorTest extends TestCase {
+@Slf4j
+public class EvaluatorTest {
 
+  @Test
   public void testEvaluateRules() {
 
     final Query repository = new StorageRepository(new CaffeineCache(100), null, null);
