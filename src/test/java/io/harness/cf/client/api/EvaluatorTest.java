@@ -60,7 +60,6 @@ public class EvaluatorTest {
             } catch (ConcurrentModificationException e) {
 
               Assert.fail("Error", e);
-              Thread.currentThread().interrupt();
 
             } finally {
 
