@@ -22,6 +22,7 @@ public class EvaluatorTest {
 
     final int threadCount = 10;
     final String test = "test";
+    final Random random = new Random();
     final CountDownLatch latch = new CountDownLatch(threadCount);
     final ExecutorService executor = Executors.newFixedThreadPool(threadCount);
     final CopyOnWriteArrayList<Exception> failures = new CopyOnWriteArrayList<>();
@@ -43,7 +44,7 @@ public class EvaluatorTest {
       final ServingRule rule =
           ServingRule.builder()
               .ruleId(test)
-              .priority(new Random().nextInt())
+              .priority(random.nextInt())
               .clauses(clauses)
               .serve(serve)
               .build();
