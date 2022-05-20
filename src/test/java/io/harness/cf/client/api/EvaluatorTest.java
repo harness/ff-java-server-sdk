@@ -36,7 +36,7 @@ public class EvaluatorTest {
     final Target target = Target.builder().identifier(test).name(test).build();
 
     final List<ServingRule> rules = new ArrayList<>();
-    for (int i = 0; i < 1000; i++) {
+    for (int i = 0; i < 10 * 1000; i++) {
       final ServingRule rule =
           ServingRule.builder()
               .ruleId(test)
@@ -54,7 +54,11 @@ public class EvaluatorTest {
           () -> {
             for (int x = 0; x < 1000; x++) {
 
-              evaluator.evaluateRules(rules, target);
+              try {
+                evaluator.evaluateRules(rules, target);
+              } catch (Exception e) {
+                Assert.fail("Error", e);
+              }
             }
             latch.countDown();
           });
