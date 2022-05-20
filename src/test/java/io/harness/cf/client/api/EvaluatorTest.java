@@ -50,6 +50,7 @@ public class EvaluatorTest {
       rules.add(rule);
     }
 
+    // Stress-test against the ConcurrentModificationException:
     for (int threadNo = 0; threadNo < threadCount; threadNo++) {
 
       executor.execute(
