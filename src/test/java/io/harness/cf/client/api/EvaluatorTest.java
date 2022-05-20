@@ -6,6 +6,8 @@ import io.harness.cf.model.Serve;
 import io.harness.cf.model.ServingRule;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import lombok.extern.slf4j.Slf4j;
 import org.testng.annotations.Test;
 
@@ -15,6 +17,7 @@ public class EvaluatorTest {
   @Test
   public void testEvaluateRules() {
 
+    final Executor executor = Executors.newFixedThreadPool(100);
     final Query repository = new StorageRepository(new CaffeineCache(100), null, null);
     final Evaluator evaluator = new Evaluator(repository);
 
@@ -35,6 +38,15 @@ public class EvaluatorTest {
     final List<ServingRule> rules = new LinkedList<>();
     rules.add(rule);
 
-    evaluator.evaluateRules(rules, target);
+    for (int threadNo = 0; threadNo < 10; threadNo++) {
+
+      executor.execute(
+          () -> {
+            for (int x = 0; x < 1000; x++) {
+
+              evaluator.evaluateRules(rules, target);
+            }
+          });
+    }
   }
 }
