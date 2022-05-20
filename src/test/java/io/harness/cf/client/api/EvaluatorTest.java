@@ -1,5 +1,7 @@
 package io.harness.cf.client.api;
 
+import static org.testng.Assert.*;
+
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.Clause;
 import io.harness.cf.model.Serve;
@@ -9,9 +11,7 @@ import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
-import org.testng.Assert;
 import org.testng.annotations.Test;
 
 @Slf4j
@@ -22,9 +22,9 @@ public class EvaluatorTest {
 
     final int threadCount = 10;
     final String test = "test";
-    final AtomicBoolean failed = new AtomicBoolean();
     final CountDownLatch latch = new CountDownLatch(threadCount);
     final ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+    final CopyOnWriteArrayList<Exception> failures = new CopyOnWriteArrayList<>();
     final Query repository = new StorageRepository(new CaffeineCache(100), null, null);
     final Evaluator evaluator = new Evaluator(repository);
 
@@ -60,14 +60,15 @@ public class EvaluatorTest {
                 evaluator.evaluateRules(rules, target);
               }
             } catch (ConcurrentModificationException e) {
-              e.printStackTrace();
-              failed.set(true);
+              failures.add(e);
             } finally {
               latch.countDown();
             }
           });
     }
     latch.await();
-    Assert.assertFalse(failed.get());
+    for (final Exception e : failures) {
+      fail("Failure", e);
+    }
   }
 }
