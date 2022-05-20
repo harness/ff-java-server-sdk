@@ -7,10 +7,7 @@ import io.harness.cf.model.ServingRule;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import lombok.extern.slf4j.Slf4j;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -20,13 +17,13 @@ public class EvaluatorTest {
 
   @Test
   public void testEvaluateRules() {
-    int threadCount = 10;
-    CountDownLatch latch = new CountDownLatch(threadCount);
-    final Executor executor = Executors.newFixedThreadPool(threadCount);
+
+    final int threadCount = 10;
+    final String test = "test";
+    final CountDownLatch latch = new CountDownLatch(threadCount);
+    final ExecutorService executor = Executors.newFixedThreadPool(threadCount);
     final Query repository = new StorageRepository(new CaffeineCache(100), null, null);
     final Evaluator evaluator = new Evaluator(repository);
-
-    final String test = "test";
 
     final List<String> values = new LinkedList<>();
     final List<Clause> clauses = new LinkedList<>();
@@ -53,7 +50,7 @@ public class EvaluatorTest {
     // Stress-test against the ConcurrentModificationException:
     for (int threadNo = 0; threadNo < threadCount; threadNo++) {
 
-      executor.execute(
+      executor.submit(
           () -> {
             for (int x = 0; x < 1000; x++) {
 
