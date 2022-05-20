@@ -17,7 +17,7 @@ import org.testng.annotations.Test;
 public class EvaluatorTest {
 
   @Test
-  public void testEvaluateRules() {
+  public void testEvaluateRules() throws InterruptedException {
 
     final int threadCount = 10;
     final String test = "test";
@@ -37,7 +37,7 @@ public class EvaluatorTest {
     final Target target = Target.builder().identifier(test).name(test).build();
 
     final List<ServingRule> rules = new ArrayList<>();
-    for (int i = 0; i < 10 * 1000; i++) {
+    for (int i = 0; i < 5; i++) {
       final ServingRule rule =
           ServingRule.builder()
               .ruleId(test)
@@ -68,11 +68,6 @@ public class EvaluatorTest {
           });
     }
 
-    try {
-      latch.await(1, TimeUnit.MINUTES);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      Assert.fail();
-    }
+    latch.await(1, TimeUnit.MINUTES);
   }
 }
