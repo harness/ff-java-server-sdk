@@ -6,9 +6,13 @@ import io.harness.cf.model.Serve;
 import io.harness.cf.model.ServingRule;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 @Slf4j
@@ -16,8 +20,9 @@ public class EvaluatorTest {
 
   @Test
   public void testEvaluateRules() {
-
-    final Executor executor = Executors.newFixedThreadPool(100);
+    int threadCount = 10;
+    CountDownLatch latch = new CountDownLatch(threadCount);
+    final Executor executor = Executors.newFixedThreadPool(threadCount);
     final Query repository = new StorageRepository(new CaffeineCache(100), null, null);
     final Evaluator evaluator = new Evaluator(repository);
 
@@ -31,14 +36,21 @@ public class EvaluatorTest {
     clauses.add(clause);
 
     final Serve serve = Serve.builder().variation(test).build();
-    final ServingRule rule =
-        ServingRule.builder().ruleId(test).priority(0).clauses(clauses).serve(serve).build();
     final Target target = Target.builder().identifier(test).name(test).build();
 
     final List<ServingRule> rules = new LinkedList<>();
-    rules.add(rule);
+    for (int i = 0; i < 1000; i++) {
+      final ServingRule rule =
+          ServingRule.builder()
+              .ruleId(test)
+              .priority(new Random().nextInt())
+              .clauses(clauses)
+              .serve(serve)
+              .build();
+      rules.add(rule);
+    }
 
-    for (int threadNo = 0; threadNo < 10; threadNo++) {
+    for (int threadNo = 0; threadNo < threadCount; threadNo++) {
 
       executor.execute(
           () -> {
@@ -46,7 +58,15 @@ public class EvaluatorTest {
 
               evaluator.evaluateRules(rules, target);
             }
+            latch.countDown();
           });
+    }
+
+    try {
+      latch.await(1, TimeUnit.MINUTES);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      Assert.fail();
     }
   }
 }
