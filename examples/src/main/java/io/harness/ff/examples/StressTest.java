@@ -1,17 +1,18 @@
 package io.harness.ff.examples;
 
-import com.google.gson.JsonObject;
 import io.harness.cf.client.api.CfClient;
 import io.harness.cf.client.api.Config;
 import io.harness.cf.client.api.FeatureFlagInitializeException;
 import io.harness.cf.client.api.FileMapStore;
 import io.harness.cf.client.dto.Target;
 import lombok.NonNull;
+import lombok.extern.log4j.Log4j;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.Random;
 import java.util.concurrent.*;
+import java.util.logging.Logger;
 
 /**
  * This application stress-test the SDK
@@ -42,13 +43,13 @@ public class StressTest {
         for (final String keyName : keys.keySet()) {
 
             final String apiKey = keys.get(keyName);
-            final FileMapStore fileStore = new FileMapStore(keyName);
+
             final Config.ConfigBuilder<?, ?> builder = Config.builder()
                     .bufferSize(10)
                     .configUrl("http://localhost:3000/api/1.0")
                     .eventUrl("http://localhost:3000/api/1.0");
 
-            final CfClient client = new CfClient(apiKey, builder.store(fileStore).build());
+            final CfClient client = new CfClient(apiKey, builder.build());
             final String logPrefix = keyName + " :: " + client.hashCode() + " ";
 
             final String random = getRandom();
