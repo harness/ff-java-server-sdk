@@ -7,9 +7,7 @@ import io.harness.cf.client.connector.ConnectorException;
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.*;
 import java.util.*;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -18,14 +16,9 @@ class MetricsProcessor extends AbstractScheduledService {
 
   private static final String FEATURE_NAME_ATTRIBUTE = "featureName";
   private static final String VARIATION_IDENTIFIER_ATTRIBUTE = "variationIdentifier";
-  private static final String TARGET_ATTRIBUTE = "target";
   private static final Set<Target> globalTargetSet = new HashSet<>();
   private static final Set<Target> stagingTargetSet = new HashSet<>();
   private static final String SDK_TYPE = "SDK_TYPE";
-  /** This target identifier is used to aggregate and send data for all targets as a summary */
-  private static final String GLOBAL_TARGET = "__global__cf_target";
-
-  private static final String GLOBAL_TARGET_NAME = "Global Target";
 
   private static final String SERVER = "server";
   private static final String SDK_LANGUAGE = "SDK_LANGUAGE";
@@ -36,6 +29,8 @@ class MetricsProcessor extends AbstractScheduledService {
   private final BlockingQueue<MetricEvent> queue;
 
   private String jarVersion = "";
+
+  ExecutorService executorService = Executors.newWorkStealingPool();
 
   public MetricsProcessor(
       @NonNull Connector connector, @NonNull BaseConfig config, @NonNull MetricsCallback callback) {
@@ -50,14 +45,14 @@ class MetricsProcessor extends AbstractScheduledService {
       Target target, FeatureConfig featureConfig, Variation variation) {
 
     if (queue.remainingCapacity() == 0) {
-      executor().submit(this::runOneIteration);
+      executorService.execute(this::runOneIteration);
     }
 
     try {
       queue.put(new MetricEvent(featureConfig, target, variation));
     } catch (InterruptedException e) {
       log.debug("Queue is blocked for a long time");
-      if (Thread.currentThread().isAlive()) Thread.currentThread().interrupt();
+      Thread.currentThread().interrupt();
     }
   }
 
@@ -101,8 +96,6 @@ class MetricsProcessor extends AbstractScheduledService {
     metrics.targetData(new ArrayList<>());
 
     Map<SummaryMetrics, Integer> summaryMetricsData = new HashMap<>();
-    addTargetData(
-        metrics, Target.builder().name(GLOBAL_TARGET_NAME).identifier(GLOBAL_TARGET).build());
     for (Map.Entry<MetricEvent, Integer> entry : data.entrySet()) {
       Target target = entry.getKey().getTarget();
       addTargetData(metrics, target);
@@ -119,7 +112,6 @@ class MetricsProcessor extends AbstractScheduledService {
           Arrays.asList(
               new KeyValue(FEATURE_NAME_ATTRIBUTE, entry.getKey().getFeatureName()),
               new KeyValue(VARIATION_IDENTIFIER_ATTRIBUTE, entry.getKey().getVariationIdentifier()),
-              new KeyValue(TARGET_ATTRIBUTE, GLOBAL_TARGET),
               new KeyValue(SDK_TYPE, SERVER),
               new KeyValue(SDK_LANGUAGE, "java"),
               new KeyValue(SDK_VERSION, jarVersion)));
@@ -183,8 +175,14 @@ class MetricsProcessor extends AbstractScheduledService {
   @Override
   protected void runOneIteration() {
     List<MetricEvent> data = new ArrayList<>();
-    queue.drainTo(data);
-    sendDataAndResetCache(data);
+    try {
+      synchronized (queue) {
+        queue.drainTo(data);
+      }
+      sendDataAndResetCache(data);
+    } catch (Exception e) {
+      log.error("Error while executing runOneIteration", e);
+    }
   }
 
   @NonNull
