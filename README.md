@@ -62,7 +62,7 @@ of feature flags. The following section provides an example of how to install th
 
 This quickstart assumes you have followed the instructions to [setup a Feature Flag project and have created a flag called `harnessappdemodarkmode` and created a server API Key](https://ngdocs.harness.io/article/1j7pdkqh7j-create-a-feature-flag#step_1_create_a_project).
 
-### Install the FF SDK Dependency
+### Install the SDK
 
 The first step is to install the FF SDK as a dependency in your application using your application's dependency manager. You can use Maven, Gradle, SBT, etc. for your application.
 
@@ -88,40 +88,87 @@ implementation group: 'io.harness', name: 'ff-java-server-sdk', version: '1.1.5.
 ```
 
 ### A Simple Example
+Here is a complete example that will connect to the feature flag service and report the flag value every 10 seconds until the connection is closed.  
+Any time a flag is toggled from the feature flag service you will receive the updated value.
 
-After installing the SDK, enter the SDK keys that you created for your environment. The SDK keys authorize your application to connect to the FF client. All features of the Java SDK are provided by the base class called `CfClient`.
+After installing the SDK, enter the SDK keys that you created for your environment. The SDK keys authorize your application to connect to the FF client. 
 
 ```java
-public class SimpleExample {
+package io.harness.ff.examples;
+
+import io.harness.cf.client.api.*;
+import io.harness.cf.client.connector.HarnessConnector;
+import io.harness.cf.client.dto.Target;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+public class GettingStarted {
+    // API Key - set this as an env variable
+    private static String apiKey = getEnvOrDefault("FF_API_KEY", "");
+
+    // Flag Identifier
+    private static String flagName = getEnvOrDefault("FF_FLAG_NAME", "harnessappdemodarkmode");
+
     public static void main(String[] args) {
+        log.info("Harness SDK Getting Started");
+
         try {
-            /**
-             * Put the API Key here from your environment
-             * Initialize the CfClient
-             */
-            String apiKey = System.getProperty("FF_API_KEY", "<default api key>");
-            String flagName = System.getProperty("FF_FLAG_NAME", "<default flag name>");
-            
-            CfClient cfClient = new CfClient(apiKey, Config.builder().build());
+            // Create a Feature Flag Client
+            CfClient cfClient = new CfClient(new HarnessConnector(apiKey));
             cfClient.waitForInitialization();
-    
-            while(true) {
-                /**
-                 * Sleep for sometime before printing the value of the flag
-                 */
-                Thread.sleep(2000);
-                /**
-                 * This is a sample boolean flag. You can replace the flag value with
-                 * the identifier of your feature flag
-                 */
-                boolean result = cfClient.boolVariation(flagName, target, <default value>);
-                log.info("Boolean variation is " + result);
+
+            // Create a target (different targets can get different results based on rules.  This includes a custom attribute 'location')
+            final Target target = Target.builder()
+                    .identifier("javasdk")
+                    .name("JavaSDK")
+                    .attribute("location", "emea")
+                    .build();
+            
+            // Loop forever reporting the state of the flag
+            while (true) {
+                boolean result = cfClient.boolVariation(flagName, target, false);
+                log.info("Flag variation " +result);
+                Thread.sleep(10000);
             }
-        } catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            // Close the SDK
+            CfClient.getInstance().close();
         }
     }
+
+    // Get the value from the environment or return the default
+    private static String getEnvOrDefault(String key, String defaultValue) {
+        String value = System.getenv(key);
+        if (value == null || value.isEmpty()) {
+            return defaultValue;
+        }
+        return value;
+    }
 }
+```
+
+### Running the example
+
+```bash
+export FF_API_KEY=<your key here>
+cd examples
+
+mvn clean package
+mvn exec:java -Dexec.mainClass="io.harness.ff.examples.GettingStarted"
+```
+
+### Running with docker
+If you don't have the right version of python installed locally, or don't want to install the dependencies you can
+use docker to get started.
+
+```bash
+# Clean and Package
+docker run -v $(PWD)/examples:/app -v "$HOME/.m2":/root/.m2 -w /app maven:3.3-jdk-8 mvn clean package
+
+# Run the Example
+docker run -e FF_API_KEY=$FF_API_KEY -v $(PWD)/examples:/app -v "$HOME/.m2":/root/.m2 -w /app maven:3.3-jdk-8 mvn exec:java -Dexec.mainClass="io.harness.ff.examples.GettingStarted"
 ```
 
 
