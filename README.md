@@ -114,7 +114,7 @@ public class GettingStarted {
 
         try {
             // Create a Feature Flag Client
-            CfClient cfClient = new CfClient(new HarnessConnector(apiKey));
+            CfClient cfClient = new CfClient(apiKey);
             cfClient.waitForInitialization();
 
             // Create a target (different targets can get different results based on rules.  This includes a custom attribute 'location')
