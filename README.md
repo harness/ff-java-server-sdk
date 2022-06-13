@@ -97,11 +97,12 @@ After installing the SDK, enter the SDK keys that you created for your environme
 package io.harness.ff.examples;
 
 import io.harness.cf.client.api.*;
-import io.harness.cf.client.connector.HarnessConnector;
 import io.harness.cf.client.dto.Target;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 public class GettingStarted {
     // API Key - set this as an env variable
     private static String apiKey = getEnvOrDefault("FF_API_KEY", "");
@@ -109,11 +110,13 @@ public class GettingStarted {
     // Flag Identifier
     private static String flagName = getEnvOrDefault("FF_FLAG_NAME", "harnessappdemodarkmode");
 
+    private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+
     public static void main(String[] args) {
-        log.info("Harness SDK Getting Started");
+        System.out.println("Harness SDK Getting Started");
 
         try {
-            // Create a Feature Flag Client
+            //Create a Feature Flag Client
             CfClient cfClient = new CfClient(apiKey);
             cfClient.waitForInitialization();
 
@@ -123,13 +126,17 @@ public class GettingStarted {
                     .name("JavaSDK")
                     .attribute("location", "emea")
                     .build();
-            
+
             // Loop forever reporting the state of the flag
-            while (true) {
-                boolean result = cfClient.boolVariation(flagName, target, false);
-                log.info("Flag variation " +result);
-                Thread.sleep(10000);
-            }
+            scheduler.scheduleAtFixedRate(
+                    () -> {
+                        boolean result = cfClient.boolVariation(flagName, target, false);
+                        System.out.println("Boolean variation is " + result);
+                    },
+                    0,
+                    10,
+                    TimeUnit.SECONDS);
+
         } catch (Exception e) {
             e.printStackTrace();
         } finally {

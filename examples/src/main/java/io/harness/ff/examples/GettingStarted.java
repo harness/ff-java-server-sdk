@@ -1,9 +1,11 @@
 package io.harness.ff.examples;
 
 import io.harness.cf.client.api.*;
-import io.harness.cf.client.connector.HarnessConnector;
-import io.harness.cf.client.connector.HarnessConfig;
 import io.harness.cf.client.dto.Target;
+
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class GettingStarted {
     // API Key - set this as an env variable
@@ -11,6 +13,8 @@ public class GettingStarted {
 
     // Flag Identifier
     private static String flagName = getEnvOrDefault("FF_FLAG_NAME", "harnessappdemodarkmode");
+
+    private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     public static void main(String[] args) {
         System.out.println("Harness SDK Getting Started");
@@ -28,11 +32,15 @@ public class GettingStarted {
                     .build();
 
             // Loop forever reporting the state of the flag
-            while (true) {
-                boolean result = cfClient.boolVariation(flagName, target, false);
-                System.out.println("Boolean variation is " + result);
-                Thread.sleep(2000);
-            }
+            scheduler.scheduleAtFixedRate(
+                    () -> {
+                        boolean result = cfClient.boolVariation(flagName, target, false);
+                        System.out.println("Boolean variation is " + result);
+                    },
+                    0,
+                    10,
+                    TimeUnit.SECONDS);
+
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
