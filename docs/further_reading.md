@@ -2,6 +2,65 @@
 
 Covers advanced topics (different config options and scenarios)
 
+## Configuration Options
+The following configuration options are available to control the behaviour of the SDK.
+You can configure the URLs used to connect to Harness via the Connector config.
+The reast of the configuration is part of the BaseConfig.
+
+```java
+// Connector Config
+HarnessConfig connectorConfig = HarnessConfig.builder()
+        .configUrl("https://config.ff.harness.io/api/1.0")
+        .eventUrl("https://config.ff.harness.io/api/1.0")
+        .build();
+
+// Create Options
+BaseConfig options = BaseConfig.builder()
+        .pollIntervalInSeconds(60)
+        .streamEnabled(true)
+        .analyticsEnabled(true)
+        .build();
+
+// Create the client
+CfClient cfClient = new CfClient(new HarnessConnector(apiKey, connectorConfig), options);
+```
+
+
+| Name            | Config Option                                                  | Description                                                                                                                                      | default                              |
+|-----------------|----------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------|
+| baseUrl         | HarnessConfig.configUrl("https://config.ff.harness.io/api/1.0")        | the URL used to fetch feature flag evaluations. You should change this when using the Feature Flag proxy to http://localhost:7000                | https://config.ff.harness.io/api/1.0 |
+| eventsUrl       | HarnessConfig.eventUrl("https://config.ff.harness.io/api/1.0"), | the URL used to post metrics data to the feature flag service. You should change this when using the Feature Flag proxy to http://localhost:7000 | https://events.ff.harness.io/api/1.0 |
+| pollInterval    | BaseConfig.pollIntervalInSeconds(60))                                   | when running in stream mode, the interval in seconds that we poll for changes.                                                                   | 60                                   |
+| enableStream    | BaseConfig.streamEnabled(false)                             | Enable streaming mode.                                                                                                                           | true                                 |
+| enableAnalytics | BaseConfig.analyticsEnabled(true)                                                | Enable analytics.  Metrics data is posted every 60s                                                                                              | true                   |
+
+## Logging Configuration
+You can provide your own logger to the SDK and configure it using the standard logging configuration.
+For example if using Log4j you can add the following log4j2.xml to your project to enable debug.
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="INFO" monitorInterval="30">
+    <Properties>
+        <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1} SDK=${sys:SDK} flag=${sys:version} target=%mdc{target} - %m%n</Property>
+    </Properties>
+
+    <Appenders>
+        <Console name="console" target="SYSTEM_OUT" follow="true">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+        </Console>
+    </Appenders>
+
+    <Loggers>
+        <Root level="debug">
+            <AppenderRef ref="console"/>
+        </Root>
+    </Loggers>
+</Configuration>
+
+```
+
+
 ## Recommended reading
 
 [Feature Flag Concepts](https://ngdocs.harness.io/article/7n9433hkc0-cf-feature-flag-overview)
