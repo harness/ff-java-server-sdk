@@ -167,7 +167,7 @@ mvn exec:java -Dexec.mainClass="io.harness.ff.examples.GettingStarted"
 ```
 
 ### Running with docker
-If you don't have the right version of python installed locally, or don't want to install the dependencies you can
+If you don't have the right version of java installed locally, or don't want to install the dependencies you can
 use docker to get started.
 
 ```bash
