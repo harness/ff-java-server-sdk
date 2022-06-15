@@ -1,4 +1,4 @@
-Harness Feature Flag Java SDK
+Java SDK For Harness Feature Flags
 ========================
 
 ## Table of Contents
@@ -10,17 +10,24 @@ Harness Feature Flag Java SDK
 
 ## Intro
 
-Harness Feature Flags (FF) is a feature management solution that enables users to change the software’s functionality, without deploying new code. FF uses feature flags to hide code or behaviours without having to ship new versions of the software. A feature flag is like a powerful if statement.
-* For more information, see https://harness.io/products/feature-flags/
-* To read more, see https://ngdocs.harness.io/category/vjolt35atg-feature-flags
-* To sign up, https://app.harness.io/auth/#/signup/
+Use this README to get started with our Feature Flags (FF) SDK for Java. This guide outlines the basics of getting started with the SDK and provides a full code sample for you to try out.
+This sample doesn’t include configuration options, for in depth steps and configuring the SDK, for example, disabling streaming or using our Relay Proxy, see the  [Java SDK Reference](https://ngdocs.harness.io/article/i7et9ebkst-integrate-feature-flag-with-java-sdk).
+
+For a sample FF Java SDK project, see our [test Java project](https://github.com/harness/ff-java-server-sdk/blob/main/examples/src/main/java/io/harness/ff/examples/GettingStarted.java).
+
 
 ![FeatureFlags](https://github.com/harness/ff-java-server-sdk/raw/main/docs/images/ff-gui.png)
 
 ## Requirements
 
-[JDK 8](https://openjdk.java.net/install/) or newer<br>
-Maven or Gradle
+To use this SDK, make sure you've:
+
+- Installed[JDK 8](https://openjdk.java.net/install/) or a newer version<br>
+- Installed Maven or Gradle or an alternative build automation tool for your application
+
+To follow along with our test code sample, make sure you’ve:
+- [Created a Feature Flag](https://ngdocs.harness.io/article/1j7pdkqh7j-create-a-feature-flag) on the Harness Platform called harnessappdemodarkmode
+- Created a [server SDK key](https://ngdocs.harness.io/article/1j7pdkqh7j-create-a-feature-flag#step_3_create_an_sdk_key) and made a copy of it
 
 ### General Dependencies
 
@@ -30,10 +37,10 @@ Maven or Gradle
 
 Logback
 ```pom
-<dependency> 
-    <groupId>ch.qos.logback</groupId> 
-    <artifactId>logback-classic</artifactId> 
-    <version>VERSION</version> 
+<dependency>
+    <groupId>ch.qos.logback</groupId>
+    <artifactId>logback-classic</artifactId>
+    <version>VERSION</version>
 </dependency>
 ```
 
@@ -55,12 +62,6 @@ Log4j
     <version>VERSION</version>
 </dependency>
 ```
-
-## Quickstart
-The Feature Flag SDK provides a client that connects to the feature flag service, and fetches the value
-of feature flags. The following section provides an example of how to install the SDK and initialize it from an application.
-
-This quickstart assumes you have followed the instructions to [setup a Feature Flag project and have created a flag called `harnessappdemodarkmode` and created a server API Key](https://ngdocs.harness.io/article/1j7pdkqh7j-create-a-feature-flag#step_1_create_a_project).
 
 ### Install the SDK
 
@@ -87,11 +88,11 @@ Add the following Maven dependency in your project's pom.xml file:
 implementation group: 'io.harness', name: 'ff-java-server-sdk', version: '1.1.5.1'
 ```
 
-### A Simple Example
-Here is a complete example that will connect to the feature flag service and report the flag value every 10 seconds until the connection is closed.  
+### Code Sample
+Here is a complete example that will connect to the feature flag service and report the flag value every 10 seconds until the connection is closed.
 Any time a flag is toggled from the feature flag service you will receive the updated value.
 
-After installing the SDK, enter the SDK keys that you created for your environment. The SDK keys authorize your application to connect to the FF client. 
+After installing the SDK, enter the SDK keys that you created for your environment. The SDK keys authorize your application to connect to the FF client.
 
 ```java
 package io.harness.ff.examples;
@@ -166,7 +167,7 @@ mvn clean package
 mvn exec:java -Dexec.mainClass="io.harness.ff.examples.GettingStarted"
 ```
 
-### Running with docker
+### Running the example with Docker
 If you don't have the right version of java installed locally, or don't want to install the dependencies you can
 use docker to get started.
 
