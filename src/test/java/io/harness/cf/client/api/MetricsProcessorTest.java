@@ -19,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -36,12 +37,18 @@ public class MetricsProcessorTest implements MetricsCallback {
         Mockito.spy(
             new MetricsProcessor(
                 connector, BaseConfig.builder().bufferSize(BUFFER_SIZE).build(), this));
+    metricsProcessor.start();
+  }
+
+  @AfterMethod
+  public void tearDown() {
+    metricsProcessor.stop();
   }
 
   @Test
   public void testPushToQueue() throws InterruptedException {
     int threadCount = 1000;
-    ExecutorService executor = Executors.newFixedThreadPool(500);
+    ExecutorService executor = Executors.newFixedThreadPool(100);
     CountDownLatch latch = new CountDownLatch(threadCount);
     Target target = Target.builder().identifier("harness").build();
     FeatureConfig feature = FeatureConfig.builder().feature("bool-flag").build();
