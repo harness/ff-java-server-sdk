@@ -1,0 +1,29 @@
+{
+  "defaultServe": { "distribution": null, "variation": "mixed1" },
+  "environment": "test",
+  "feature": "json-flag-3",
+  "kind": "json",
+  "offVariation": "mixed",
+  "prerequisites": [],
+  "project": "test",
+  "rules": [],
+  "state": "off",
+  "variationToTargetMap": null,
+  "variations": [
+    {
+      "description": null,
+      "identifier": "empty",
+      "value": "{}"
+    },
+    {
+      "description": null,
+      "identifier": "mixed",
+      "value": "{\n \"number\": \"5\",\n  \"word\": \"five\",\n  \"char\": \"&^%$\"\n}\n"
+    },
+    {
+      "description": null,
+      "identifier": "mixed1",
+      "value": "{\n  \"number\": \"\",\n  \"\": \"five\",\n  \"char\": \"&^%$\"\n}\n"
+    }
+  ]
+}

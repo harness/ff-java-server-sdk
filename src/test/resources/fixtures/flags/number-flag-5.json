@@ -1,0 +1,29 @@
+{
+  "defaultServe": { "distribution": null, "variation": "big" },
+  "environment": "test",
+  "feature": "number-flag-5",
+  "kind": "int",
+  "offVariation": "quarter",
+  "prerequisites": [],
+  "project": "test",
+  "rules": [],
+  "state": "on",
+  "variationToTargetMap": null,
+  "variations": [
+    {
+      "description": null,
+      "identifier": "quarter",
+      "value": "0.25"
+    },
+    {
+      "description": null,
+      "identifier": "half",
+      "value": "0.5"
+    },
+    {
+      "description": null,
+      "identifier": "big",
+      "value": "1.5625478965213255454589785451236541256321"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "defaultServe": { "distribution": null, "variation": "false" },
+  "environment": "test",
+  "feature": "bool-flag-3",
+  "kind": "boolean",
+  "offVariation": "true",
+  "prerequisites": [],
+  "project": "test",
+  "rules": [],
+  "state": "on",
+  "variationToTargetMap": null,
+  "variations": [
+    {
+      "description": null,
+      "identifier": "true",
+      "value": "true"
+    },
+    {
+      "description": null,
+      "identifier": "false",
+      "value": "false"
+    }
+  ]
+}

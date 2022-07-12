@@ -1,0 +1,29 @@
+{
+  "defaultServe": { "distribution": null, "variation": "SpecChars3" },
+  "environment": "test",
+  "feature": "string-flag-14",
+  "kind": "string",
+  "offVariation": "SpecChars1",
+  "prerequisites": [],
+  "project": "test",
+  "rules": [],
+  "state": "on",
+  "variationToTargetMap": null,
+  "variations": [
+    {
+      "description": null,
+      "identifier": "SpecChars1",
+      "value": "$£-_><~"
+    },
+    {
+      "description": null,
+      "identifier": "SpecChars2",
+      "value": "^%&\"'\\/#"
+    },
+    {
+      "description": null,
+      "identifier": "SpecChars3",
+      "value": "><~^%"
+    }
+  ]
+}

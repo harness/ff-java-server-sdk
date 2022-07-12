@@ -1,0 +1,29 @@
+{
+  "defaultServe": { "distribution": null, "variation": "5" },
+  "environment": "test",
+  "feature": "string-flag-6",
+  "kind": "string",
+  "offVariation": "five",
+  "prerequisites": [],
+  "project": "test",
+  "rules": [],
+  "state": "off",
+  "variationToTargetMap": null,
+  "variations": [
+    {
+      "description": null,
+      "identifier": "5",
+      "value": "5"
+    },
+    {
+      "description": null,
+      "identifier": "five",
+      "value": "five"
+    },
+    {
+      "description": null,
+      "identifier": "five5",
+      "value": "five5"
+    }
+  ]
+}

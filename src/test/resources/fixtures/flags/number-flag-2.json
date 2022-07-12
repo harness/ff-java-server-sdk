@@ -1,0 +1,29 @@
+{
+  "defaultServe": { "distribution": null, "variation": "quarter" },
+  "environment": "test",
+  "feature": "number-flag-2",
+  "kind": "int",
+  "offVariation": "one",
+  "prerequisites": [],
+  "project": "test",
+  "rules": [],
+  "state": "off",
+  "variationToTargetMap": null,
+  "variations": [
+    {
+      "description": null,
+      "identifier": "quarter",
+      "value": "0.25"
+    },
+    {
+      "description": null,
+      "identifier": "half",
+      "value": "0.5"
+    },
+    {
+      "description": null,
+      "identifier": "one",
+      "value": "1"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "defaultServe": { "distribution": null, "variation": "three" },
+  "environment": "test",
+  "feature": "string-flag-4",
+  "kind": "string",
+  "offVariation": "one",
+  "prerequisites": [],
+  "project": "test",
+  "rules": [],
+  "state": "off",
+  "variationToTargetMap": null,
+  "variations": [
+    {
+      "description": null,
+      "identifier": "one",
+      "value": "one"
+    },
+    {
+      "description": null,
+      "identifier": "two",
+      "value": "two"
+    },
+    {
+      "description": null,
+      "identifier": "three",
+      "value": "three"
+    }
+  ]
+}
