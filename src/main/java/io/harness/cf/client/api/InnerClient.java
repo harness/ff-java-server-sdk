@@ -354,7 +354,9 @@ class InnerClient
   @Override
   public void processEvaluation(
       @NonNull FeatureConfig featureConfig, Target target, @NonNull Variation variation) {
-    metricsProcessor.pushToQueue(target, featureConfig, variation);
+    if (this.options.isAnalyticsEnabled()) {
+      metricsProcessor.pushToQueue(target, featureConfig, variation);
+    }
   }
 
   public void close() {
