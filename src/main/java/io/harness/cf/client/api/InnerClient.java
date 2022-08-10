@@ -82,6 +82,7 @@ class InnerClient
       log.error("SDK key cannot be empty!");
       return;
     }
+
     HarnessConfig config = HarnessConfig.builder().build();
     HarnessConnector harnessConnector = new HarnessConnector(sdkKey, config);
     setUp(harnessConnector, options);
@@ -354,7 +355,9 @@ class InnerClient
   @Override
   public void processEvaluation(
       @NonNull FeatureConfig featureConfig, Target target, @NonNull Variation variation) {
-    metricsProcessor.pushToQueue(target, featureConfig, variation);
+    if (this.options.isAnalyticsEnabled()) {
+      metricsProcessor.pushToQueue(target, featureConfig, variation);
+    }
   }
 
   public void close() {
