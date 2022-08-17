@@ -27,6 +27,7 @@ class MetricsProcessor extends AbstractScheduledService {
   private final Connector connector;
   private final BaseConfig config;
   private final BlockingQueue<MetricEvent> queue;
+  private final List<MetricEvent> metricEvents = Collections.synchronizedList(new ArrayList<>());
 
   private volatile boolean closing = false;
 
@@ -62,6 +63,7 @@ class MetricsProcessor extends AbstractScheduledService {
       try {
         MetricEvent metricEvent = queue.take();
         log.info("Metrics event {}", metricEvent.getTarget().getIdentifier());
+        metricEvents.add(metricEvent);
       } catch (InterruptedException e) {
         log.error("Metrics Consumer raised exception", e);
         Thread.currentThread().interrupt();
@@ -188,12 +190,7 @@ class MetricsProcessor extends AbstractScheduledService {
 
   @Override
   protected void runOneIteration() {
-    //    List<MetricEvent> data = new ArrayList<>();
-    //    try {
-    //      sendDataAndResetCache(data);
-    //    } catch (Exception e) {
-    //      log.error("Error while executing runOneIteration", e);
-    //    }
+    this.flush();
   }
 
   @NonNull
@@ -203,10 +200,21 @@ class MetricsProcessor extends AbstractScheduledService {
         config.getFrequency(), config.getFrequency(), TimeUnit.SECONDS);
   }
 
+  public void flush() {
+    // maybe lock?
+    List<MetricEvent> data = new ArrayList<>(this.metricEvents);
+    this.metricEvents.clear();
+    try {
+      //          sendDataAndResetCache(data);
+    } catch (Exception e) {
+      log.error("Error while executing runOneIteration", e);
+    }
+  }
+
   public void start() {
     log.info("Starting MetricsProcessor with request interval: {}", config.getFrequency());
     startAsync();
-    for (int i = 0; i < 50; i++) {
+    for (int i = 0; i < 10; i++) {
       executorService.submit(this::consumer);
     }
   }
@@ -218,6 +226,7 @@ class MetricsProcessor extends AbstractScheduledService {
   }
 
   public void close() {
+    this.flush();
     stop();
     closing = true;
     log.info("Closing MetricsProcessor");
