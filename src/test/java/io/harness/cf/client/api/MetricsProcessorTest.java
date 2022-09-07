@@ -49,7 +49,7 @@ public class MetricsProcessorTest implements MetricsCallback {
       WORKER_THREAD_POOL.submit(
           () -> {
             for (int j = 1; j <= BUFFER_SIZE; j++) {
-              metricsProcessor.pushToQueue(target, feature, variation);
+              metricsProcessor.pushToQueue(target, feature.getFeature(), variation);
             }
             latch.countDown();
           });
@@ -79,7 +79,7 @@ public class MetricsProcessorTest implements MetricsCallback {
     Target target = Target.builder().identifier("harness").build();
     FeatureConfig feature = FeatureConfig.builder().feature("bool-flag").build();
     Variation variation = Variation.builder().identifier("true").value("true").build();
-    MetricEvent event = new MetricEvent(feature, target, variation);
+    MetricEvent event = new MetricEvent(feature.getFeature(), target, variation);
 
     Map<MetricEvent, Integer> map = Maps.newHashMap();
     map.put(event, 6);

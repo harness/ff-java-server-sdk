@@ -19,10 +19,9 @@ public class GettingStarted {
     public static void main(String[] args) {
         System.out.println("Harness SDK Getting Started");
 
-        //Create a Feature Flag Client
-        CfClient cfClient = new CfClient(apiKey, Config.builder().build());
-
         try {
+            //Create a Feature Flag Client
+            CfClient cfClient = new CfClient(apiKey, BaseConfig.builder().build());
             cfClient.waitForInitialization();
 
             // Create a target (different targets can get different results based on rules.  This includes a custom attribute 'location')
@@ -41,11 +40,11 @@ public class GettingStarted {
                     10,
                     TimeUnit.SECONDS);
 
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
             // Close the SDK
             cfClient.close();
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

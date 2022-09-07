@@ -46,15 +46,14 @@ class MetricsProcessor extends AbstractScheduledService {
   }
 
   // push the incoming data to the queue
-  public synchronized void pushToQueue(
-      Target target, FeatureConfig featureConfig, Variation variation) {
+  public synchronized void pushToQueue(Target target, String featureName, Variation variation) {
 
     if (queue.remainingCapacity() == 0) {
       executor().submit(this::runOneIteration);
     }
 
     try {
-      queue.put(new MetricEvent(featureConfig, target, variation));
+      queue.put(new MetricEvent(featureName, target, variation));
     } catch (InterruptedException e) {
       log.debug("Queue is blocked for a long time");
       if (Thread.currentThread().isAlive()) Thread.currentThread().interrupt();
@@ -132,7 +131,7 @@ class MetricsProcessor extends AbstractScheduledService {
 
   private SummaryMetrics prepareSummaryMetricsKey(MetricEvent key) {
     return SummaryMetrics.builder()
-        .featureName(key.getFeatureConfig().getFeature())
+        .featureName(key.getFeatureName())
         .variationIdentifier(key.getVariation().getIdentifier())
         .variationValue(key.getVariation().getValue())
         .build();
