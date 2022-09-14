@@ -13,4 +13,5 @@ class SummaryMetrics {
   private String featureName;
   private String variationIdentifier;
   private String variationValue;
+  private String targetIdentifier;
 }
