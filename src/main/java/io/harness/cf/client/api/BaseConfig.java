@@ -21,6 +21,8 @@ public class BaseConfig {
   // configurations for Analytics
   @Builder.Default private final boolean analyticsEnabled = true;
 
+  @Builder.Default private final boolean globalTargetEnabled = true;
+
   @Builder.Default
   @Getter(AccessLevel.NONE)
   private final int frequency = 60; // unit: second
