@@ -147,7 +147,7 @@ class Evaluator implements Evaluation {
       case EQUAL_SENSITIVE:
         return object.equals(value);
       case IN:
-        return value.contains(object);
+        return clause.getValues().contains(object);
       default:
         log.debug("operator {} not found", operator);
         return false;
