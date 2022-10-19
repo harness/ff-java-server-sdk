@@ -46,15 +46,21 @@ class MetricsProcessor extends AbstractScheduledService {
   }
 
   // push the incoming data to the queue
-  public synchronized void pushToQueue(
-      Target target, FeatureConfig featureConfig, Variation variation) {
+  public synchronized void pushToQueue(Target target, String featureName, Variation variation) {
 
     if (queue.remainingCapacity() == 0) {
       executor().submit(this::runOneIteration);
     }
 
+    log.debug(
+        "Flag: " + featureName + " Target: " + target.getIdentifier() + " Variation: " + variation);
+
+    if (config.isGlobalTargetEnabled()) {
+      target.setIdentifier(GLOBAL_TARGET);
+    }
+
     try {
-      queue.put(new MetricEvent(featureConfig, target, variation));
+      queue.put(new MetricEvent(featureName, target, variation));
     } catch (InterruptedException e) {
       log.debug("Queue is blocked for a long time");
       if (Thread.currentThread().isAlive()) Thread.currentThread().interrupt();
@@ -106,7 +112,8 @@ class MetricsProcessor extends AbstractScheduledService {
     for (Map.Entry<MetricEvent, Integer> entry : data.entrySet()) {
       Target target = entry.getKey().getTarget();
       addTargetData(metrics, target);
-      SummaryMetrics summaryMetrics = prepareSummaryMetricsKey(entry.getKey());
+      SummaryMetrics summaryMetrics =
+          prepareSummaryMetricsKey(entry.getKey(), target.getIdentifier());
       summaryMetricsData.put(summaryMetrics, entry.getValue());
     }
 
@@ -119,7 +126,7 @@ class MetricsProcessor extends AbstractScheduledService {
           Arrays.asList(
               new KeyValue(FEATURE_NAME_ATTRIBUTE, entry.getKey().getFeatureName()),
               new KeyValue(VARIATION_IDENTIFIER_ATTRIBUTE, entry.getKey().getVariationIdentifier()),
-              new KeyValue(TARGET_ATTRIBUTE, GLOBAL_TARGET),
+              new KeyValue(TARGET_ATTRIBUTE, entry.getKey().getTargetIdentifier()),
               new KeyValue(SDK_TYPE, SERVER),
               new KeyValue(SDK_LANGUAGE, "java"),
               new KeyValue(SDK_VERSION, jarVersion)));
@@ -130,11 +137,12 @@ class MetricsProcessor extends AbstractScheduledService {
     return metrics;
   }
 
-  private SummaryMetrics prepareSummaryMetricsKey(MetricEvent key) {
+  private SummaryMetrics prepareSummaryMetricsKey(MetricEvent key, String targetIdentifier) {
     return SummaryMetrics.builder()
-        .featureName(key.getFeatureConfig().getFeature())
+        .featureName(key.getFeatureName())
         .variationIdentifier(key.getVariation().getIdentifier())
         .variationValue(key.getVariation().getValue())
+        .targetIdentifier(targetIdentifier)
         .build();
   }
 

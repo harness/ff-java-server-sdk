@@ -8,12 +8,14 @@ import io.harness.cf.api.MetricsApi;
 import io.harness.cf.client.dto.Claim;
 import io.harness.cf.client.logger.LogUtil;
 import io.harness.cf.model.*;
+import java.lang.ref.WeakReference;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Request;
 import okhttp3.Response;
+import okhttp3.internal.Util;
 import org.slf4j.MDC;
 
 @Slf4j
@@ -23,6 +25,8 @@ public class HarnessConnector implements Connector, AutoCloseable {
   private final MetricsApi metricsApi;
   private final String apiKey;
   private final HarnessConfig options;
+  private WeakReference<Response> responseReference;
+  private WeakReference<Response> metricsResponseReference;
 
   private String token;
   private String environment;
@@ -71,7 +75,23 @@ public class HarnessConnector implements Connector, AutoCloseable {
                           .addHeader("X-Request-ID", getRequestID())
                           .build();
                   log.info("interceptor: requesting url {}", request.url().url());
-                  Response response = chain.proceed(request);
+                  Response response;
+                  if (responseReference != null) {
+                    response = responseReference.get();
+                    if (response != null) {
+                      if (response.isSuccessful()) {
+                        log.debug(
+                            "interceptor: closing the response url={}", response.request().url());
+                      } else {
+                        log.warn(
+                            "interceptor: closing the faulty response url={}",
+                            response.request().url());
+                      }
+                      Util.closeQuietly(response);
+                    }
+                  }
+                  response = chain.proceed(request);
+                  responseReference = new WeakReference<>(response);
                   if (response.code() == 403 && onUnauthorized != null) {
                     onUnauthorized.run();
                   }
@@ -106,7 +126,25 @@ public class HarnessConnector implements Connector, AutoCloseable {
                           .addHeader("X-Request-ID", getRequestID())
                           .build();
                   log.info("metrics interceptor: requesting url {}", request.url().url());
-                  return chain.proceed(request);
+                  Response response;
+                  if (metricsResponseReference != null) {
+                    response = metricsResponseReference.get();
+                    if (response != null) {
+                      if (response.isSuccessful()) {
+                        log.debug(
+                            "metrics interceptor: closing the response url={}",
+                            response.request().url());
+                      } else {
+                        log.warn(
+                            "metrics interceptor: closing the faulty response url={}",
+                            response.request().url());
+                      }
+                      Util.closeQuietly(response);
+                    }
+                  }
+                  response = chain.proceed(request);
+                  metricsResponseReference = new WeakReference<>(response);
+                  return response;
                 })
             .addInterceptor(new RetryInterceptor(3, 2000))
             .build());
@@ -324,6 +362,20 @@ public class HarnessConnector implements Connector, AutoCloseable {
   @Override
   public void close() {
     log.info("closing connector");
+    if (responseReference != null) {
+      final Response response = responseReference.get();
+      if (response != null) {
+        Util.closeQuietly(response);
+      }
+      responseReference = null;
+    }
+    if (metricsResponseReference != null) {
+      final Response response = metricsResponseReference.get();
+      if (response != null) {
+        Util.closeQuietly(response);
+      }
+      metricsResponseReference = null;
+    }
     api.getApiClient().getHttpClient().connectionPool().evictAll();
     log.info("All apiClient connections evicted");
     metricsApi.getApiClient().getHttpClient().connectionPool().evictAll();
