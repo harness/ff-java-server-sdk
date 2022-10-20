@@ -89,10 +89,12 @@ class Evaluator implements Evaluation {
     }
 
     String variation = "";
+    int totalPercentage = 0;
     for (WeightedVariation weightedVariation : distribution.getVariations()) {
       variation = weightedVariation.getVariation();
       log.debug("Checking variation {}", variation);
-      if (isEnabled(target, distribution.getBucketBy(), weightedVariation.getWeight())) {
+      totalPercentage += weightedVariation.getWeight();
+      if (isEnabled(target, distribution.getBucketBy(), totalPercentage)) {
         log.debug("Enabled for distribution {}", distribution);
         return Optional.of(weightedVariation.getVariation());
       }
