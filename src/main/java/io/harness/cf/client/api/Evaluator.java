@@ -156,13 +156,15 @@ class Evaluator implements Evaluation {
 
   protected boolean evaluateClauses(List<Clause> clauses, Target target) {
     for (Clause clause : clauses) {
-      if (!evaluateClause(clause, target)) {
-        log.debug("Unsuccessful evaluation of clause {}", clause);
-        return false;
+      if (evaluateClause(clause, target)) {
+        // If any clause returns true we return true - rules being treated as OR
+        log.debug("Successful evaluation of clause {}", clause);
+        return true;
       }
     }
-    log.debug("All clauses {} evaluated", clauses);
-    return true;
+    // All clauses conditions failed so return false
+    log.debug("All clauses {} failed", clauses);
+    return false;
   }
 
   /**
