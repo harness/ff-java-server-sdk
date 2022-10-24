@@ -9,6 +9,7 @@
         </encoder>
     </appender>
     <logger name="io.harness.cf.client" level="DEBUG"/>
+    <logger name="io.harness.cf.client.api.MetricsProcessor" level="WARN"/>
     <root level="INFO">
         <appender-ref ref="STDOUT" />
     </root>

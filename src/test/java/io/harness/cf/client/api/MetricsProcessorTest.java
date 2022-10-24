@@ -1,10 +1,12 @@
 package io.harness.cf.client.api;
 
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.google.common.collect.Maps;
 import io.harness.cf.client.connector.Connector;
+import io.harness.cf.client.connector.ConnectorException;
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Metrics;
@@ -15,9 +17,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -35,6 +35,8 @@ public class MetricsProcessorTest implements MetricsCallback {
         Mockito.spy(
             new MetricsProcessor(
                 connector, BaseConfig.builder().bufferSize(BUFFER_SIZE).build(), this));
+
+    metricsProcessor.reset();
   }
 
   @Test
@@ -57,6 +59,41 @@ public class MetricsProcessorTest implements MetricsCallback {
     latch.await();
 
     verify(metricsProcessor, times(BUFFER_SIZE - 1)).runOneIteration();
+  }
+
+  @Test
+  public void shouldNotThrowOutOfMemoryErrorWhenCreatingThreads()
+      throws InterruptedException, ConnectorException {
+    final int METRIC_COUNT = 100_000;
+
+    Target target = Target.builder().identifier("harness").build();
+    FeatureConfig feature = FeatureConfig.builder().feature("bool-flag").build();
+    Variation variation = Variation.builder().identifier("true").value("true").build();
+
+    for (int j = 0; j < METRIC_COUNT; j++) {
+      metricsProcessor.pushToQueue(target, feature.getFeature(), variation);
+    }
+
+    metricsProcessor.flushQueue();
+
+    waitForAllMetricEventsToArrive(metricsProcessor, METRIC_COUNT);
+
+    assertEquals(METRIC_COUNT, metricsProcessor.getMetricsSent());
+  }
+
+  private void waitForAllMetricEventsToArrive(MetricsProcessor processor, int metricCount)
+      throws InterruptedException {
+    final int delayMs = 100;
+    int maxWaitTime = 30_000 / delayMs;
+    while (processor.getMetricsSent() < metricCount && maxWaitTime > 0) {
+      System.out.println("Waiting for all metric events to arrive...");
+      Thread.sleep(delayMs);
+      maxWaitTime--;
+    }
+
+    if (maxWaitTime == 0) {
+      fail("Timed out");
+    }
   }
 
   @Override

@@ -9,7 +9,9 @@ import io.harness.cf.model.*;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.LongAdder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -34,14 +36,18 @@ class MetricsProcessor extends AbstractScheduledService {
   private final Connector connector;
   private final BaseConfig config;
   private final BlockingQueue<MetricEvent> queue;
+  private final ScheduledExecutorService executor;
 
   private String jarVersion = "";
+
+  private final LongAdder metricsSent = new LongAdder();
 
   public MetricsProcessor(
       @NonNull Connector connector, @NonNull BaseConfig config, @NonNull MetricsCallback callback) {
     this.connector = connector;
     this.config = config;
     this.queue = new LinkedBlockingQueue<>(config.getBufferSize());
+    this.executor = executor();
     callback.onMetricsReady();
   }
 
@@ -49,7 +55,7 @@ class MetricsProcessor extends AbstractScheduledService {
   public synchronized void pushToQueue(Target target, String featureName, Variation variation) {
 
     if (queue.remainingCapacity() == 0) {
-      executor().submit(this::runOneIteration);
+      executor.submit(this::runOneIteration);
     }
 
     log.debug(
@@ -87,6 +93,8 @@ class MetricsProcessor extends AbstractScheduledService {
         try {
           long startTime = System.currentTimeMillis();
           connector.postMetrics(metrics);
+
+          metricsSent.add(data.size());
           long endTime = System.currentTimeMillis();
           if ((endTime - startTime) > config.getMetricsServiceAcceptableDuration()) {
             log.warn("Metrics service API duration=[{}]", (endTime - startTime));
@@ -215,5 +223,18 @@ class MetricsProcessor extends AbstractScheduledService {
   public void close() {
     stop();
     log.info("Closing MetricsProcessor");
+  }
+
+  synchronized void flushQueue() {
+    executor.submit(this::runOneIteration);
+  }
+
+  long getMetricsSent() {
+    return metricsSent.sum();
+  }
+
+  void reset() {
+    stagingTargetSet.clear();
+    globalTargetSet.clear();
   }
 }
