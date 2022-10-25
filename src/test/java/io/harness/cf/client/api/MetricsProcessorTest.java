@@ -12,7 +12,9 @@ import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Metrics;
 import io.harness.cf.model.Variation;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -67,21 +69,26 @@ public class MetricsProcessorTest implements MetricsCallback {
   @Test
   public void shouldNotThrowOutOfMemoryErrorWhenCreatingThreads()
       throws InterruptedException, ConnectorException {
-    final int METRIC_COUNT = 100_000;
+    final int METRIC_COUNT = 1_000_000;
 
     Target target = Target.builder().identifier("harness").build();
     FeatureConfig feature = FeatureConfig.builder().feature("bool-flag").build();
     Variation variation = Variation.builder().identifier("true").value("true").build();
 
+    Target target2 = Target.builder().identifier("harness2").build();
+    FeatureConfig feature2 = FeatureConfig.builder().feature("bool-flag2").build();
+    Variation variation2 = Variation.builder().identifier("true").value("true").build();
+
     for (int j = 0; j < METRIC_COUNT; j++) {
       metricsProcessor.pushToQueue(target, feature.getFeature(), variation);
+      metricsProcessor.pushToQueue(target2, feature2.getFeature(), variation2);
     }
 
     metricsProcessor.flushQueue();
 
-    waitForAllMetricEventsToArrive(metricsProcessor, METRIC_COUNT);
+    waitForAllMetricEventsToArrive(metricsProcessor, METRIC_COUNT * 2);
 
-    assertEquals(METRIC_COUNT, metricsProcessor.getMetricsSent());
+    assertEquals(METRIC_COUNT * 2, metricsProcessor.getMetricsSent());
   }
 
   private void waitForAllMetricEventsToArrive(MetricsProcessor processor, int metricCount)
@@ -121,10 +128,13 @@ public class MetricsProcessorTest implements MetricsCallback {
     Variation variation = Variation.builder().identifier("true").value("true").build();
     MetricEvent event = new MetricEvent(feature.getFeature(), target, variation);
 
-    Map<MetricEvent, Integer> map = Maps.newHashMap();
-    map.put(event, 6);
+    Set<Target> uniqueTargets = new HashSet<>();
+    uniqueTargets.add(target);
 
-    Metrics metrics = metricsProcessor.prepareSummaryMetricsBody(map);
+    Map<MetricEvent, Long> map = Maps.newHashMap();
+    map.put(event, 6L);
+
+    Metrics metrics = metricsProcessor.prepareSummaryMetricsBody(map, uniqueTargets);
 
     assert metrics.getTargetData() != null;
     assert metrics.getTargetData().get(1).getIdentifier().equals(target.getIdentifier());

@@ -2,15 +2,13 @@ package io.harness.cf.client.api;
 
 import com.google.common.base.Strings;
 import com.google.common.util.concurrent.AbstractScheduledService;
+import com.google.common.util.concurrent.AtomicLongMap;
 import io.harness.cf.client.connector.Connector;
 import io.harness.cf.client.connector.ConnectorException;
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.*;
 import java.util.*;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.LongAdder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +33,8 @@ class MetricsProcessor extends AbstractScheduledService {
 
   private final Connector connector;
   private final BaseConfig config;
-  private final BlockingQueue<MetricEvent> queue;
+  private final AtomicLongMap<MetricEvent> frequencyMap;
+  private final Set<Target> uniqueTargetSet;
   private final ScheduledExecutorService executor;
 
   private String jarVersion = "";
@@ -46,55 +45,52 @@ class MetricsProcessor extends AbstractScheduledService {
       @NonNull Connector connector, @NonNull BaseConfig config, @NonNull MetricsCallback callback) {
     this.connector = connector;
     this.config = config;
-    this.queue = new LinkedBlockingQueue<>(config.getBufferSize());
     this.executor = executor();
+
+    this.frequencyMap = AtomicLongMap.create();
+    this.uniqueTargetSet = ConcurrentHashMap.newKeySet();
+
     callback.onMetricsReady();
   }
 
   // push the incoming data to the queue
   public synchronized void pushToQueue(Target target, String featureName, Variation variation) {
 
-    if (queue.remainingCapacity() == 0) {
+    if (frequencyMap.size() > config.getBufferSize()) {
+      // If the map is starting to grow too much then push the events now and reset the counters
       executor.submit(this::runOneIteration);
     }
 
     log.debug(
         "Flag: " + featureName + " Target: " + target.getIdentifier() + " Variation: " + variation);
 
+    uniqueTargetSet.add(target);
+
     if (config.isGlobalTargetEnabled()) {
       target.setIdentifier(GLOBAL_TARGET);
     }
 
-    try {
-      queue.put(new MetricEvent(featureName, target, variation));
-    } catch (InterruptedException e) {
-      log.debug("Queue is blocked for a long time");
-      if (Thread.currentThread().isAlive()) Thread.currentThread().interrupt();
-    }
+    frequencyMap.incrementAndGet(new MetricEvent(featureName, target, variation));
   }
 
   /** This method sends the metrics data to the analytics server and resets the cache */
-  public void sendDataAndResetCache(final List<MetricEvent> data) {
+  public void sendDataAndResetCache(
+      final Map<MetricEvent, Long> freqMap, final Set<Target> uniqueTargets) {
     log.info("Reading from queue and preparing the metrics");
     jarVersion = getVersion();
 
-    if (!data.isEmpty()) {
-
-      Map<MetricEvent, Integer> map = new HashMap<>();
-      for (MetricEvent event : data) {
-        map.put(event, map.getOrDefault(event, 0) + 1);
-      }
+    if (!freqMap.isEmpty()) {
 
       log.info("Preparing summary metrics");
       // We will only submit summary metrics to the event server
-      Metrics metrics = prepareSummaryMetricsBody(map);
+      Metrics metrics = prepareSummaryMetricsBody(freqMap, uniqueTargets);
       if ((metrics.getMetricsData() != null && !metrics.getMetricsData().isEmpty())
           || (metrics.getTargetData() != null && !metrics.getTargetData().isEmpty())) {
         try {
           long startTime = System.currentTimeMillis();
           connector.postMetrics(metrics);
 
-          metricsSent.add(data.size());
+          metricsSent.add(sumOfValuesInMap(freqMap));
           long endTime = System.currentTimeMillis();
           if ((endTime - startTime) > config.getMetricsServiceAcceptableDuration()) {
             log.warn("Metrics service API duration=[{}]", (endTime - startTime));
@@ -109,14 +105,54 @@ class MetricsProcessor extends AbstractScheduledService {
     }
   }
 
-  protected Metrics prepareSummaryMetricsBody(Map<MetricEvent, Integer> data) {
+  private long sumOfValuesInMap(Map<?, Long> map) {
+    return map.entrySet().stream().mapToLong(Map.Entry::getValue).sum();
+  }
+
+  protected Metrics prepareSummaryMetricsBody(Map<MetricEvent, Long> data, Set<Target> targets) {
+    final Metrics metrics = new Metrics(new ArrayList<>(), new ArrayList<>());
+    final Map<SummaryMetrics, Long> summaryMetricsData = new HashMap<>();
+
+    addTargetData(
+        metrics, Target.builder().name(GLOBAL_TARGET_NAME).identifier(GLOBAL_TARGET).build()); // ?
+
+    targets.forEach(target -> addTargetData(metrics, target));
+    data.forEach(
+        (target, count) ->
+            summaryMetricsData.put(
+                prepareSummaryMetricsKey(target, target.getTarget().getIdentifier()), count));
+
+    summaryMetricsData.forEach(
+        (summary, count) -> {
+          MetricsData metricsData = new MetricsData();
+          metricsData.setTimestamp(System.currentTimeMillis());
+          metricsData.count(count.intValue());
+          metricsData.setMetricsType(MetricsData.MetricsTypeEnum.FFMETRICS);
+          metricsData.attributes(
+              Arrays.asList(
+                  new KeyValue(FEATURE_NAME_ATTRIBUTE, summary.getFeatureName()),
+                  new KeyValue(VARIATION_IDENTIFIER_ATTRIBUTE, summary.getVariationIdentifier()),
+                  new KeyValue(TARGET_ATTRIBUTE, summary.getTargetIdentifier()),
+                  new KeyValue(SDK_TYPE, SERVER),
+                  new KeyValue(SDK_LANGUAGE, "java"),
+                  new KeyValue(SDK_VERSION, jarVersion)));
+          if (metrics.getMetricsData() != null) {
+            metrics.getMetricsData().add(metricsData);
+          }
+        });
+    return metrics;
+  }
+
+  protected Metrics prepareSummaryMetricsBodyOld(Map<MetricEvent, Integer> data) {
     Metrics metrics = new Metrics();
     metrics.metricsData(new ArrayList<>());
     metrics.targetData(new ArrayList<>());
 
-    Map<SummaryMetrics, Integer> summaryMetricsData = new HashMap<>();
     addTargetData(
         metrics, Target.builder().name(GLOBAL_TARGET_NAME).identifier(GLOBAL_TARGET).build());
+
+    Map<SummaryMetrics, Integer> summaryMetricsData = new HashMap<>();
+
     for (Map.Entry<MetricEvent, Integer> entry : data.entrySet()) {
       Target target = entry.getKey().getTarget();
       addTargetData(metrics, target);
@@ -134,7 +170,7 @@ class MetricsProcessor extends AbstractScheduledService {
           Arrays.asList(
               new KeyValue(FEATURE_NAME_ATTRIBUTE, entry.getKey().getFeatureName()),
               new KeyValue(VARIATION_IDENTIFIER_ATTRIBUTE, entry.getKey().getVariationIdentifier()),
-              new KeyValue(TARGET_ATTRIBUTE, entry.getKey().getTargetIdentifier()),
+              new KeyValue(TARGET_ATTRIBUTE, GLOBAL_TARGET),
               new KeyValue(SDK_TYPE, SERVER),
               new KeyValue(SDK_LANGUAGE, "java"),
               new KeyValue(SDK_VERSION, jarVersion)));
@@ -196,11 +232,26 @@ class MetricsProcessor extends AbstractScheduledService {
     return io.harness.cf.Version.VERSION;
   }
 
+  private int maxFrequencyMapSize = 0;
+  private int maxUniqueTargetSetSize = 0;
+
   @Override
   protected void runOneIteration() {
-    List<MetricEvent> data = new ArrayList<>();
-    queue.drainTo(data);
-    sendDataAndResetCache(data);
+    sendDataAndResetCache(
+        new HashMap<>(this.frequencyMap.asMap()), new HashSet<>(this.uniqueTargetSet));
+
+    maxFrequencyMapSize = Math.max(maxFrequencyMapSize, frequencyMap.size());
+    maxUniqueTargetSetSize = Math.max(maxUniqueTargetSetSize, uniqueTargetSet.size());
+
+    log.trace(
+        "Metrics frequency map (cur: {} max: {}) Unique targets (cur: {} max: {})",
+        frequencyMap.size(),
+        maxFrequencyMapSize,
+        uniqueTargetSet.size(),
+        maxUniqueTargetSetSize);
+
+    frequencyMap.clear();
+    uniqueTargetSet.clear();
   }
 
   @NonNull
