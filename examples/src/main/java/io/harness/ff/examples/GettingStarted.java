@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit;
 
 public class GettingStarted {
     // API Key - set this as an env variable
-    private static String apiKey = getEnvOrDefault("FF_API_KEY", "");
+    private static String apiKey = getEnvOrDefault("FF_API_KEY", "62dabb1d-c5bf-4100-a70c-084efea0cde7");
 
     // Flag Identifier
     private static String flagName = getEnvOrDefault("FF_FLAG_NAME", "harnessappdemodarkmode");
@@ -29,6 +29,8 @@ public class GettingStarted {
                     .identifier("javasdk")
                     .name("JavaSDK")
                     .build();
+
+            System.out.println("Initialization successful");
 
             // Loop forever reporting the state of the flag
             scheduler.scheduleAtFixedRate(
