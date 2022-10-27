@@ -49,30 +49,14 @@ version = '1.0-SNAPSHOT'
 description = 'GettinStarted'
 java.sourceCompatibility = JavaVersion.VERSION_1_8
 
-publishing {
-    publications {
-        maven(MavenPublication) {
-            from(components.java)
-        }
-    }
-}
-//sourceSets {
-//    main.java.srcDir "src/main/java"
-//}
-mainClassName = 'io.harness.ff.examples.GettingStarted'
-jar {
-    manifest {
-        attributes "Main-Class": "$mainClassName"
-    }
-}
+
+/* Builds fat jar with all the dependencies required to run the GettingStarted App. */
 task gettingStarted(type: Jar) {
-//    from sourceSets.main.output
-//    include '**/*/GettingStarted.class'
     mainClassName = 'io.harness.ff.examples.GettingStarted'
     manifest {
         attributes "Main-Class": "$mainClassName"
     }
-    baseName = 'fat-cf-sample-demo-app'
+    baseName = 'ff-java-sdk-sample-demo-app'
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     from {
         configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
@@ -82,3 +66,5 @@ task gettingStarted(type: Jar) {
     exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
     with jar
 }
+// add the task to run it
+//
