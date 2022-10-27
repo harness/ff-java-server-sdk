@@ -6,20 +6,22 @@ import io.harness.cf.client.dto.Target;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
 public class GettingStarted {
     // API Key - set this as an env variable
-    private static String apiKey = getEnvOrDefault("FF_API_KEY", "62dabb1d-c5bf-4100-a70c-084efea0cde7");
+    private static String apiKey = getEnvOrDefault("FF_API_KEY", "");
 
     // Flag Identifier
     private static String flagName = getEnvOrDefault("FF_FLAG_NAME", "harnessappdemodarkmode");
-
-    private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     public static void main(String[] args) {
 
         String userTarget = args.length != 0 ?  args[0] : "javasdk";
         System.out.println("Harness SDK Getting Started");
+
+        if (apiKey.length() == 0){
+            System.out.println("Make sure your apiKey is set FF_API_KEY");
+            System.exit(1);
+        }
 
         try {
             //Create a Feature Flag Client
@@ -35,17 +37,11 @@ public class GettingStarted {
             System.out.println("Initialization successful");
 
             // Loop forever reporting the state of the flag
-            scheduler.scheduleAtFixedRate(
-                    () -> {
-                        boolean result = cfClient.boolVariation(flagName, target, false);
-                        System.out.println("Boolean variation for target "+ userTarget + " is " + result);
-                    },
-                    0,
-                    10,
-                    TimeUnit.SECONDS);
-
-            // Close the SDK
-            cfClient.close();
+            while (true){
+                Thread.sleep(2000);
+                boolean result = cfClient.boolVariation(flagName, target, false);
+                System.out.println("Boolean variation for target "+ userTarget + " is " + result);
+            }
 
         } catch (Exception e) {
             e.printStackTrace();
