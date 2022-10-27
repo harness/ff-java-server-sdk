@@ -51,7 +51,7 @@ java.sourceCompatibility = JavaVersion.VERSION_1_8
 
 
 /* Builds fat jar with all the dependencies required to run the GettingStarted App. */
-task gettingStarted(type: Jar) {
+task buildGettingStarted(type: Jar) {
     mainClassName = 'io.harness.ff.examples.GettingStarted'
     manifest {
         attributes "Main-Class": "$mainClassName"
@@ -66,5 +66,12 @@ task gettingStarted(type: Jar) {
     exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
     with jar
 }
-// add the task to run it
-//
+
+task runGettingStarted(type: JavaExec) {
+    description = 'Run the GettingStarted jar.'
+    mainClassName = 'io.harness.ff.examples.GettingStarted'
+    classpath sourceSets.main.runtimeClasspath
+    main = "$mainClassName"
+//    args "arg1", "arg2"
+}
+

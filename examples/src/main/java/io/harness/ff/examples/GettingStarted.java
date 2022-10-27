@@ -17,6 +17,8 @@ public class GettingStarted {
     private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     public static void main(String[] args) {
+
+        String userTarget = args.length != 0 ?  args[0] : "javasdk";
         System.out.println("Harness SDK Getting Started");
 
         try {
@@ -26,8 +28,8 @@ public class GettingStarted {
 
             // Create a target (different targets can get different results based on rules.  This includes a custom attribute 'location')
             final Target target = Target.builder()
-                    .identifier("javasdk")
-                    .name("JavaSDK")
+                    .identifier(userTarget)
+                    .name(userTarget)
                     .build();
 
             System.out.println("Initialization successful");
@@ -36,7 +38,7 @@ public class GettingStarted {
             scheduler.scheduleAtFixedRate(
                     () -> {
                         boolean result = cfClient.boolVariation(flagName, target, false);
-                        System.out.println("Boolean variation is " + result);
+                        System.out.println("Boolean variation for target "+ userTarget + " is " + result);
                     },
                     0,
                     10,
