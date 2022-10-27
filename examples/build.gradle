@@ -68,10 +68,13 @@ task buildGettingStarted(type: Jar) {
 }
 
 task runGettingStarted(type: JavaExec) {
+
     description = 'Run the GettingStarted jar.'
     mainClassName = 'io.harness.ff.examples.GettingStarted'
     classpath sourceSets.main.runtimeClasspath
     main = "$mainClassName"
-//    args "arg1", "arg2"
+    if (project.hasProperty("target")) {
+        args target
+    }
 }
 
