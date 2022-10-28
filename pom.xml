@@ -272,7 +272,7 @@
                         </goals>
                         <configuration>
                             <sources>
-                                <source>target/generated-sources</source>
+                                <source>target/generated-sources/openapi</source>
                             </sources>
                         </configuration>
                     </execution>
