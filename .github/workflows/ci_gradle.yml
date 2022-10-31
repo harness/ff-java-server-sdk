@@ -23,5 +23,7 @@ jobs:
       with:
         java-version: '8'
         distribution: 'adopt'
-    - name: Build with Gradle
+    - name: Setup Gradle
+      uses: gradle/gradle-build-action@v2
+    - name: Build with Gradle Wrapper
       run: ./gradlew build
