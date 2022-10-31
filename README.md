@@ -30,37 +30,22 @@ To follow along with our test code sample, make sure you’ve:
 - Created a [server SDK key](https://ngdocs.harness.io/article/1j7pdkqh7j-create-a-feature-flag#step_3_create_an_sdk_key) and made a copy of it
 
 ### General Dependencies
+We are using gradle going forward.
 
-[Defined in the main project](./pom.xml)
+[Defined in the main gradle build](./build.gradle)
+
+[Defined in the main project mvn - depricated](./pom.xml)
 
 ### Logging Dependencies
 
 Logback
-```pom
-<dependency>
-    <groupId>ch.qos.logback</groupId>
-    <artifactId>logback-classic</artifactId>
-    <version>VERSION</version>
-</dependency>
+``` 
+    testImplementation 'ch.qos.logback:logback-classic:1.2.10'
 ```
 
 Log4j
 ```pom
-<dependency>
-    <groupId>org.apache.logging.log4j</groupId>
-    <artifactId>log4j-api</artifactId>
-    <version>VERSION</version>
-</dependency>
-<dependency>
-    <groupId>org.apache.logging.log4j</groupId>
-    <artifactId>log4j-core</artifactId>
-    <version>VERSION</version>
-</dependency>
-<dependency>
-    <groupId>org.apache.logging.log4j</groupId>
-    <artifactId>log4j-slf4j-impl</artifactId>
-    <version>VERSION</version>
-</dependency>
+    implementation 'org.slf4j:slf4j-api:1.7.30'
 ```
 
 ### Install the SDK
@@ -73,8 +58,10 @@ This section lists dependencies for Maven and Gradle and uses the 1.1.5.3 versio
 
 #### Maven
 
-Add the following Maven dependency in your project's pom.xml file:
-```pom
+Add the following Maven dependency in your project's file:
+
+#### Mvn
+```
 <dependency>
     <groupId>io.harness</groupId>
     <artifactId>ff-java-server-sdk</artifactId>
@@ -174,11 +161,7 @@ If you don't have the right version of java installed locally, or don't want to 
 use docker to get started.
 
 ```bash
-# Clean and Package
-docker run -v $(PWD)/examples:/app -v "$HOME/.m2":/root/.m2 -w /app maven:3.3-jdk-8 mvn clean package
-
-# Run the Example
-docker run -e FF_API_KEY=$FF_API_KEY -v $(PWD)/examples:/app -v "$HOME/.m2":/root/.m2 -w /app maven:3.3-jdk-8 mvn exec:java -Dexec.mainClass="io.harness.ff.examples.GettingStarted"
+docker run -e FF_API_KEY=$FF_API_KEY -v $(PWD)/build/libs:/app  -w /app maven:3.3-jdk-8 java -jar ff-java-sdk-sample-demo-app-1.0-SNAPSHOT.jar
 ```
 
 
