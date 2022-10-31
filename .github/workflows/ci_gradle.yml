@@ -23,6 +23,5 @@ jobs:
       with:
         java-version: '8'
         distribution: 'adopt'
-        cache: maven
     - name: Build with Gradle
       run: ./gradlew clean build --refresh-dependencies
