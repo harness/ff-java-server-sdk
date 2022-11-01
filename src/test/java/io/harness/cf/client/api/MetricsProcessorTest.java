@@ -1,13 +1,9 @@
 package io.harness.cf.client.api;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.junit.Assert.*;
 
 import com.google.common.collect.Maps;
 import io.harness.cf.client.connector.Connector;
-import io.harness.cf.client.connector.ConnectorException;
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Metrics;
@@ -15,9 +11,7 @@ import io.harness.cf.model.Variation;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,7 +22,7 @@ import org.mockito.MockitoAnnotations;
 
 @Slf4j
 public class MetricsProcessorTest implements MetricsCallback {
-  final int BUFFER_SIZE = 10;
+  final int BUFFER_SIZE = 10; // 20000;
   @Mock private Connector connector;
 
   private MetricsProcessor metricsProcessor;
@@ -47,7 +41,6 @@ public class MetricsProcessorTest implements MetricsCallback {
   @Test
   public void testPushToQueue() throws InterruptedException {
     ExecutorService WORKER_THREAD_POOL = Executors.newFixedThreadPool(BUFFER_SIZE);
-    CountDownLatch latch = new CountDownLatch(BUFFER_SIZE);
     Target target = Target.builder().identifier("harness").build();
     FeatureConfig feature = FeatureConfig.builder().feature("bool-flag").build();
     Variation variation = Variation.builder().identifier("true").value("true").build();
@@ -57,46 +50,73 @@ public class MetricsProcessorTest implements MetricsCallback {
           () -> {
             for (int j = 1; j <= BUFFER_SIZE; j++) {
               metricsProcessor.pushToQueue(target, feature.getFeature(), variation);
+
+              metricsProcessor.flushQueue(); // mimic scheduled job
             }
-            latch.countDown();
           });
     }
-    latch.await();
-
-    verify(metricsProcessor, times(BUFFER_SIZE - 1)).runOneIteration();
+    metricsProcessor.flushQueue();
+    waitForAllMetricEventsToArrive(metricsProcessor, BUFFER_SIZE * BUFFER_SIZE);
+    assertEquals(BUFFER_SIZE * BUFFER_SIZE, metricsProcessor.getMetricsSent());
   }
 
   @Test
-  public void shouldNotThrowOutOfMemoryErrorWhenCreatingThreads()
-      throws InterruptedException, ConnectorException {
-    final int METRIC_COUNT = 1_000_000;
+  public void shouldNotThrowOutOfMemoryErrorWhenCreatingThreads() throws InterruptedException {
+    final int TARGET_COUNT = 100;
+    final int FLAG_COUNT = 500;
+    final int VARIATION_COUNT = 4;
 
-    Target target = Target.builder().identifier("harness").build();
-    FeatureConfig feature = FeatureConfig.builder().feature("bool-flag").build();
-    Variation variation = Variation.builder().identifier("true").value("true").build();
+    long maxQueueMapSize = 0;
+    long maxUniqueTargetSetSize = 0;
 
-    Target target2 = Target.builder().identifier("harness2").build();
-    FeatureConfig feature2 = FeatureConfig.builder().feature("bool-flag2").build();
-    Variation variation2 = Variation.builder().identifier("true").value("true").build();
+    for (int t = 0; t < TARGET_COUNT; t++) {
+      Target target = Target.builder().identifier("harness" + t).build();
+      for (int f = 0; f < FLAG_COUNT; f++) {
+        FeatureConfig feature = FeatureConfig.builder().feature("bool-flag" + f).build();
+        for (int v = 0; v < VARIATION_COUNT; v++) {
+          Variation variation =
+              Variation.builder().identifier("true" + v).name("name" + v).value("true").build();
 
-    for (int j = 0; j < METRIC_COUNT; j++) {
-      metricsProcessor.pushToQueue(target, feature.getFeature(), variation);
-      metricsProcessor.pushToQueue(target2, feature2.getFeature(), variation2);
+          metricsProcessor.pushToQueue(target, feature.getFeature(), variation);
+
+          maxQueueMapSize = Math.max(maxQueueMapSize, metricsProcessor.getQueueSize());
+          maxUniqueTargetSetSize =
+              Math.max(maxUniqueTargetSetSize, metricsProcessor.getTargetSetSize());
+        }
+      }
+
+      if (t % 10 == 0) {
+        log.info(
+            "Metrics frequency map (cur: {} max: {}) Unique targets (cur: {} max: {}) Events sent ({}) Events pending ({})",
+            metricsProcessor.getQueueSize(),
+            maxQueueMapSize,
+            metricsProcessor.getTargetSetSize(),
+            maxUniqueTargetSetSize,
+            metricsProcessor.getMetricsSent(),
+            metricsProcessor.getPendingMetricsToBeSent());
+
+        metricsProcessor.flushQueue(); // mimic scheduled job
+      }
     }
 
     metricsProcessor.flushQueue();
 
-    waitForAllMetricEventsToArrive(metricsProcessor, METRIC_COUNT * 2);
+    int waitingForCount = TARGET_COUNT * FLAG_COUNT * VARIATION_COUNT;
+    waitForAllMetricEventsToArrive(metricsProcessor, waitingForCount);
 
-    assertEquals(METRIC_COUNT * 2, metricsProcessor.getMetricsSent());
+    assertEquals(waitingForCount, metricsProcessor.getMetricsSent());
   }
 
+  @SuppressWarnings("BusyWait")
   private void waitForAllMetricEventsToArrive(MetricsProcessor processor, int metricCount)
       throws InterruptedException {
     final int delayMs = 100;
     int maxWaitTime = 30_000 / delayMs;
     while (processor.getMetricsSent() < metricCount && maxWaitTime > 0) {
-      System.out.println("Waiting for all metric events to arrive...");
+      System.out.println(
+          "Waiting for all metric events to arrive..."
+              + (metricCount - processor.getMetricsSent())
+              + " events left");
       Thread.sleep(delayMs);
       maxWaitTime--;
     }

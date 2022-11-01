@@ -57,6 +57,10 @@ class MetricsProcessor extends AbstractScheduledService {
   public synchronized void pushToQueue(Target target, String featureName, Variation variation) {
 
     if (frequencyMap.size() > config.getBufferSize()) {
+      log.warn(
+          "Metric frequency map exceeded buffer size ({} > {}), force flushing",
+          frequencyMap.size(),
+          config.getBufferSize());
       // If the map is starting to grow too much then push the events now and reset the counters
       executor.submit(this::runOneIteration);
     }
@@ -114,7 +118,7 @@ class MetricsProcessor extends AbstractScheduledService {
     final Map<SummaryMetrics, Long> summaryMetricsData = new HashMap<>();
 
     addTargetData(
-        metrics, Target.builder().name(GLOBAL_TARGET_NAME).identifier(GLOBAL_TARGET).build()); // ?
+        metrics, Target.builder().name(GLOBAL_TARGET_NAME).identifier(GLOBAL_TARGET).build());
 
     targets.forEach(target -> addTargetData(metrics, target));
     data.forEach(
@@ -140,44 +144,6 @@ class MetricsProcessor extends AbstractScheduledService {
             metrics.getMetricsData().add(metricsData);
           }
         });
-    return metrics;
-  }
-
-  protected Metrics prepareSummaryMetricsBodyOld(Map<MetricEvent, Integer> data) {
-    Metrics metrics = new Metrics();
-    metrics.metricsData(new ArrayList<>());
-    metrics.targetData(new ArrayList<>());
-
-    addTargetData(
-        metrics, Target.builder().name(GLOBAL_TARGET_NAME).identifier(GLOBAL_TARGET).build());
-
-    Map<SummaryMetrics, Integer> summaryMetricsData = new HashMap<>();
-
-    for (Map.Entry<MetricEvent, Integer> entry : data.entrySet()) {
-      Target target = entry.getKey().getTarget();
-      addTargetData(metrics, target);
-      SummaryMetrics summaryMetrics =
-          prepareSummaryMetricsKey(entry.getKey(), target.getIdentifier());
-      summaryMetricsData.put(summaryMetrics, entry.getValue());
-    }
-
-    for (Map.Entry<SummaryMetrics, Integer> entry : summaryMetricsData.entrySet()) {
-      MetricsData metricsData = new MetricsData();
-      metricsData.setTimestamp(System.currentTimeMillis());
-      metricsData.count(entry.getValue());
-      metricsData.setMetricsType(MetricsData.MetricsTypeEnum.FFMETRICS);
-      metricsData.attributes(
-          Arrays.asList(
-              new KeyValue(FEATURE_NAME_ATTRIBUTE, entry.getKey().getFeatureName()),
-              new KeyValue(VARIATION_IDENTIFIER_ATTRIBUTE, entry.getKey().getVariationIdentifier()),
-              new KeyValue(TARGET_ATTRIBUTE, GLOBAL_TARGET),
-              new KeyValue(SDK_TYPE, SERVER),
-              new KeyValue(SDK_LANGUAGE, "java"),
-              new KeyValue(SDK_VERSION, jarVersion)));
-      if (metrics.getMetricsData() != null) {
-        metrics.getMetricsData().add(metricsData);
-      }
-    }
     return metrics;
   }
 
@@ -232,23 +198,16 @@ class MetricsProcessor extends AbstractScheduledService {
     return io.harness.cf.Version.VERSION;
   }
 
-  private int maxFrequencyMapSize = 0;
-  private int maxUniqueTargetSetSize = 0;
-
   @Override
-  protected void runOneIteration() {
-    sendDataAndResetCache(
-        new HashMap<>(this.frequencyMap.asMap()), new HashSet<>(this.uniqueTargetSet));
-
-    maxFrequencyMapSize = Math.max(maxFrequencyMapSize, frequencyMap.size());
-    maxUniqueTargetSetSize = Math.max(maxUniqueTargetSetSize, uniqueTargetSet.size());
-
-    log.trace(
-        "Metrics frequency map (cur: {} max: {}) Unique targets (cur: {} max: {})",
-        frequencyMap.size(),
-        maxFrequencyMapSize,
-        uniqueTargetSet.size(),
-        maxUniqueTargetSetSize);
+  protected synchronized void runOneIteration() {
+    if (log.isDebugEnabled()) {
+      log.debug(
+          "Drain metrics queue : frequencyMap size={} uniqueTargetSet size={} metric events pending={}",
+          frequencyMap.size(),
+          uniqueTargetSet.size(),
+          frequencyMap.sum());
+    }
+    sendDataAndResetCache(new HashMap<>(frequencyMap.asMap()), new HashSet<>(uniqueTargetSet));
 
     frequencyMap.clear();
     uniqueTargetSet.clear();
@@ -282,6 +241,18 @@ class MetricsProcessor extends AbstractScheduledService {
 
   long getMetricsSent() {
     return metricsSent.sum();
+  }
+
+  long getPendingMetricsToBeSent() {
+    return frequencyMap.sum();
+  }
+
+  long getQueueSize() {
+    return frequencyMap.size();
+  }
+
+  long getTargetSetSize() {
+    return uniqueTargetSet.size();
   }
 
   void reset() {
