@@ -81,6 +81,11 @@ public class SSEListener implements ServerSentEvent.Listener {
         if (version.equals(featureConfig.getVersion())) {
           featureCache.put(featureConfig.getFeature(), featureConfig);
           break;
+        } else {
+          log.error(
+              format("Mismatched versions, payload version [%s] featureConfig version [%s]"),
+              version,
+              featureConfig.getFeature());
         }
       } catch (ApiException e) {
 
