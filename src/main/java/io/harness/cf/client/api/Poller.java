@@ -46,7 +46,7 @@ public class Poller extends AbstractScheduledService {
   protected void runOneIteration() {
 
     if (Thread.currentThread().isInterrupted()) {
-      log.warn("Polling thread interrupted, skipping iteration");
+
       return;
     }
     try {

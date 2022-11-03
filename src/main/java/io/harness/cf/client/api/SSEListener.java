@@ -83,7 +83,7 @@ public class SSEListener implements ServerSentEvent.Listener {
           break;
         } else {
           log.error(
-              "Mismatched versions, payload version [{}] featureConfig version [{}]",
+              format("Mismatched versions, payload version [%s] featureConfig version [%s]"),
               version,
               featureConfig.getFeature());
         }
@@ -124,8 +124,6 @@ public class SSEListener implements ServerSentEvent.Listener {
   @Override
   public boolean onRetryError(
       ServerSentEvent serverSentEvent, Throwable throwable, Response response) {
-    log.warn("onRetryError got {}", throwable.getMessage());
-    log.trace("onRetryError throwable is ", throwable);
     return false;
   }
 

@@ -29,8 +29,7 @@ public class MockedCfConfiguration extends Config {
         30000,
         10000,
         true,
-        10000,
-        30);
+        10000);
   }
 
   @Override

@@ -54,9 +54,6 @@ public class Config {
   /** If metrics service POST call is taking > this time, we need to know about it */
   @Getter @Builder.Default long metricsServiceAcceptableDuration = 10000;
 
-  /** read timeout in minutes for SSE connections */
-  @Getter @Builder.Default long sseReadTimeout = 30;
-
   public int getFrequency() {
     return Math.max(frequency, Config.MIN_FREQUENCY);
   }

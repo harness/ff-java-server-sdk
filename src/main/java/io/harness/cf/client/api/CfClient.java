@@ -31,13 +31,11 @@ import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.Jwts;
 import io.vavr.CheckedRunnable;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import org.apache.commons.collections4.CollectionUtils;
 import org.jetbrains.annotations.NotNull;
@@ -259,13 +257,7 @@ public class CfClient implements Destroyable {
   }
 
   void startSSE() {
-    long readTimeoutInMins = Math.max(config.getSseReadTimeout(), 1);
-    OkHttpClient sseClient =
-        new OkHttpClient.Builder()
-            .readTimeout(readTimeoutInMins, TimeUnit.MINUTES)
-            .retryOnConnectionFailure(true)
-            .build();
-    OkSse okSse = new OkSse(sseClient);
+    OkSse okSse = new OkSse();
     sse = okSse.newServerSentEvent(sseRequest, listener);
   }
 
