@@ -277,9 +277,8 @@ public class CfClient implements Destroyable {
     try {
       if (featureConfig == null || featureConfig.getKind() != BOOLEAN) {
         log.error(
-            "Feature not present in the FeatureCache {} for {}, serving default value",
-            key,
-            getClass().getEnclosingMethod().getName());
+            "Feature not present in the FeatureCache {} for boolVariation(), serving default value",
+            key);
         return defaultValue;
       }
 
@@ -314,9 +313,8 @@ public class CfClient implements Destroyable {
     try {
       if (featureConfig == null || featureConfig.getKind() != STRING) {
         log.error(
-            "Feature not present in the FeatureCache {} for {}, serving default value",
-            key,
-            getClass().getEnclosingMethod().getName());
+            "Feature not present in the FeatureCache {} for stringVariation(), serving default value",
+            key);
         return defaultValue;
       }
 
@@ -349,9 +347,8 @@ public class CfClient implements Destroyable {
     FeatureConfig featureConfig = featureCache.getIfPresent(key);
     if (featureConfig == null || featureConfig.getKind() != INT) {
       log.error(
-          "Feature not present in the FeatureCache {} for {}, serving default value",
-          key,
-          getClass().getEnclosingMethod().getName());
+          "Feature not present in the FeatureCache {} for numberVariation(), serving default value",
+          key);
       return defaultValue;
     }
 
@@ -388,9 +385,8 @@ public class CfClient implements Destroyable {
     try {
       if (featureConfig == null || featureConfig.getKind() != JSON) {
         log.error(
-            "Feature not present in the FeatureCache {} for {}, serving default value",
-            key,
-            getClass().getEnclosingMethod().getName());
+            "Feature not present in the FeatureCache {} for jsonVariation(), serving default value",
+            key);
         return defaultValue;
       }
 
