@@ -1,6 +1,7 @@
 package io.harness.cf.client.api;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -17,9 +18,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.mockito.*;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 
 @Slf4j
 public class MetricsProcessorTest implements MetricsCallback {
@@ -28,7 +31,7 @@ public class MetricsProcessorTest implements MetricsCallback {
 
   private MetricsProcessor metricsProcessor;
 
-  @BeforeMethod
+  @BeforeEach
   public void setup() {
     MockitoAnnotations.openMocks(this);
     metricsProcessor =

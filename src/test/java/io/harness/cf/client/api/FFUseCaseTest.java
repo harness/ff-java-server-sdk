@@ -1,40 +1,23 @@
 package io.harness.cf.client.api;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import com.google.gson.JsonObject;
 import io.harness.cf.client.dto.Target;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.testng.Assert;
-import org.testng.ITest;
-import org.testng.annotations.Test;
-import org.testng.annotations.BeforeMethod;
-
-import java.lang.reflect.Method;
 
 @Slf4j
-public class FFUseCaseTest implements ITest {
+public class FFUseCaseTest {
 
   private final TestCase testCase;
   private final Evaluator evaluator;
-
-  private final ThreadLocal<String> testName = new ThreadLocal<>();
 
   public FFUseCaseTest(@NonNull final TestCase testCase, @NonNull final Evaluator evaluator) {
     this.testCase = testCase;
     this.evaluator = evaluator;
   }
 
-  @BeforeMethod
-  public void BeforeMethod(Method method, Object[] testData){
-    testName.set(testCase.getTestName() + "_with_target_" +testCase.getTargetIdentifier());
-  }
-
-  @Override
-  public String getTestName() {
-    return testName.get();
-  }
-
-  @Test
   public void runTestCase() {
     log.info(
         String.format(
@@ -83,6 +66,6 @@ public class FFUseCaseTest implements ITest {
         String.format(
             "Test case: %s with identifier %s ",
             testCase.getFile(), testCase.getTargetIdentifier());
-    Assert.assertEquals(testCase.getExpectedValue(), got, msg);
+    assertEquals(testCase.getExpectedValue(), got, msg);
   }
 }

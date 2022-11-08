@@ -1,0 +1,21 @@
+[
+  {
+    "environment": "Production",
+    "excluded": [],
+    "identifier": "featuretargetgroup",
+    "included": [],
+    "name": "featuretargetgroup",
+    "rules": [
+      {
+        "attribute": "identifier",
+        "id": "7ccfe4f4-b5b4-4d45-9eae-ce2666210487",
+        "negate": false,
+        "op": "ends_with",
+        "values": [
+          "@harness.io"
+        ]
+      }
+    ],
+    "version": 2
+  }
+]

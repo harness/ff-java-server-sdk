@@ -1,0 +1,78 @@
+[
+  {
+    "defaultServe": {
+      "variation": "variationA"
+    },
+    "environment": "Production",
+    "feature": "feature1",
+    "kind": "string",
+    "offVariation": "variationB",
+    "prerequisites": [],
+    "project": "FFdevqa",
+    "rules": [
+      {
+        "clauses": [
+          {
+            "attribute": "",
+            "id": "99d71036-bbb3-44a5-b79f-dee08e0209e2",
+            "negate": false,
+            "op": "segmentMatch",
+            "values": [
+              "featuretargetgroup"
+            ]
+          }
+        ],
+        "priority": 0,
+        "ruleId": "32a51235-3c68-4109-82e1-3a4ddf565230",
+        "serve": {
+          "distribution": {
+            "bucketBy": "identifier",
+            "variations": [
+              {
+                "variation": "variationA",
+                "weight": 25
+              },
+              {
+                "variation": "variationB",
+                "weight": 50
+              },
+              {
+                "variation": "variationC",
+                "weight": 25
+              },
+              {
+                "variation": "nextEmail",
+                "weight": 0
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "state": "off",
+    "variationToTargetMap": null,
+    "variations": [
+      {
+        "identifier": "variationA",
+        "name": "variationA",
+        "value": "A"
+      },
+      {
+        "identifier": "variationB",
+        "name": "variationB",
+        "value": "B"
+      },
+      {
+        "identifier": "variationC",
+        "name": "variationC",
+        "value": "C"
+      },
+      {
+        "identifier": "variationD",
+        "name": "variationD",
+        "value": "D"
+      }
+    ],
+    "version": 2
+  }
+]
