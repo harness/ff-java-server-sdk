@@ -221,6 +221,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
           featureConfig.size(),
           this.environment,
           this.cluster);
+      log.info("Got the following features: " + featureConfig);
       return featureConfig;
     } catch (ApiException e) {
       log.error(
