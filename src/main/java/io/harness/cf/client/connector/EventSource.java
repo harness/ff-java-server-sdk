@@ -32,9 +32,13 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
     LogUtil.setSystemProps();
   }
 
-  public EventSource(@NonNull String url, Map<String, String> headers, @NonNull Updater updater) {
+  public EventSource(
+      @NonNull String url,
+      Map<String, String> headers,
+      @NonNull Updater updater,
+      long sseReadTimeoutMins) {
     this.updater = updater;
-    okSse = new OkSse(makeStreamClient());
+    okSse = new OkSse(makeStreamClient(sseReadTimeoutMins));
     builder = new Request.Builder().url(url);
     headers.put("User-Agent", "JavaSDK " + io.harness.cf.Version.VERSION);
     headers.forEach(builder::header);
@@ -42,9 +46,11 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
     log.info("EventSource initialized with url {} and headers {}", url, headers);
   }
 
-  protected OkHttpClient makeStreamClient() {
+  protected OkHttpClient makeStreamClient(long sseReadTimeoutMins) {
     OkHttpClient.Builder httpClientBuilder =
-        new OkHttpClient.Builder().readTimeout(0L, TimeUnit.SECONDS).retryOnConnectionFailure(true);
+        new OkHttpClient.Builder()
+            .readTimeout(sseReadTimeoutMins, TimeUnit.MINUTES)
+            .retryOnConnectionFailure(true);
     if (log.isDebugEnabled()) {
       loggingInterceptor = new HttpLoggingInterceptor();
       loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);

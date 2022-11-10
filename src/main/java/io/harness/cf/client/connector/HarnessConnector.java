@@ -355,7 +355,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
     map.put("Authorization", "Bearer " + token);
     map.put("API-Key", apiKey);
     log.info("Initialize new EventSource instance");
-    eventSource = new EventSource(sseUrl, map, updater);
+    eventSource = new EventSource(sseUrl, map, updater, Math.max(options.getSseReadTimeout(), 1));
     return eventSource;
   }
 
