@@ -42,7 +42,7 @@ jobs:
           mvn \
             --no-transfer-progress \
             --batch-mode \
-            clean deploy
+            clean deploy -DskipTests
         env:
           MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
