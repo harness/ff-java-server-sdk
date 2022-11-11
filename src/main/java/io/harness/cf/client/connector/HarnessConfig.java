@@ -20,4 +20,7 @@ public class HarnessConfig {
   @Builder.Default int readTimeout = 30000;
   /** timeout in milliseconds for writing data to CF Server */
   @Builder.Default int writeTimeout = 10000;
+
+  /** read timeout in minutes for SSE connections */
+  @Builder.Default long sseReadTimeout = 1;
 }

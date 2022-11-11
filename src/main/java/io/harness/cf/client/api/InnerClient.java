@@ -111,6 +111,8 @@ class InnerClient
     metricsProcessor = new MetricsProcessor(this.connector, this.options, this);
     updateProcessor = new UpdateProcessor(this.connector, this.repository, this);
 
+    pollerStartedAt = new Date();
+
     // start with authentication
     authService.startAsync();
   }
@@ -205,6 +207,7 @@ class InnerClient
 
   @Override
   public void onConnected() {
+    log.info("onConnected triggered");
     if (pollProcessor.state() == Service.State.RUNNING) {
       pollProcessor.stop();
     }
@@ -212,6 +215,7 @@ class InnerClient
 
   @Override
   public void onDisconnected() {
+    log.info("onDisconnected triggered, starting poller to get latest flags");
     // onDisconnected can be called multiple times from updater because of retries
     // and we cannot create many poller instances so we need to check if
     // on closing the client, state of the poller and when poller is last time started
@@ -227,32 +231,44 @@ class InnerClient
           new PollingProcessor(connector, repository, options.getPollIntervalInSeconds(), this);
       pollProcessor.start();
       pollerStartedAt = new Date();
+    } else {
+      log.warn(
+          "Poller was not restarted [closing={} terminated={} pollStartTime+interval={} now={} ]",
+          closing,
+          pollProcessor.state() == Service.State.TERMINATED,
+          instant,
+          now);
     }
   }
 
   @Override
   public void onReady() {
+    log.info("onReady triggered");
     initialize(Processor.STREAM);
   }
 
   @Override
   public void onError() {
+    log.info("onError triggered");
     // when error happens on updater (stream)
     onDisconnected();
   }
 
   @Override
   public synchronized void onFailure(@NonNull final String error) {
+    log.info("onFailure triggered [error={}] ", error);
     failure = true;
     notifyAll();
   }
 
   @Override
   public void update(@NonNull final Message message) {
+    log.info("update triggered [event={}] ", message.getEvent());
     updateProcessor.update(message);
   }
 
   public void update(@NonNull final Message message, final boolean manual) {
+    log.info("update triggered [event={} manual={}] ", message.getEvent(), manual);
     if (options.isStreamEnabled() && manual) {
       log.warn(
           "You have run update method manually with the stream enabled. Please turn off the stream in this case.");
