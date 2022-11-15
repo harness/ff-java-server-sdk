@@ -33,7 +33,7 @@ public class EvaluatorTest {
     final StorageRepository repository = new StorageRepository(new CaffeineCache(100), null, null);
     evaluator = new Evaluator(repository);
 
-    loadSegments(repository);
+    loadSegments(repository, "local-test-cases/segments.json");
 
     final String featuresJson =
         getJsonResource("local-test-cases/percentage-rollout-with-zero-weights.json");
@@ -178,6 +178,24 @@ public class EvaluatorTest {
   }
 
   @Test
+  public void shouldCorrectlyEvaluatePrereqsIfIdAndValueDiffer() throws Exception {
+    final StorageRepository repo = new StorageRepository(new CaffeineCache(100), null, null);
+    final Evaluator eval = new Evaluator(repo);
+
+    loadSegments(repo, "local-test-cases/segments.json");
+    loadFlags(repo, "local-test-cases/pre-req-id-and-value-differ.json");
+
+    final Target target = Target.builder().identifier("dummy_ident").name("dummy_name").build();
+
+    Optional<Variation> result =
+        eval.evaluate("FeatureFlagWithDependency", target, FeatureConfig.KindEnum.BOOLEAN, null);
+    assertTrue(result.isPresent());
+
+    // if the main flag doesn't return true, we know the dependant flag is not evaluating properly
+    assertEquals("true", result.get().getValue());
+  }
+
+  @Test
   public void testEvaluateRules() throws InterruptedException {
 
     final int threadCount = 10;
@@ -238,13 +256,26 @@ public class EvaluatorTest {
     return new String(Files.readAllBytes(path));
   }
 
-  private void loadSegments(StorageRepository repository) throws IOException, URISyntaxException {
-    String segmentsJson = getJsonResource("local-test-cases/segments.json");
+  private void loadSegments(StorageRepository repository, String resourceName)
+      throws IOException, URISyntaxException {
+    String segmentsJson = getJsonResource(resourceName);
     List<Segment> segments =
         new JSON().deserialize(segmentsJson, new TypeToken<List<Segment>>() {}.getType());
     assertFalse(segments.isEmpty());
     for (Segment segment : segments) {
       repository.setSegment(segment.getIdentifier(), segment);
+    }
+  }
+
+  private void loadFlags(StorageRepository repository, String resourceName)
+      throws IOException, URISyntaxException {
+    final String featuresJson = getJsonResource(resourceName);
+    final List<FeatureConfig> featList =
+        new JSON().deserialize(featuresJson, new TypeToken<List<FeatureConfig>>() {}.getType());
+    assertFalse(featList.isEmpty());
+
+    for (FeatureConfig config : featList) {
+      repository.setFlag(config.getFeature(), config);
     }
   }
 }

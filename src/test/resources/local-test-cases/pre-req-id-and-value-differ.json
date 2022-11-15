@@ -1,0 +1,64 @@
+[
+  {
+    "defaultServe": {
+      "variation": "true"
+    },
+    "environment": "myenv",
+    "feature": "FeatureFlagWithDependency",
+    "kind": "boolean",
+    "offVariation": "false",
+    "prerequisites": [
+      {
+        "ParentFeature": "b20619f3-ad8a-4b55-ab8c-b8466c0904dd",
+        "feature": "FeatureFlagWithMixedIdAndValues",
+        "variations": [
+          "On"
+        ]
+      }
+    ],
+    "project": "ffsynctest",
+    "rules": [],
+    "state": "on",
+    "variationToTargetMap": null,
+    "variations": [
+      {
+        "identifier": "true",
+        "name": "On",
+        "value": "true"
+      },
+      {
+        "identifier": "false",
+        "name": "Off",
+        "value": "false"
+      }
+    ],
+    "version": 5
+  },
+  {
+    "defaultServe": {
+      "variation": "On"
+    },
+    "environment": "myenv",
+    "feature": "FeatureFlagWithMixedIdAndValues",
+    "kind": "string",
+    "offVariation": "Off",
+    "prerequisites": [],
+    "project": "ffsynctest",
+    "rules": [],
+    "state": "on",
+    "variationToTargetMap": null,
+    "variations": [
+      {
+        "identifier": "On",
+        "name": "On",
+        "value": "true"
+      },
+      {
+        "identifier": "Off",
+        "name": "Off",
+        "value": "false"
+      }
+    ],
+    "version": 2
+  }
+]
