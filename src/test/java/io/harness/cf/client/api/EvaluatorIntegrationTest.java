@@ -1,10 +1,10 @@
 package io.harness.cf.client.api;
 
+import static java.util.Objects.requireNonNull;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
-import io.harness.cf.client.common.Cache;
+import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Segment;
 import java.io.File;
 import java.io.IOException;
@@ -21,90 +21,77 @@ import org.junit.jupiter.api.TestFactory;
 @Slf4j
 public class EvaluatorIntegrationTest {
   private final Gson gson = new Gson();
-  private final List<TestFileData> testData = new LinkedList<>();
-
-  public void prepareTestData() {
-
-    try {
-
-      final String testsLocation = "./src/test/ff-test-cases/tests";
-      final String testCasesPath = new File(testsLocation).getCanonicalPath();
-      final File testCasesDirectory = new File(testCasesPath);
-
-      assertTrue(testCasesDirectory.exists());
-
-      log.info(String.format("Test cases directory: '%s'", testCasesPath));
-
-      final File[] files = testCasesDirectory.listFiles();
-
-      assertNotNull(files);
-      assertTrue(files.length > 0);
-
-      testData.clear();
-
-      for (final File file : files) {
-
-        log.info(String.format("Processing the test file: '%s'", file.getName()));
-        assertTrue(file.getName().toLowerCase(Locale.getDefault()).endsWith(".json"));
-        final String json = read(file.getAbsolutePath());
-
-        assertNotNull(json);
-        assertFalse(json.trim().isEmpty());
-
-        try {
-          final TestFileData fileData = gson.fromJson(json, TestFileData.class);
-          assertNotNull(fileData);
-
-          final String testFile = file.getName();
-          final String feature = fileData.getFlag().getFeature() + testFile;
-
-          fileData.setTestFile(testFile);
-          fileData.getFlag().setFeature(feature);
-
-          assertTrue(testData.add(fileData));
-
-        } catch (JsonSyntaxException e) {
-          fail(e.getMessage());
-        }
-      }
-    } catch (IOException e) {
-      fail(e.getMessage());
-    }
-  }
 
   @TestFactory
-  public List<DynamicTest> getTestCases() {
-    prepareTestData();
-    log.info("getTestCases invoked");
-    final Cache cache = new CaffeineCache(10000);
+  public List<DynamicTest> getTestCases() throws Exception {
+    final List<DynamicTest> list = new ArrayList<>();
+    final String testCasesPath = new File("./src/test/ff-test-cases/tests").getCanonicalPath();
+    final File testCasesDirectory = new File(testCasesPath);
+    assertTrue(
+        testCasesDirectory.exists(),
+        "ff-test-cases folder missing - please check 'git submodule init' has been run");
 
-    Repository repository = new StorageRepository(cache, null);
-    Evaluator evaluator = new Evaluator(repository);
+    for (File file : requireNonNull(testCasesDirectory.listFiles())) {
+      final String json = read(file.getAbsolutePath());
+      final TestFileData fileData = gson.fromJson(json, TestFileData.class);
+      assertNotNull(fileData);
 
-    List<DynamicTest> list = new ArrayList<>();
-
-    for (TestFileData file : testData) {
-      repository.setFlag(file.getFlag().getFeature(), file.getFlag());
-
-      final List<Segment> segments = file.getSegments();
-      if (segments != null) {
-        for (final Segment segment : segments) {
-          repository.setSegment(segment.getIdentifier(), segment);
-        }
+      if (fileData.getTests() == null) {
+        log.warn("skipping file, no tests found " + file.getName());
+        continue;
       }
 
-      for (final String key : file.getExpected().keySet()) {
-        final Object expected = file.getExpected().get(key);
-        final String testName = removeExtension(file.getTestFile());
-        final TestCase testCase = new TestCase(file.getTestFile(), key, expected, file, testName);
+      for (Map<String, Object> nextTest : fileData.getTests()) {
+        final boolean expected = (Boolean) nextTest.get("expected");
+        final String target = (String) nextTest.get("target"); // May be null
+        final String flag = (String) nextTest.get("flag");
+        final FeatureConfig feature = findFeatureConfig(flag, fileData.getFlags());
+
+        final TestCase testCase =
+            new TestCase(
+                file.getName(),
+                target,
+                expected,
+                flag,
+                feature.getKind(),
+                fileData,
+                removeExtension(file.getName()));
+
+        final Repository repository = new StorageRepository(new CaffeineCache(10000), null);
+        final Evaluator evaluator = new Evaluator(repository);
+
+        loadSegments(repository, fileData.getSegments());
+        repository.setFlag(feature.getFeature(), feature);
+
+        String junitTestName = removeExtension(file.getName());
+        if (testCase.getTargetIdentifier() != null) {
+          junitTestName += "_with_target_" + testCase.getTargetIdentifier();
+        }
 
         list.add(
             DynamicTest.dynamicTest(
-                testName + "_with_target_" + testCase.getTargetIdentifier(),
-                () -> new FFUseCaseTest(testCase, evaluator).runTestCase()));
+                junitTestName, () -> new FFUseCaseTest(testCase, evaluator).runTestCase()));
       }
     }
+
     return list;
+  }
+
+  private FeatureConfig findFeatureConfig(String flagName, List<FeatureConfig> flags) {
+    for (FeatureConfig nextFlag : flags) {
+      if (nextFlag.getFeature().equals(flagName)) {
+        return nextFlag;
+      }
+    }
+    throw new IllegalArgumentException("Unknown flag name " + flagName);
+  }
+
+  private void loadSegments(Repository repository, List<Segment> segments) {
+    if (segments != null) {
+      for (final Segment segment : segments) {
+        repository.setSegment(segment.getIdentifier(), segment);
+      }
+    }
   }
 
   @NonNull

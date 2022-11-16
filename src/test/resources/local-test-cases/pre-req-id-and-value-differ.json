@@ -1,0 +1,169 @@
+[
+  {
+    "defaultServe": {
+      "variation": "true"
+    },
+    "environment": "myenv",
+    "feature": "FeatureFlagWithDependency",
+    "kind": "boolean",
+    "offVariation": "false",
+    "prerequisites": [
+      {
+        "ParentFeature": "b20619f3-ad8a-4b55-ab8c-b8466c0904dd",
+        "feature": "FeatureFlagWithMixedIdAndValues",
+        "variations": [
+          "On"
+        ]
+      }
+    ],
+    "project": "ffsynctest",
+    "rules": [],
+    "state": "on",
+    "variationToTargetMap": null,
+    "variations": [
+      {
+        "identifier": "true",
+        "name": "On",
+        "value": "true"
+      },
+      {
+        "identifier": "false",
+        "name": "Off",
+        "value": "false"
+      }
+    ],
+    "version": 9
+  },
+  {
+    "defaultServe": {
+      "variation": "On"
+    },
+    "environment": "myenv",
+    "feature": "FeatureFlagWithMixedIdAndValues",
+    "kind": "string",
+    "offVariation": "Off",
+    "prerequisites": [],
+    "project": "ffsynctest",
+    "rules": [],
+    "state": "on",
+    "variationToTargetMap": null,
+    "variations": [
+      {
+        "identifier": "On",
+        "name": "On",
+        "value": "true"
+      },
+      {
+        "identifier": "Off",
+        "name": "Off",
+        "value": "false"
+      }
+    ],
+    "version": 4
+  },
+  {
+    "defaultServe": {
+      "variation": "jsonName1"
+    },
+    "environment": "myenv",
+    "feature": "JsonMultivariateFeatureFlagWithDependency",
+    "kind": "json",
+    "offVariation": "jsonName2",
+    "prerequisites": [
+      {
+        "ParentFeature": "e6455822-0650-48ca-ac4d-d53c60cd617e",
+        "feature": "FeatureFlagWithMixedIdAndValues",
+        "variations": [
+          "On"
+        ]
+      }
+    ],
+    "project": "ffsynctest",
+    "rules": [],
+    "state": "on",
+    "variationToTargetMap": null,
+    "variations": [
+      {
+        "identifier": "jsonName1",
+        "name": "jsonName1",
+        "value": "{\"test\":\"value1\"}"
+      },
+      {
+        "identifier": "jsonName2",
+        "name": "jsonName2",
+        "value": "{\"test\":\"value2\"}"
+      }
+    ],
+    "version": 3
+  },
+  {
+    "defaultServe": {
+      "variation": "number1"
+    },
+    "environment": "myenv",
+    "feature": "NumberMultivariateFeatureFlagWithDependency",
+    "kind": "int",
+    "offVariation": "number2",
+    "prerequisites": [
+      {
+        "ParentFeature": "3c3130a3-9337-4af5-a708-978b862b6a45",
+        "feature": "FeatureFlagWithMixedIdAndValues",
+        "variations": [
+          "On"
+        ]
+      }
+    ],
+    "project": "ffsynctest",
+    "rules": [],
+    "state": "on",
+    "variationToTargetMap": null,
+    "variations": [
+      {
+        "identifier": "number1",
+        "name": "number1",
+        "value": "1"
+      },
+      {
+        "identifier": "number2",
+        "name": "number2",
+        "value": "2"
+      }
+    ],
+    "version": 2
+  },
+  {
+    "defaultServe": {
+      "variation": "name1"
+    },
+    "environment": "myenv",
+    "feature": "StringMultivariateFeatureFlagWithDependency",
+    "kind": "string",
+    "offVariation": "name2",
+    "prerequisites": [
+      {
+        "ParentFeature": "e9ecd67a-d91f-49fd-af96-a2b085b8109a",
+        "feature": "FeatureFlagWithMixedIdAndValues",
+        "variations": [
+          "On"
+        ]
+      }
+    ],
+    "project": "ffsynctest",
+    "rules": [],
+    "state": "on",
+    "variationToTargetMap": null,
+    "variations": [
+      {
+        "identifier": "name1",
+        "name": "name1",
+        "value": "value1"
+      },
+      {
+        "identifier": "name2",
+        "name": "name2",
+        "value": "value2"
+      }
+    ],
+    "version": 3
+  }
+]
