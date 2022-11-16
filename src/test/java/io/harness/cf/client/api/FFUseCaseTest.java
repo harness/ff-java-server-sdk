@@ -21,11 +21,14 @@ public class FFUseCaseTest {
   public void runTestCase() {
     log.info(
         String.format(
-            "Use case '%s' with target '%s' and expected value '%b'",
-            testCase.getFile(), testCase.getTargetIdentifier(), testCase.getExpectedValue()));
-    String noTarget = "_no_target";
+            "Use case '%s' with target '%s' and flag '%s' is expected to be '%b'",
+            testCase.getFile(),
+            testCase.getTargetIdentifier(),
+            testCase.getFlag(),
+            testCase.getExpectedValue()));
+
     Target target = null;
-    if (!noTarget.equals(testCase.getTargetIdentifier())) {
+    if (!"_no_target".equals(testCase.getTargetIdentifier())) {
       if (testCase.getFileData().getTargets() != null) {
         for (final Target item : testCase.getFileData().getTargets()) {
           if (item != null && item.getIdentifier().equals(testCase.getTargetIdentifier())) {
@@ -37,35 +40,34 @@ public class FFUseCaseTest {
     }
 
     Object got = null;
-    switch (testCase.getFileData().getFlag().getKind()) {
+    switch (testCase.getFlagKind()) {
       case BOOLEAN:
-        got =
-            evaluator.boolVariation(
-                testCase.getFileData().getFlag().getFeature(), target, false, null);
+        got = evaluator.boolVariation(testCase.getFlag(), target, false, null);
         break;
 
       case STRING:
-        got =
-            evaluator.stringVariation(
-                testCase.getFileData().getFlag().getFeature(), target, "", null);
+        got = evaluator.stringVariation(testCase.getFlag(), target, "", null);
         break;
 
       case INT:
-        got =
-            evaluator.numberVariation(
-                testCase.getFileData().getFlag().getFeature(), target, 0, null);
+        got = evaluator.numberVariation(testCase.getFlag(), target, 0, null);
         break;
 
       case JSON:
-        got =
-            evaluator.jsonVariation(
-                testCase.getFileData().getFlag().getFeature(), target, new JsonObject(), null);
+        got = evaluator.jsonVariation(testCase.getFlag(), target, new JsonObject(), null);
         break;
     }
+
+    log.info("FLAG    : " + testCase.getFlag());
+    log.info("TARGET  : " + (target == null ? "(none)" : target.getIdentifier()));
+    log.info("EXPECTED: " + testCase.getExpectedValue());
+    log.info("GOT     : " + got);
+
     String msg =
         String.format(
             "Test case: %s with identifier %s ",
             testCase.getFile(), testCase.getTargetIdentifier());
+
     assertEquals(testCase.getExpectedValue(), got, msg);
   }
 }
