@@ -1,10 +1,13 @@
 package io.harness.cf.client.api;
 
 import static io.harness.cf.client.api.Operators.*;
+import static io.harness.cf.model.FeatureConfig.KindEnum.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 import io.harness.cf.JSON;
 import io.harness.cf.client.dto.Target;
@@ -187,12 +190,26 @@ public class EvaluatorTest {
 
     final Target target = Target.builder().identifier("dummy_ident").name("dummy_name").build();
 
-    Optional<Variation> result =
-        eval.evaluate("FeatureFlagWithDependency", target, FeatureConfig.KindEnum.BOOLEAN, null);
-    assertTrue(result.isPresent());
+    // if the main flag doesn't return the expected value for each, we know the dependant flag is
+    // not evaluating properly
 
-    // if the main flag doesn't return true, we know the dependant flag is not evaluating properly
+    Optional<Variation> result;
+    result = eval.evaluate("FeatureFlagWithDependency", target, BOOLEAN, null);
+    assertTrue(result.isPresent());
     assertEquals("true", result.get().getValue());
+
+    result = eval.evaluate("StringMultivariateFeatureFlagWithDependency", target, STRING, null);
+    assertTrue(result.isPresent());
+    assertEquals("value1", result.get().getValue());
+
+    result = eval.evaluate("JsonMultivariateFeatureFlagWithDependency", target, JSON, null);
+    assertTrue(result.isPresent());
+    JsonObject json = (JsonObject) new JsonParser().parse(result.get().getValue());
+    assertEquals("value1", json.get("test").getAsString());
+
+    result = eval.evaluate("NumberMultivariateFeatureFlagWithDependency", target, INT, null);
+    assertTrue(result.isPresent());
+    assertEquals("1", result.get().getValue());
   }
 
   @Test
