@@ -42,7 +42,7 @@ public class EvaluatorIntegrationTest {
       }
 
       for (Map<String, Object> nextTest : fileData.getTests()) {
-        final boolean expected = (Boolean) nextTest.get("expected");
+        final Object expected = nextTest.get("expected");
         final String target = (String) nextTest.get("target"); // May be null
         final String flag = (String) nextTest.get("flag");
         final FeatureConfig feature = findFeatureConfig(flag, fileData.getFlags());
@@ -61,11 +61,12 @@ public class EvaluatorIntegrationTest {
         final Evaluator evaluator = new Evaluator(repository);
 
         loadSegments(repository, fileData.getSegments());
-        repository.setFlag(feature.getFeature(), feature);
+        loadFlags(repository, fileData.getFlags());
 
         String junitTestName = removeExtension(file.getName());
+        junitTestName += "__with_flag_" + testCase.getFlag();
         if (testCase.getTargetIdentifier() != null) {
-          junitTestName += "_with_target_" + testCase.getTargetIdentifier();
+          junitTestName += "__with_target_" + testCase.getTargetIdentifier();
         }
 
         list.add(
@@ -84,6 +85,14 @@ public class EvaluatorIntegrationTest {
       }
     }
     throw new IllegalArgumentException("Unknown flag name " + flagName);
+  }
+
+  private void loadFlags(Repository repository, List<FeatureConfig> flags) {
+    if (flags != null) {
+      for (FeatureConfig nextFlag : flags) {
+        repository.setFlag(nextFlag.getFeature(), nextFlag);
+      }
+    }
   }
 
   private void loadSegments(Repository repository, List<Segment> segments) {
