@@ -337,7 +337,8 @@ class Evaluator implements Evaluation {
             preReqFeatureConfig.get().getFeature(),
             validPreReqVariations);
         if (validPreReqVariations.stream()
-            .noneMatch(element -> element.contains(preReqEvaluatedVariation.get().getValue()))) {
+            .noneMatch(
+                element -> element.contains(preReqEvaluatedVariation.get().getIdentifier()))) {
           return false;
         } else {
           return checkPreRequisite(preReqFeatureConfig.get(), target);

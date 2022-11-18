@@ -32,9 +32,13 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
     LogUtil.setSystemProps();
   }
 
-  public EventSource(@NonNull String url, Map<String, String> headers, @NonNull Updater updater) {
+  public EventSource(
+      @NonNull String url,
+      Map<String, String> headers,
+      @NonNull Updater updater,
+      long sseReadTimeoutMins) {
     this.updater = updater;
-    okSse = new OkSse(makeStreamClient());
+    okSse = new OkSse(makeStreamClient(sseReadTimeoutMins));
     builder = new Request.Builder().url(url);
     headers.put("User-Agent", "JavaSDK " + io.harness.cf.Version.VERSION);
     headers.forEach(builder::header);
@@ -42,9 +46,11 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
     log.info("EventSource initialized with url {} and headers {}", url, headers);
   }
 
-  protected OkHttpClient makeStreamClient() {
+  protected OkHttpClient makeStreamClient(long sseReadTimeoutMins) {
     OkHttpClient.Builder httpClientBuilder =
-        new OkHttpClient.Builder().readTimeout(0L, TimeUnit.SECONDS).retryOnConnectionFailure(true);
+        new OkHttpClient.Builder()
+            .readTimeout(sseReadTimeoutMins, TimeUnit.MINUTES)
+            .retryOnConnectionFailure(true);
     if (log.isDebugEnabled()) {
       loggingInterceptor = new HttpLoggingInterceptor();
       loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
@@ -71,6 +77,7 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
 
   @Override
   public void onOpen(ServerSentEvent serverSentEvent, Response response) {
+    log.info("EventSource onOpen");
     if (updater != null) {
       log.info("EventSource connected!");
       updater.onConnected();
@@ -79,7 +86,7 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
 
   @Override
   public void onMessage(ServerSentEvent sse, String id, String event, String message) {
-    log.info("EventSource message received {}", message);
+    log.info("EventSource onMessage {}", message);
     Message msg = gson.fromJson(message, Message.class);
     updater.update(msg);
   }
@@ -98,7 +105,11 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
   @Override
   public boolean onRetryError(
       ServerSentEvent serverSentEvent, Throwable throwable, Response response) {
-    log.warn("EventSource onRetryError");
+    log.warn(
+        "EventSource onRetryError [throwable={} message={}]",
+        throwable.getClass().getSimpleName(),
+        throwable.getMessage());
+    log.trace("onRetryError exception", throwable);
     updater.onError();
     if (response != null) {
       return response.code() == 429 || response.code() >= 500;
@@ -108,7 +119,7 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
 
   @Override
   public void onClosed(ServerSentEvent serverSentEvent) {
-    log.info("EventSource disconnected");
+    log.info("EventSource onClosed - disconnected");
     updater.onDisconnected();
   }
 

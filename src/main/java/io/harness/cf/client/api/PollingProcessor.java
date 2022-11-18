@@ -1,6 +1,8 @@
 package io.harness.cf.client.api;
 
 import com.google.common.util.concurrent.AbstractScheduledService;
+import com.google.common.util.concurrent.MoreExecutors;
+import io.harness.cf.client.common.ScheduledServiceStateLogger;
 import io.harness.cf.client.connector.Connector;
 import io.harness.cf.client.connector.ConnectorException;
 import io.harness.cf.model.FeatureConfig;
@@ -29,6 +31,9 @@ class PollingProcessor extends AbstractScheduledService {
     this.pollIntervalSeconds = pollIntervalSeconds;
     this.repository = repository;
     this.callback = callback;
+    this.addListener(
+        new ScheduledServiceStateLogger(PollingProcessor.class.getSimpleName()),
+        MoreExecutors.directExecutor());
   }
 
   public CompletableFuture<List<FeatureConfig>> retrieveFlags() {

@@ -27,7 +27,7 @@ public class BaseConfig {
   @Getter(AccessLevel.NONE)
   private final int frequency = 60; // unit: second
 
-  @Builder.Default private final int bufferSize = 1024;
+  @Builder.Default private final int bufferSize = 2048;
 
   // Flag to set all attributes as private
   @Builder.Default private final boolean allAttributesPrivate = false;

@@ -1,48 +1,34 @@
 package io.harness.cf.client.api;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import com.google.gson.JsonObject;
 import io.harness.cf.client.dto.Target;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.testng.Assert;
-import org.testng.ITest;
-import org.testng.annotations.Test;
-import org.testng.annotations.BeforeMethod;
-
-import java.lang.reflect.Method;
 
 @Slf4j
-public class FFUseCaseTest implements ITest {
+public class FFUseCaseTest {
 
   private final TestCase testCase;
   private final Evaluator evaluator;
-
-  private final ThreadLocal<String> testName = new ThreadLocal<>();
 
   public FFUseCaseTest(@NonNull final TestCase testCase, @NonNull final Evaluator evaluator) {
     this.testCase = testCase;
     this.evaluator = evaluator;
   }
 
-  @BeforeMethod
-  public void BeforeMethod(Method method, Object[] testData){
-    testName.set(testCase.getTestName() + "_with_target_" +testCase.getTargetIdentifier());
-  }
-
-  @Override
-  public String getTestName() {
-    return testName.get();
-  }
-
-  @Test
   public void runTestCase() {
     log.info(
         String.format(
-            "Use case '%s' with target '%s' and expected value '%b'",
-            testCase.getFile(), testCase.getTargetIdentifier(), testCase.getExpectedValue()));
-    String noTarget = "_no_target";
+            "Use case '%s' with target '%s' and flag '%s' is expected to be '%b'",
+            testCase.getFile(),
+            testCase.getTargetIdentifier(),
+            testCase.getFlag(),
+            testCase.getExpectedValue()));
+
     Target target = null;
-    if (!noTarget.equals(testCase.getTargetIdentifier())) {
+    if (!"_no_target".equals(testCase.getTargetIdentifier())) {
       if (testCase.getFileData().getTargets() != null) {
         for (final Target item : testCase.getFileData().getTargets()) {
           if (item != null && item.getIdentifier().equals(testCase.getTargetIdentifier())) {
@@ -54,35 +40,34 @@ public class FFUseCaseTest implements ITest {
     }
 
     Object got = null;
-    switch (testCase.getFileData().getFlag().getKind()) {
+    switch (testCase.getFlagKind()) {
       case BOOLEAN:
-        got =
-            evaluator.boolVariation(
-                testCase.getFileData().getFlag().getFeature(), target, false, null);
+        got = evaluator.boolVariation(testCase.getFlag(), target, false, null);
         break;
 
       case STRING:
-        got =
-            evaluator.stringVariation(
-                testCase.getFileData().getFlag().getFeature(), target, "", null);
+        got = evaluator.stringVariation(testCase.getFlag(), target, "", null);
         break;
 
       case INT:
-        got =
-            evaluator.numberVariation(
-                testCase.getFileData().getFlag().getFeature(), target, 0, null);
+        got = evaluator.numberVariation(testCase.getFlag(), target, 0, null);
         break;
 
       case JSON:
-        got =
-            evaluator.jsonVariation(
-                testCase.getFileData().getFlag().getFeature(), target, new JsonObject(), null);
+        got = evaluator.jsonVariation(testCase.getFlag(), target, new JsonObject(), null);
         break;
     }
+
+    log.info("FLAG    : " + testCase.getFlag());
+    log.info("TARGET  : " + (target == null ? "(none)" : target.getIdentifier()));
+    log.info("EXPECTED: " + testCase.getExpectedValue());
+    log.info("GOT     : " + got);
+
     String msg =
         String.format(
             "Test case: %s with identifier %s ",
             testCase.getFile(), testCase.getTargetIdentifier());
-    Assert.assertEquals(testCase.getExpectedValue(), got, msg);
+
+    assertEquals(testCase.getExpectedValue(), got, msg);
   }
 }
