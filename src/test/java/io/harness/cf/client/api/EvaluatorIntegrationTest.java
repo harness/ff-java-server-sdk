@@ -1,22 +1,25 @@
 package io.harness.cf.client.api;
 
-import static java.util.Objects.requireNonNull;
-import static org.junit.jupiter.api.Assertions.*;
-
 import com.google.gson.Gson;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Segment;
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.DynamicTest;
+import org.junit.jupiter.api.TestFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.DynamicTest;
-import org.junit.jupiter.api.TestFactory;
+
+import static com.google.common.io.Files.fileTraverser;
+import static org.junit.jupiter.api.Assertions.*;
 
 @Slf4j
 public class EvaluatorIntegrationTest {
@@ -25,13 +28,20 @@ public class EvaluatorIntegrationTest {
   @TestFactory
   public List<DynamicTest> getTestCases() throws Exception {
     final List<DynamicTest> list = new ArrayList<>();
-    final String testCasesPath = new File("./src/test/ff-test-cases/tests").getCanonicalPath();
-    final File testCasesDirectory = new File(testCasesPath);
+    final String testCasesBasePath = new File("./src/test/ff-test-cases/tests").getCanonicalPath();
+    final File testCasesDirectory = new File(testCasesBasePath);
+
     assertTrue(
         testCasesDirectory.exists(),
         "ff-test-cases folder missing - please check 'git submodule init' has been run");
 
-    for (File file : requireNonNull(testCasesDirectory.listFiles())) {
+    for (File file : fileTraverser().breadthFirst(testCasesDirectory)) {
+      if (!file.getName().toLowerCase().endsWith(".json")) {
+        log.warn("Skipping {}", file.getAbsolutePath());
+        continue;
+      }
+      log.info("Loading {}", file.getAbsolutePath());
+
       final String json = read(file.getAbsolutePath());
       final TestFileData fileData = gson.fromJson(json, TestFileData.class);
       assertNotNull(fileData);
@@ -63,7 +73,8 @@ public class EvaluatorIntegrationTest {
         loadSegments(repository, fileData.getSegments());
         loadFlags(repository, fileData.getFlags());
 
-        String junitTestName = removeExtension(file.getName());
+        String junitTestName =
+            removeExtension(file.getCanonicalPath()).replace(testCasesBasePath + "/", "");
         junitTestName += "__with_flag_" + testCase.getFlag();
         if (testCase.getTargetIdentifier() != null) {
           junitTestName += "__with_target_" + testCase.getTargetIdentifier();
