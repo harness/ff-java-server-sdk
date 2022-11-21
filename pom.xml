@@ -395,6 +395,9 @@
                         <SDK>JAVA</SDK>
                         <version>${project.version}</version>
                     </systemPropertyVariables>
+                    <statelessTestsetReporter implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5Xml30StatelessReporter">
+                        <usePhrasedTestCaseMethodName>true</usePhrasedTestCaseMethodName>
+                    </statelessTestsetReporter>
                 </configuration>
             </plugin>
             <plugin>
