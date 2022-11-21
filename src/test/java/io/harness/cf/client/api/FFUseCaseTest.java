@@ -2,8 +2,11 @@ package io.harness.cf.client.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import io.harness.cf.client.dto.Target;
+import io.harness.cf.model.FeatureConfig;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -68,6 +71,11 @@ public class FFUseCaseTest {
             "Test case: %s with identifier %s ",
             testCase.getFile(), testCase.getTargetIdentifier());
 
-    assertEquals(testCase.getExpectedValue(), got, msg);
+    if (testCase.getFlagKind() == FeatureConfig.KindEnum.JSON) {
+      JsonElement expectedJson = JsonParser.parseString((String) testCase.getExpectedValue());
+      assertEquals(expectedJson, got, msg);
+    } else {
+      assertEquals(testCase.getExpectedValue(), got, msg);
+    }
   }
 }
