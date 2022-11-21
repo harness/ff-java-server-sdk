@@ -5,6 +5,7 @@ import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Segment;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
 
@@ -25,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class EvaluatorIntegrationTest {
   private final Gson gson = new Gson();
 
+  @DisplayName("ff-test-cases")
   @TestFactory
   public List<DynamicTest> getTestCases() throws Exception {
     final List<DynamicTest> list = new ArrayList<>();
