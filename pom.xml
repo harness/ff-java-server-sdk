@@ -398,20 +398,22 @@
                     <statelessTestsetReporter implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5Xml30StatelessReporter">
                         <usePhrasedTestCaseMethodName>true</usePhrasedTestCaseMethodName>
                     </statelessTestsetReporter>
+                    <argLine>${surefireArgLine} -Xmx1024m -noverify</argLine>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.7</version>
+                <version>0.8.8</version>
                 <executions>
                     <execution>
+                        <id>default-prepare-agent</id>
                         <goals>
                             <goal>prepare-agent</goal>
                         </goals>
                     </execution>
                     <execution>
-                        <id>report</id>
+                        <id>generate-code-coverage-report</id>
                         <phase>test</phase>
                         <goals>
                             <goal>report</goal>
@@ -421,6 +423,7 @@
                 <configuration>
                     <propertyName>SDK</propertyName>
                     <propertyName>version</propertyName>
+                    <propertyName>surefireArgLine</propertyName>
                 </configuration>
             </plugin>
         </plugins>
