@@ -31,6 +31,9 @@ class MetricsProcessor extends AbstractScheduledService {
   private static final String SDK_LANGUAGE = "SDK_LANGUAGE";
   private static final String SDK_VERSION = "SDK_VERSION";
 
+  private static final Target globalTarget =
+      Target.builder().name(GLOBAL_TARGET_NAME).identifier(GLOBAL_TARGET).build();
+
   private final Connector connector;
   private final BaseConfig config;
   private final AtomicLongMap<MetricEvent> frequencyMap;
@@ -70,11 +73,12 @@ class MetricsProcessor extends AbstractScheduledService {
 
     uniqueTargetSet.add(target);
 
-    if (config.isGlobalTargetEnabled()) {
-      target.setIdentifier(GLOBAL_TARGET);
+    Target metricTarget = globalTarget;
+    if (!config.isGlobalTargetEnabled()) {
+      metricTarget = target;
     }
 
-    frequencyMap.incrementAndGet(new MetricEvent(featureName, target, variation));
+    frequencyMap.incrementAndGet(new MetricEvent(featureName, metricTarget, variation));
   }
 
   /** This method sends the metrics data to the analytics server and resets the cache */
@@ -117,10 +121,8 @@ class MetricsProcessor extends AbstractScheduledService {
     final Metrics metrics = new Metrics(new ArrayList<>(), new ArrayList<>());
     final Map<SummaryMetrics, Long> summaryMetricsData = new HashMap<>();
 
-    addTargetData(
-        metrics, Target.builder().name(GLOBAL_TARGET_NAME).identifier(GLOBAL_TARGET).build());
-
     targets.forEach(target -> addTargetData(metrics, target));
+
     data.forEach(
         (target, count) ->
             summaryMetricsData.put(
