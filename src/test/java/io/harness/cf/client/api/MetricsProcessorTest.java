@@ -1,22 +1,22 @@
 package io.harness.cf.client.api;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.Maps;
 import io.harness.cf.client.connector.Connector;
+import io.harness.cf.client.connector.ConnectorException;
 import io.harness.cf.client.dto.Target;
-import io.harness.cf.model.FeatureConfig;
-import io.harness.cf.model.Metrics;
-import io.harness.cf.model.Variation;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import io.harness.cf.model.*;
+import java.util.*;
 import java.util.concurrent.*;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.*;
 
 @Slf4j
@@ -141,7 +141,7 @@ public class MetricsProcessorTest implements MetricsCallback {
   }
 
   @Test
-  public void testPrepareSummaryMetricsBody() {
+  void testPrepareSummaryMetricsBody() {
     Target target = Target.builder().identifier("harness").build();
     FeatureConfig feature = FeatureConfig.builder().feature("bool-flag").build();
     Variation variation = Variation.builder().identifier("true").value("true").build();
@@ -150,12 +150,69 @@ public class MetricsProcessorTest implements MetricsCallback {
     Set<Target> uniqueTargets = new HashSet<>();
     uniqueTargets.add(target);
 
-    Map<MetricEvent, Long> map = Maps.newHashMap();
-    map.put(event, 6L);
+    Map<MetricEvent, Long> freqMap = Maps.newHashMap();
+    freqMap.put(event, 6L);
 
-    Metrics metrics = metricsProcessor.prepareSummaryMetricsBody(map, uniqueTargets);
+    Metrics metrics = metricsProcessor.prepareSummaryMetricsBody(freqMap, uniqueTargets);
 
-    assert metrics.getTargetData() != null;
-    assert metrics.getTargetData().get(1).getIdentifier().equals(target.getIdentifier());
+    assertNotNull(metrics);
+    assertNotNull(metrics.getTargetData());
+    assertNotNull(metrics.getMetricsData());
+
+    assertEquals(target.getIdentifier(), metrics.getTargetData().get(0).getIdentifier());
+    assertEquals(6, metrics.getMetricsData().get(0).getCount());
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void shouldPostCorrectMetrics_WhenGlobalTargetEnabledOrDisabled(boolean globalTargetEnabled)
+      throws ConnectorException {
+    final Connector mockConnector = Mockito.mock(Connector.class);
+    final BaseConfig mockConfig = Mockito.mock(BaseConfig.class);
+    final ArgumentCaptor<Metrics> metricsArgumentCaptor = ArgumentCaptor.forClass(Metrics.class);
+
+    when(mockConfig.isGlobalTargetEnabled()).thenReturn(globalTargetEnabled);
+    when(mockConfig.getBufferSize()).thenReturn(10);
+    doNothing().when(mockConnector).postMetrics(metricsArgumentCaptor.capture());
+
+    final MetricsProcessor processor =
+        new MetricsProcessor(mockConnector, mockConfig, Mockito.mock(MetricsCallback.class));
+
+    final Target target = Target.builder().identifier("target123").build();
+    final Variation variation = Variation.builder().identifier("true").value("true").build();
+    processor.pushToQueue(target, "feature1", variation);
+    processor.pushToQueue(target, "feature1", variation);
+    processor.pushToQueue(target, "feature2", variation);
+    processor.pushToQueue(target, "feature2", variation);
+    processor.pushToQueue(target, "feature3", variation);
+    processor.pushToQueue(target, "feature3", variation);
+    processor.runOneIteration(); // Mimic scheduled job
+
+    final Metrics sentMetrics = metricsArgumentCaptor.getValue();
+
+    assertNotNull(sentMetrics.getMetricsData());
+    assertNotNull(sentMetrics.getTargetData());
+
+    assertEquals(1, sentMetrics.getTargetData().size());
+    assertEquals("target123", sentMetrics.getTargetData().get(0).getIdentifier());
+
+    assertEquals(3, sentMetrics.getMetricsData().size());
+    for (MetricsData md : sentMetrics.getMetricsData()) {
+      final Map<String, String> map = keyValueArrayToMap(md.getAttributes());
+      assertEquals(2, md.getCount());
+      if (globalTargetEnabled) {
+        assertEquals("__global__cf_target", map.get("target"));
+      } else {
+        assertEquals("target123", map.get("target"));
+      }
+    }
+  }
+
+  private Map<String, String> keyValueArrayToMap(List<KeyValue> keyValueList) {
+    final Map<String, String> map = new HashMap<>();
+    for (KeyValue kv : keyValueList) {
+      map.put(kv.getKey(), kv.getValue());
+    }
+    return map;
   }
 }
