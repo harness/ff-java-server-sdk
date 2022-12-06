@@ -34,13 +34,18 @@ public class GettingStarted {
             scheduler.scheduleAtFixedRate(
                     () -> {
                         boolean result = cfClient.boolVariation(flagName, target, false);
-                        System.out.println("Boolean variation is " + result);
+                        System.out.println("Flag '" + flagName + "' Boolean variation is " + result);
                     },
                     0,
                     10,
                     TimeUnit.SECONDS);
 
+
+            TimeUnit.MINUTES.sleep(15);
+
             // Close the SDK
+            System.out.println("Cleaning up...");
+            scheduler.shutdownNow();
             cfClient.close();
 
         } catch (Exception e) {
