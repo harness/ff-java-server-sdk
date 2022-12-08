@@ -50,7 +50,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
     this.options = options;
     this.api = new ClientApi(makeApiClient());
     this.metricsApi = new MetricsApi(makeMetricsApiClient());
-    log.info("Connector initialized");
+    log.info("Connector initialized, with options " + options);
   }
 
   protected ApiClient makeApiClient() {
@@ -180,6 +180,9 @@ public class HarnessConnector implements Connector, AutoCloseable {
       }
       log.error("Failed to get auth token", apiException);
       throw new ConnectorException(apiException.getMessage());
+    } catch (Throwable ex) {
+      log.error("Unexpected exception", ex);
+      throw ex;
     } finally {
       MDC.remove(REQUEST_ID_KEY);
     }

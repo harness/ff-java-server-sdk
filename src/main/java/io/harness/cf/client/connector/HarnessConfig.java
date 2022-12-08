@@ -3,10 +3,12 @@ package io.harness.cf.client.connector;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.ToString;
 
 @Builder
 @Getter
 @AllArgsConstructor
+@ToString
 public class HarnessConfig {
   public static final int MIN_FREQUENCY = 60;
 
