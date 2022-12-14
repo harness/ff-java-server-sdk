@@ -1,6 +1,7 @@
 package io.harness.cf.client.api;
 
 import static io.harness.cf.client.api.Operators.*;
+import static io.harness.cf.client.api.TestUtils.getJsonResource;
 import static io.harness.cf.model.FeatureConfig.KindEnum.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
@@ -14,9 +15,6 @@ import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.*;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.*;
 import lombok.extern.slf4j.Slf4j;
@@ -266,11 +264,6 @@ public class EvaluatorTest {
     for (final Exception e : failures) {
       fail("Failure", e);
     }
-  }
-
-  private String getJsonResource(String location) throws IOException, URISyntaxException {
-    Path path = Paths.get(EvaluatorTest.class.getClassLoader().getResource(location).toURI());
-    return new String(Files.readAllBytes(path));
   }
 
   private void loadSegments(StorageRepository repository, String resourceName)

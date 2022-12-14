@@ -129,4 +129,10 @@ public class CfClient implements AutoCloseable {
   public void destroy() {
     close();
   }
+
+  /* Package private */
+
+  InnerClient getInnerClient() {
+    return client;
+  }
 }
