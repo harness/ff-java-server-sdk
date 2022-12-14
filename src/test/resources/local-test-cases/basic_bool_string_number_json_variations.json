@@ -1,0 +1,110 @@
+[
+  {
+    "defaultServe": {
+      "variation": "true"
+    },
+    "environment": "TEST",
+    "feature": "simplebool",
+    "kind": "boolean",
+    "offVariation": "false",
+    "prerequisites": [],
+    "project": "test",
+    "rules": [],
+    "state": "on",
+    "variationToTargetMap": null,
+    "variations": [
+      {
+        "identifier": "true",
+        "name": "True",
+        "value": "true"
+      },
+      {
+        "identifier": "false",
+        "name": "False",
+        "value": "false"
+      }
+    ],
+    "version": 1
+  },
+  {
+    "defaultServe": {
+      "variation": "on"
+    },
+    "environment": "TEST",
+    "feature": "simplejson",
+    "kind": "json",
+    "offVariation": "off",
+    "prerequisites": [],
+    "project": "test",
+    "rules": [],
+    "state": "on",
+    "variationToTargetMap": null,
+    "variations": [
+      {
+        "identifier": "on",
+        "name": "on",
+        "value": "{\"value\": \"on\"}"
+      },
+      {
+        "identifier": "off",
+        "name": "off",
+        "value": "{\"value\": \"off\"}"
+      }
+    ],
+    "version": 2
+  },
+  {
+    "defaultServe": {
+      "variation": "on"
+    },
+    "environment": "TEST",
+    "feature": "simplenumber",
+    "kind": "int",
+    "offVariation": "off",
+    "prerequisites": [],
+    "project": "test",
+    "rules": [],
+    "state": "on",
+    "variationToTargetMap": null,
+    "variations": [
+      {
+        "identifier": "on",
+        "name": "on",
+        "value": "1"
+      },
+      {
+        "identifier": "off",
+        "name": "off",
+        "value": "0"
+      }
+    ],
+    "version": 2
+  },
+  {
+    "defaultServe": {
+      "variation": "on"
+    },
+    "environment": "TEST",
+    "feature": "simplestring",
+    "kind": "string",
+    "offVariation": "off",
+    "prerequisites": [],
+    "project": "test",
+    "rules": [],
+    "state": "on",
+    "variationToTargetMap": null,
+    "variations": [
+      {
+        "identifier": "on",
+        "name": "on",
+        "value": "on-string"
+      },
+      {
+        "identifier": "off",
+        "name": "off",
+        "value": "off-string"
+      }
+    ],
+    "version": 2
+  }
+]

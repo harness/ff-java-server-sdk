@@ -52,6 +52,8 @@ class InnerClient
 
   private Date pollerStartedAt;
 
+  private static final String MISSING_SDK_KEY = "SDK key cannot be empty!";
+
   private final ConcurrentHashMap<Event, CopyOnWriteArrayList<Consumer<String>>> events =
       new ConcurrentHashMap<>();
 
@@ -62,8 +64,8 @@ class InnerClient
   @Deprecated
   public InnerClient(@NonNull final String sdkKey, @NonNull final Config options) {
     if (Strings.isNullOrEmpty(sdkKey)) {
-      log.error("SDK key cannot be empty!");
-      return;
+      log.error(MISSING_SDK_KEY);
+      throw new IllegalArgumentException(MISSING_SDK_KEY);
     }
     HarnessConfig config =
         HarnessConfig.builder()
@@ -79,8 +81,8 @@ class InnerClient
 
   public InnerClient(@NonNull final String sdkKey, @NonNull final BaseConfig options) {
     if (Strings.isNullOrEmpty(sdkKey)) {
-      log.error("SDK key cannot be empty!");
-      return;
+      log.error(MISSING_SDK_KEY);
+      throw new IllegalArgumentException(MISSING_SDK_KEY);
     }
 
     HarnessConfig config = HarnessConfig.builder().build();
@@ -387,5 +389,11 @@ class InnerClient
     metricsProcessor.close();
     connector.close();
     log.info("All resources released and client closed");
+  }
+
+  /* Package private */
+
+  BaseConfig getOptions() {
+    return options;
   }
 }
