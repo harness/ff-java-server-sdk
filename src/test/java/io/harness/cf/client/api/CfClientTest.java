@@ -162,7 +162,19 @@ class CfClientTest {
         Arguments.of("boolVariation", (Consumer<CfClient>) CfClientTest::testBoolVariant),
         Arguments.of("stringVariation", (Consumer<CfClient>) CfClientTest::testStringVariant),
         Arguments.of("numberVariation", (Consumer<CfClient>) CfClientTest::testNumberVariant),
-        Arguments.of("jsonVariant", (Consumer<CfClient>) CfClientTest::testJsonVariant));
+        Arguments.of("jsonVariant", (Consumer<CfClient>) CfClientTest::testJsonVariant),
+        Arguments.of(
+            "boolVariationWithNullTarget",
+            (Consumer<CfClient>) CfClientTest::testBoolVariantWithNullTarget),
+        Arguments.of(
+            "stringVariationWithNullTarget",
+            (Consumer<CfClient>) CfClientTest::testStringVariantWithNullTarget),
+        Arguments.of(
+            "numberVariationWithNullTarget",
+            (Consumer<CfClient>) CfClientTest::testNumberVariantWithNullTarget),
+        Arguments.of(
+            "jsonVariantWithNullTarget",
+            (Consumer<CfClient>) CfClientTest::testJsonVariantWithNullTarget));
   }
 
   @ParameterizedTest(name = "{0}")
@@ -172,7 +184,7 @@ class CfClientTest {
     BaseConfig config =
         BaseConfig.builder()
             .pollIntervalInSeconds(1)
-            .analyticsEnabled(false)
+            .analyticsEnabled(true)
             .streamEnabled(false)
             .build();
 
@@ -213,6 +225,26 @@ class CfClientTest {
 
   private static void testJsonVariant(CfClient client) {
     JsonObject value = client.jsonVariation("simplejson", target, new JsonObject());
+    assertEquals("on", value.get("value").getAsString());
+  }
+
+  private static void testBoolVariantWithNullTarget(CfClient client) {
+    boolean value = client.boolVariation("simplebool", null, false);
+    assertTrue(value);
+  }
+
+  private static void testStringVariantWithNullTarget(CfClient client) {
+    String value = client.stringVariation("simplestring", null, "DEFAULT");
+    assertEquals("on-string", value);
+  }
+
+  private static void testNumberVariantWithNullTarget(CfClient client) {
+    double value = client.numberVariation("simplenumber", null, 0.123);
+    assertEquals(1, value);
+  }
+
+  private static void testJsonVariantWithNullTarget(CfClient client) {
+    JsonObject value = client.jsonVariation("simplejson", null, new JsonObject());
     assertEquals("on", value.get("value").getAsString());
   }
 

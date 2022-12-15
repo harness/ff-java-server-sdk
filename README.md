@@ -22,7 +22,7 @@ For a sample FF Java SDK project, see our [test Java project](https://github.com
 
 To use this SDK, make sure you've:
 
-- Installed[JDK 8](https://openjdk.java.net/install/) or a newer version<br>
+- Installed [JDK 8](https://openjdk.java.net/install/) or a newer version<br>
 - Installed Maven or Gradle or an alternative build automation tool for your application
 
 To follow along with our test code sample, make sure you’ve:
@@ -69,7 +69,7 @@ The first step is to install the FF SDK as a dependency in your application usin
 
 Refer to the [Harness Feature Flag Java Server SDK](https://mvnrepository.com/artifact/io.harness/ff-java-server-sdk) to identify the latest version for your build automation tool.
 
-This section lists dependencies for Maven and Gradle and uses the 1.1.8 version as an example:
+This section lists dependencies for Maven and Gradle and uses the 1.1.9 version as an example:
 
 #### Maven
 
@@ -78,14 +78,14 @@ Add the following Maven dependency in your project's pom.xml file:
 <dependency>
     <groupId>io.harness</groupId>
     <artifactId>ff-java-server-sdk</artifactId>
-    <version>1.1.8</version>
+    <version>1.1.9</version>
 </dependency>
 ```
 
 #### Gradle
 
 ```
-implementation group: 'io.harness', name: 'ff-java-server-sdk', version: '1.1.8'
+implementation group: 'io.harness', name: 'ff-java-server-sdk', version: '1.1.9'
 ```
 
 ### Code Sample

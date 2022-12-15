@@ -68,14 +68,15 @@ class MetricsProcessor extends AbstractScheduledService {
       executor.submit(this::runOneIteration);
     }
 
-    log.debug(
-        "Flag: " + featureName + " Target: " + target.getIdentifier() + " Variation: " + variation);
-
-    uniqueTargetSet.add(target);
+    log.debug("Flag: " + featureName + " Target: " + target + " Variation: " + variation);
 
     Target metricTarget = globalTarget;
-    if (!config.isGlobalTargetEnabled()) {
-      metricTarget = target;
+
+    if (target != null) {
+      uniqueTargetSet.add(target);
+      if (!config.isGlobalTargetEnabled()) {
+        metricTarget = target;
+      }
     }
 
     frequencyMap.incrementAndGet(new MetricEvent(featureName, metricTarget, variation));
