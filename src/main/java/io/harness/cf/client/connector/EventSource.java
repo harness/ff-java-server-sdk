@@ -110,11 +110,18 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
         throwable.getClass().getSimpleName(),
         throwable.getMessage());
     log.trace("onRetryError exception", throwable);
+
     updater.onError();
     if (response != null) {
-      return response.code() == 429 || response.code() >= 500;
+      return shouldRetryForHttpErrorCode(response.code());
     }
     return true;
+  }
+
+  private boolean shouldRetryForHttpErrorCode(int httpCode) {
+    if (httpCode == 501) return false;
+
+    return httpCode == 429 || httpCode >= 500;
   }
 
   @Override

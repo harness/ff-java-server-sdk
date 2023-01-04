@@ -1,11 +1,15 @@
 package io.harness.cf.client.api;
 
+import static com.google.common.util.concurrent.Service.State.RUNNING;
 import static io.harness.cf.client.api.TestUtils.*;
-import static io.harness.cf.client.api.TestUtils.makeMockJsonResponse;
+import static io.harness.cf.client.api.dispatchers.CannedResponses.makeDummyJwtToken;
+import static io.harness.cf.client.api.dispatchers.CannedResponses.makeMockJsonResponse;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.gson.JsonObject;
+import io.harness.cf.client.api.dispatchers.TestWebServerDispatcher;
+import io.harness.cf.client.api.dispatchers.UnimplementedStreamDispatcher;
 import io.harness.cf.client.common.Cache;
 import io.harness.cf.client.connector.Connector;
 import io.harness.cf.client.connector.ConnectorException;
@@ -20,7 +24,6 @@ import java.net.URISyntaxException;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -28,12 +31,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import lombok.NonNull;
-import lombok.SneakyThrows;
-import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
-import okhttp3.mockwebserver.RecordedRequest;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -248,35 +247,6 @@ class CfClientTest {
     assertEquals("on", value.get("value").getAsString());
   }
 
-  static class TestWebServerDispatcher extends Dispatcher {
-    private final AtomicInteger version = new AtomicInteger(2);
-
-    @Override
-    @SneakyThrows
-    @NotNull
-    public MockResponse dispatch(@NotNull RecordedRequest recordedRequest)
-        throws InterruptedException {
-      System.out.println("DISPATCH GOT ------> " + recordedRequest.getPath());
-
-      switch (Objects.requireNonNull(recordedRequest.getPath())) {
-        case "/api/1.0/client/auth":
-          return makeAuthResponse();
-        case "/api/1.0/client/env/00000000-0000-0000-0000-000000000000/feature-configs?cluster=1":
-          return makeMockJsonResponse(200, makeBasicFeatureJson());
-        case "/api/1.0/client/env/00000000-0000-0000-0000-000000000000/target-segments?cluster=1":
-          return makeMockJsonResponse(200, makeSegmentsJson());
-        case "/api/1.0/stream?cluster=1":
-          return makeMockStreamResponse(
-              200, makeFlagPatchEvent("simplebool", version.getAndIncrement()));
-        case "/api/1.0/client/env/00000000-0000-0000-0000-000000000000/feature-configs/simplebool?cluster=1":
-          return makeMockSingleBoolFlagResponse(200, "simplebool", "off", version.get());
-        default:
-          throw new UnsupportedOperationException(
-              "ERROR: url not mapped " + recordedRequest.getPath());
-      }
-    }
-  }
-
   @Test
   void streamPatchTest() throws Exception {
     BaseConfig config =
@@ -306,6 +276,41 @@ class CfClientTest {
 
         final boolean success = latch.await(30, TimeUnit.SECONDS);
         assertTrue(success, "Missed 1 or more patch events for flag simplebool!");
+      }
+    }
+  }
+
+  @Test
+  void shouldNotReconnectToStreamEndpointIfEndpointReturns501Unimplemented() throws Exception {
+    BaseConfig config =
+        BaseConfig.builder()
+            .pollIntervalInSeconds(1)
+            .analyticsEnabled(false)
+            .streamEnabled(true)
+            .build();
+
+    // This will return 501 when /stream endpoint is connected to
+    UnimplementedStreamDispatcher webserverDispatcher = new UnimplementedStreamDispatcher(1);
+
+    try (MockWebServer mockSvr = new MockWebServer()) {
+      mockSvr.setDispatcher(webserverDispatcher);
+      mockSvr.start();
+
+      try (CfClient client =
+          new CfClient(makeConnector(mockSvr.getHostName(), mockSvr.getPort()), config)) {
+
+        client.waitForInitialization();
+
+        // we should only get one connection to /stream within this window of time
+        webserverDispatcher.waitForAllConnections(15);
+        assertEquals(
+            1,
+            webserverDispatcher.getStreamEndpointCount().get(),
+            "there should only be 1 connection to /stream endpoint");
+        assertEquals(
+            RUNNING,
+            client.getInnerClient().getPollProcessor().state(),
+            "poller not in RUNNING state");
       }
     }
   }
