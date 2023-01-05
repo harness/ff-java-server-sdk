@@ -235,9 +235,9 @@ class InnerClient
       pollerStartedAt = new Date();
     } else {
       log.warn(
-          "Poller was not restarted [closing={} terminated={} pollStartTime+interval={} now={} ]",
+          "Poller was not restarted [closing={} state={} pollStartTime+interval={} now={} ]",
           closing,
-          pollProcessor.state() == Service.State.TERMINATED,
+          pollProcessor.state(),
           instant,
           now);
     }
@@ -395,5 +395,9 @@ class InnerClient
 
   BaseConfig getOptions() {
     return options;
+  }
+
+  PollingProcessor getPollProcessor() {
+    return pollProcessor;
   }
 }
