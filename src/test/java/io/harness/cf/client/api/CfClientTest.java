@@ -10,19 +10,12 @@ import com.google.common.collect.ImmutableSet;
 import com.google.gson.JsonObject;
 import io.harness.cf.client.api.dispatchers.TestWebServerDispatcher;
 import io.harness.cf.client.api.dispatchers.UnimplementedStreamDispatcher;
+import io.harness.cf.client.api.testutils.DummyConnector;
 import io.harness.cf.client.common.Cache;
-import io.harness.cf.client.connector.Connector;
-import io.harness.cf.client.connector.ConnectorException;
-import io.harness.cf.client.connector.Service;
-import io.harness.cf.client.connector.Updater;
 import io.harness.cf.client.dto.Target;
-import io.harness.cf.model.FeatureConfig;
-import io.harness.cf.model.Metrics;
-import io.harness.cf.model.Segment;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.time.Duration;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -366,47 +359,5 @@ class CfClientTest {
     public List<String> keys() {
       return null;
     }
-  }
-
-  static class DummyConnector implements Connector {
-
-    @Override
-    public String authenticate() throws ConnectorException {
-      return "dummy";
-    }
-
-    @Override
-    public void setOnUnauthorized(Runnable runnable) {}
-
-    @Override
-    public List<FeatureConfig> getFlags() throws ConnectorException {
-      return Collections.emptyList();
-    }
-
-    @Override
-    public FeatureConfig getFlag(@NonNull String identifier) throws ConnectorException {
-      return null;
-    }
-
-    @Override
-    public List<Segment> getSegments() throws ConnectorException {
-      return Collections.emptyList();
-    }
-
-    @Override
-    public Segment getSegment(@NonNull String identifier) throws ConnectorException {
-      return null;
-    }
-
-    @Override
-    public void postMetrics(Metrics metrics) throws ConnectorException {}
-
-    @Override
-    public Service stream(Updater updater) throws ConnectorException {
-      return null;
-    }
-
-    @Override
-    public void close() {}
   }
 }

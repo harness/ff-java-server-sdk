@@ -374,7 +374,7 @@ class InnerClient
   public void processEvaluation(
       @NonNull FeatureConfig featureConfig, Target target, @NonNull Variation variation) {
     if (this.options.isAnalyticsEnabled()) {
-      metricsProcessor.pushToQueue(target, featureConfig.getFeature(), variation);
+      metricsProcessor.registerEvaluation(target, featureConfig.getFeature(), variation);
     }
   }
 

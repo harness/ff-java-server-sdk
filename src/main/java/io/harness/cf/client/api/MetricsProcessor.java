@@ -16,6 +16,46 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 class MetricsProcessor extends AbstractScheduledService {
 
+  static class FrequencyMap<K> {
+
+    private final AtomicLongMap<K> map;
+
+    FrequencyMap() {
+      map = AtomicLongMap.create();
+    }
+
+    void increment(K key) {
+      map.incrementAndGet(key);
+    }
+
+    long get(K key) {
+      return map.get(key);
+    }
+
+    int size() {
+      return map.size();
+    }
+
+    long sum() {
+      return map.sum();
+    }
+
+    Map<K, Long> drainToMap() {
+      // Guava doesn't have a function to atomically drain an AtomicLongMap.
+      // Here we need to atomically set each key to zero as we transfer it to the new map else we
+      // see missed evaluations
+      final HashMap<K, Long> result = new HashMap<>();
+      map.asMap()
+          .forEach(
+              (k, v) -> {
+                final long oldVal = map.getAndUpdate(k, old -> 0);
+                result.put(k, oldVal);
+              });
+      map.removeAllZeros();
+      return result;
+    }
+  }
+
   private static final String FEATURE_NAME_ATTRIBUTE = "featureName";
   private static final String VARIATION_IDENTIFIER_ATTRIBUTE = "variationIdentifier";
   private static final String TARGET_ATTRIBUTE = "target";
@@ -36,7 +76,7 @@ class MetricsProcessor extends AbstractScheduledService {
 
   private final Connector connector;
   private final BaseConfig config;
-  private final AtomicLongMap<MetricEvent> frequencyMap;
+  private final FrequencyMap<MetricEvent> frequencyMap;
   private final Set<Target> uniqueTargetSet;
   private final ScheduledExecutorService executor;
 
@@ -50,25 +90,31 @@ class MetricsProcessor extends AbstractScheduledService {
     this.config = config;
     this.executor = executor();
 
-    this.frequencyMap = AtomicLongMap.create();
+    this.frequencyMap = new FrequencyMap<>();
     this.uniqueTargetSet = ConcurrentHashMap.newKeySet();
 
     callback.onMetricsReady();
   }
 
-  // push the incoming data to the queue
-  public synchronized void pushToQueue(Target target, String featureName, Variation variation) {
+  @Deprecated /* The name of this method no longer makes sense since we moved to a map, kept for source compatibility */
+  public void pushToQueue(Target target, String featureName, Variation variation) {
+    registerEvaluation(target, featureName, variation);
+  }
 
-    if (frequencyMap.size() > config.getBufferSize()) {
-      log.warn(
-          "Metric frequency map exceeded buffer size ({} > {}), force flushing",
-          frequencyMap.size(),
-          config.getBufferSize());
+  void registerEvaluation(Target target, String featureName, Variation variation) {
+
+    final int freqMapSize = frequencyMap.size();
+
+    if (freqMapSize > config.getBufferSize()) {
+      if (log.isWarnEnabled()) {
+        log.warn(
+            "Metric frequency map exceeded buffer size ({} > {}), force flushing",
+            freqMapSize,
+            config.getBufferSize());
+      }
       // If the map is starting to grow too much then push the events now and reset the counters
       executor.submit(this::runOneIteration);
     }
-
-    log.debug("Flag: " + featureName + " Target: " + target + " Variation: " + variation);
 
     Target metricTarget = globalTarget;
 
@@ -79,7 +125,7 @@ class MetricsProcessor extends AbstractScheduledService {
       }
     }
 
-    frequencyMap.incrementAndGet(new MetricEvent(featureName, metricTarget, variation));
+    frequencyMap.increment(new MetricEvent(featureName, metricTarget, variation));
   }
 
   /** This method sends the metrics data to the analytics server and resets the cache */
@@ -202,17 +248,15 @@ class MetricsProcessor extends AbstractScheduledService {
   }
 
   @Override
-  protected synchronized void runOneIteration() {
+  protected void runOneIteration() {
     if (log.isDebugEnabled()) {
       log.debug(
-          "Drain metrics queue : frequencyMap size={} uniqueTargetSet size={} metric events pending={}",
+          "Drain metrics queue : frequencyMap size={} uniqueTargetSet size={}",
           frequencyMap.size(),
-          uniqueTargetSet.size(),
-          frequencyMap.sum());
+          uniqueTargetSet.size());
     }
-    sendDataAndResetCache(new HashMap<>(frequencyMap.asMap()), new HashSet<>(uniqueTargetSet));
+    sendDataAndResetCache(frequencyMap.drainToMap(), new HashSet<>(uniqueTargetSet));
 
-    frequencyMap.clear();
     uniqueTargetSet.clear();
   }
 
@@ -237,6 +281,8 @@ class MetricsProcessor extends AbstractScheduledService {
     stop();
     log.info("Closing MetricsProcessor");
   }
+
+  /* package private */
 
   synchronized void flushQueue() {
     executor.submit(this::runOneIteration);
