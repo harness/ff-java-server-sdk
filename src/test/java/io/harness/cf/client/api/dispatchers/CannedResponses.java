@@ -1,5 +1,7 @@
 package io.harness.cf.client.api.dispatchers;
 
+import static java.lang.String.format;
+
 import com.google.gson.Gson;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.FeatureState;
@@ -30,7 +32,11 @@ public class CannedResponses {
   }
 
   public static MockResponse makeAuthResponse() {
-    return makeMockJsonResponse(200, "{\"authToken\": \"" + makeDummyJwtToken() + "\"}");
+    return makeAuthResponse(200);
+  }
+
+  public static MockResponse makeAuthResponse(int httpCode) {
+    return makeMockJsonResponse(httpCode, "{\"authToken\": \"" + makeDummyJwtToken() + "\"}");
   }
 
   public static MockResponse makeMockStreamResponse(int httpCode, Event... events) {
@@ -49,6 +55,10 @@ public class CannedResponses {
 
   public static MockResponse makeMockEmptyJsonResponse(int httpCode) {
     return new MockResponse().setResponseCode(httpCode);
+  }
+
+  public static MockResponse makeMockEmptyJsonResponse(int httpCode, String httpReason) {
+    return new MockResponse().setStatus(format("HTTP/1.1 %d %s", httpCode, httpReason));
   }
 
   public static MockResponse makeMockSingleBoolFlagResponse(

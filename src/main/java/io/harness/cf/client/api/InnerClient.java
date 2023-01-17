@@ -1,5 +1,7 @@
 package io.harness.cf.client.api;
 
+import static com.google.common.util.concurrent.Service.State.*;
+
 import com.google.common.base.Strings;
 import com.google.common.util.concurrent.Service;
 import com.google.gson.JsonObject;
@@ -132,7 +134,17 @@ class InnerClient
     if (options.isAnalyticsEnabled()) {
       metricsProcessor.stop();
     }
-    authService.startAsync();
+
+    if (authService.state() == TERMINATED || authService.state() == FAILED) {
+      authService.close();
+      authService = new AuthService(this.connector, options.getPollIntervalInSeconds(), this);
+    }
+
+    if (authService.state() != RUNNING) {
+      authService.startAsync();
+    }
+
+    log.info("Finished re-auth, auth service state={}", authService.state());
   }
 
   @Override

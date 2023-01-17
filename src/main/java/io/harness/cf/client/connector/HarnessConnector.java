@@ -8,14 +8,14 @@ import io.harness.cf.api.MetricsApi;
 import io.harness.cf.client.dto.Claim;
 import io.harness.cf.client.logger.LogUtil;
 import io.harness.cf.model.*;
-import java.lang.ref.WeakReference;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.Interceptor;
 import okhttp3.Request;
 import okhttp3.Response;
-import okhttp3.internal.Util;
 import org.slf4j.MDC;
 
 @Slf4j
@@ -25,8 +25,6 @@ public class HarnessConnector implements Connector, AutoCloseable {
   private final MetricsApi metricsApi;
   private final String apiKey;
   private final HarnessConfig options;
-  private WeakReference<Response> responseReference;
-  private WeakReference<Response> metricsResponseReference;
 
   private String token;
   private String environment;
@@ -48,12 +46,12 @@ public class HarnessConnector implements Connector, AutoCloseable {
   public HarnessConnector(@NonNull final String apiKey, @NonNull final HarnessConfig options) {
     this.apiKey = apiKey;
     this.options = options;
-    this.api = new ClientApi(makeApiClient());
-    this.metricsApi = new MetricsApi(makeMetricsApiClient());
+    this.api = new ClientApi(makeApiClient(2000));
+    this.metricsApi = new MetricsApi(makeMetricsApiClient(2000));
     log.info("Connector initialized, with options " + options);
   }
 
-  protected ApiClient makeApiClient() {
+  ApiClient makeApiClient(int retryBackOfDelay) {
     final ApiClient apiClient = new ApiClient();
     apiClient.setBasePath(options.getConfigUrl());
     apiClient.setConnectTimeout(options.getConnectionTimeout());
@@ -66,45 +64,28 @@ public class HarnessConnector implements Connector, AutoCloseable {
         apiClient
             .getHttpClient()
             .newBuilder()
-            .addInterceptor(
-                chain -> {
-                  final Request request =
-                      chain
-                          .request()
-                          .newBuilder()
-                          .addHeader("X-Request-ID", getRequestID())
-                          .build();
-                  log.info("interceptor: requesting url {}", request.url().url());
-                  Response response;
-                  if (responseReference != null) {
-                    response = responseReference.get();
-                    if (response != null) {
-                      if (response.isSuccessful()) {
-                        log.debug(
-                            "interceptor: closing the response url={}", response.request().url());
-                      } else {
-                        log.warn(
-                            "interceptor: closing the faulty response url={}",
-                            response.request().url());
-                      }
-                      Util.closeQuietly(response);
-                    }
-                  }
-                  response = chain.proceed(request);
-                  responseReference = new WeakReference<>(response);
-                  if (response.code() == 403 && onUnauthorized != null) {
-                    onUnauthorized.run();
-                  }
-
-                  return response;
-                })
-            .addInterceptor(new RetryInterceptor(3, 2000))
+            .addInterceptor(this::interceptor)
+            .addInterceptor(new RetryInterceptor(3, retryBackOfDelay))
             .build());
     log.info("apiClient definition complete");
     return apiClient;
   }
 
-  protected ApiClient makeMetricsApiClient() {
+  private Response interceptor(Interceptor.Chain chain) throws IOException {
+    final Request request =
+        chain.request().newBuilder().addHeader("X-Request-ID", getRequestID()).build();
+    log.info("interceptor: requesting url {}", request.url().url());
+
+    Response response = chain.proceed(request);
+
+    if (response.code() == 403 && onUnauthorized != null) {
+      onUnauthorized.run();
+    }
+
+    return response;
+  }
+
+  ApiClient makeMetricsApiClient(int retryBackoffDelay) {
     final int maxTimeout = 30 * 60 * 1000;
     final ApiClient apiClient = new ApiClient();
     apiClient.setBasePath(options.getEventUrl());
@@ -117,39 +98,19 @@ public class HarnessConnector implements Connector, AutoCloseable {
         apiClient
             .getHttpClient()
             .newBuilder()
-            .addInterceptor(
-                chain -> {
-                  final Request request =
-                      chain
-                          .request()
-                          .newBuilder()
-                          .addHeader("X-Request-ID", getRequestID())
-                          .build();
-                  log.info("metrics interceptor: requesting url {}", request.url().url());
-                  Response response;
-                  if (metricsResponseReference != null) {
-                    response = metricsResponseReference.get();
-                    if (response != null) {
-                      if (response.isSuccessful()) {
-                        log.debug(
-                            "metrics interceptor: closing the response url={}",
-                            response.request().url());
-                      } else {
-                        log.warn(
-                            "metrics interceptor: closing the faulty response url={}",
-                            response.request().url());
-                      }
-                      Util.closeQuietly(response);
-                    }
-                  }
-                  response = chain.proceed(request);
-                  metricsResponseReference = new WeakReference<>(response);
-                  return response;
-                })
-            .addInterceptor(new RetryInterceptor(3, 2000))
+            .addInterceptor(this::metricsInterceptor)
+            .addInterceptor(new RetryInterceptor(3, retryBackoffDelay))
             .build());
     log.info("metricsApiClient definition complete");
     return apiClient;
+  }
+
+  private Response metricsInterceptor(Interceptor.Chain chain) throws IOException {
+    final Request request =
+        chain.request().newBuilder().addHeader("X-Request-ID", getRequestID()).build();
+    log.info("metrics interceptor: requesting url {}", request.url().url());
+
+    return chain.proceed(request);
   }
 
   protected String getRequestID() {
@@ -176,10 +137,11 @@ public class HarnessConnector implements Connector, AutoCloseable {
       if (apiException.getCode() == 401 || apiException.getCode() == 403) {
         String errorMsg = String.format("Invalid apiKey %s. SDK will serve default values", apiKey);
         log.error(errorMsg);
-        throw new ConnectorException(errorMsg);
+        throw new ConnectorException(errorMsg, apiException.getCode(), apiException.getMessage());
       }
       log.error("Failed to get auth token", apiException);
-      throw new ConnectorException(apiException.getMessage());
+      throw new ConnectorException(
+          apiException.getMessage(), apiException.getCode(), apiException.getMessage());
     } catch (Throwable ex) {
       log.error("Unexpected exception", ex);
       throw ex;
@@ -224,7 +186,9 @@ public class HarnessConnector implements Connector, AutoCloseable {
           featureConfig.size(),
           this.environment,
           this.cluster);
-      log.info("Got the following features: " + featureConfig);
+      if (log.isTraceEnabled()) {
+        log.trace("Got the following features: " + featureConfig);
+      }
       return featureConfig;
     } catch (ApiException e) {
       log.error(
@@ -232,7 +196,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
           this.environment,
           this.cluster,
           e);
-      throw new ConnectorException(e.getMessage());
+      throw new ConnectorException(e.getMessage(), e.getCode(), e.getMessage());
     } finally {
       MDC.remove(REQUEST_ID_KEY);
     }
@@ -260,7 +224,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
           this.environment,
           this.cluster,
           e);
-      throw new ConnectorException(e.getMessage());
+      throw new ConnectorException(e.getMessage(), e.getCode(), e.getMessage());
     } finally {
       MDC.remove(REQUEST_ID_KEY);
     }
@@ -283,11 +247,13 @@ public class HarnessConnector implements Connector, AutoCloseable {
       return allSegments;
     } catch (ApiException e) {
       log.error(
-          "Exception was raised while fetching the target groups on env {} and cluster {}",
+          "Exception was raised while fetching the target groups on env {} and cluster {} : httpCode={} message={}",
           this.environment,
           this.cluster,
+          e.getCode(),
+          e.getMessage(),
           e);
-      throw new ConnectorException(e.getMessage());
+      throw new ConnectorException(e.getMessage(), e.getCode(), e.getMessage());
     } finally {
       MDC.remove(REQUEST_ID_KEY);
     }
@@ -317,7 +283,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
           this.environment,
           this.cluster,
           e);
-      throw new ConnectorException(e.getMessage());
+      throw new ConnectorException(e.getMessage(), e.getCode(), e.getMessage());
     } finally {
       MDC.remove(REQUEST_ID_KEY);
     }
@@ -340,7 +306,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
           this.environment,
           this.cluster,
           e);
-      throw new ConnectorException(e.getMessage());
+      throw new ConnectorException(e.getMessage(), e.getCode(), e.getMessage());
     } finally {
       MDC.remove(REQUEST_ID_KEY);
     }
@@ -365,28 +331,29 @@ public class HarnessConnector implements Connector, AutoCloseable {
 
   @Override
   public void close() {
-    log.info("closing connector");
-    if (responseReference != null) {
-      final Response response = responseReference.get();
-      if (response != null) {
-        Util.closeQuietly(response);
-      }
-      responseReference = null;
-    }
-    if (metricsResponseReference != null) {
-      final Response response = metricsResponseReference.get();
-      if (response != null) {
-        Util.closeQuietly(response);
-      }
-      metricsResponseReference = null;
-    }
+    log.debug("closing connector");
     api.getApiClient().getHttpClient().connectionPool().evictAll();
-    log.info("All apiClient connections evicted");
+    log.debug("All apiClient connections evicted");
     metricsApi.getApiClient().getHttpClient().connectionPool().evictAll();
-    log.info("All metricsApiClient connections evicted");
+    log.debug("All metricsApiClient connections evicted");
     if (eventSource != null) {
       eventSource.close();
     }
-    log.info("connector closed!");
+    log.debug("connector closed!");
+  }
+
+  /* package private - should not be used outside of tests */
+
+  HarnessConnector(
+      @NonNull final String apiKey, @NonNull final HarnessConfig options, int retryBackOffDelay) {
+    this.apiKey = apiKey;
+    this.options = options;
+    this.api = new ClientApi(makeApiClient(retryBackOffDelay));
+    this.metricsApi = new MetricsApi(makeMetricsApiClient(retryBackOffDelay));
+    log.info(
+        "Connector initialized, with options "
+            + options
+            + " and retry backoff delay "
+            + retryBackOffDelay);
   }
 }
