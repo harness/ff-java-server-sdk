@@ -24,6 +24,8 @@ class RetryInterceptor implements Interceptor {
     while (!response.isSuccessful() && tryCount < maxTryCount) {
       log.debug("Request is not successful - {}", tryCount);
 
+      response.close();
+
       tryCount++;
 
       try {

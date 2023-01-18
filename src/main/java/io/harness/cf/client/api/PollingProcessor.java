@@ -72,7 +72,7 @@ class PollingProcessor extends AbstractScheduledService {
       completableFuture.complete(segments);
     } catch (ConnectorException e) {
       log.error(
-          "Exception was raised when fetching flags data with the message {}", e.getMessage());
+          "Exception was raised when fetching flags data with the message {}", e.getMessage(), e);
       completableFuture.completeExceptionally(e);
     }
     return completableFuture;

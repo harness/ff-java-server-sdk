@@ -4,12 +4,12 @@ import static com.google.common.util.concurrent.Service.State.RUNNING;
 import static io.harness.cf.client.api.TestUtils.*;
 import static io.harness.cf.client.api.dispatchers.CannedResponses.makeDummyJwtToken;
 import static io.harness.cf.client.api.dispatchers.CannedResponses.makeMockJsonResponse;
+import static io.harness.cf.client.connector.HarnessConnectorUtils.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.gson.JsonObject;
-import io.harness.cf.client.api.dispatchers.TestWebServerDispatcher;
-import io.harness.cf.client.api.dispatchers.UnimplementedStreamDispatcher;
+import io.harness.cf.client.api.dispatchers.*;
 import io.harness.cf.client.api.testutils.DummyConnector;
 import io.harness.cf.client.common.Cache;
 import io.harness.cf.client.dto.Target;
@@ -290,7 +290,9 @@ class CfClientTest {
       mockSvr.start();
 
       try (CfClient client =
-          new CfClient(makeConnector(mockSvr.getHostName(), mockSvr.getPort()), config)) {
+          new CfClient(
+              makeConnectorWithMinimalRetryBackOff(mockSvr.getHostName(), mockSvr.getPort()),
+              config)) {
 
         client.waitForInitialization();
 
@@ -339,6 +341,75 @@ class CfClientTest {
       client.off(Event.CHANGED);
       client.getInnerClient().notifyConsumers(Event.CHANGED, "simplebool");
       assertEquals(2, onEventCounter.get());
+    }
+  }
+
+  @Test
+  void shouldRetryThenReAuthenticateWithoutThrowingIllegalStateException() throws Exception {
+    BaseConfig config =
+        BaseConfig.builder()
+            .pollIntervalInSeconds(1)
+            .analyticsEnabled(false)
+            .streamEnabled(false)
+            .build();
+
+    Http4xxOnFirstAuthDispatcher webserverDispatcher = new Http4xxOnFirstAuthDispatcher(4);
+
+    try (MockWebServer mockSvr = new MockWebServer()) {
+      mockSvr.setDispatcher(webserverDispatcher);
+      mockSvr.start();
+
+      try (CfClient client =
+          new CfClient(
+              makeConnectorWithMinimalRetryBackOff(mockSvr.getHostName(), mockSvr.getPort()),
+              config)) {
+
+        client.waitForInitialization();
+
+        // First 3 attempts to connect to auth endpoint will return a 4xx, followed by a 200 success
+        webserverDispatcher.waitForAllConnections(15);
+
+        final int expectedAuths = 3 + 3 + 1; // 3+3 failed retries (4xx), 1 success (200)
+
+        assertEquals(
+            expectedAuths,
+            webserverDispatcher.getAuthAttempts().get(),
+            "not enough authentication attempts");
+      }
+    }
+  }
+
+  @Test
+  void shouldRetryThenReAuthenticateWhen403IsReturnedOnGetAllSegments() throws Exception {
+    BaseConfig config =
+        BaseConfig.builder()
+            .pollIntervalInSeconds(1)
+            .analyticsEnabled(false)
+            .streamEnabled(false)
+            .debug(false)
+            .build();
+
+    Http4xxOnGetAllSegmentsDispatcher webserverDispatcher =
+        new Http4xxOnGetAllSegmentsDispatcher(2, 5);
+
+    try (MockWebServer mockSvr = new MockWebServer()) {
+      mockSvr.setDispatcher(webserverDispatcher);
+      mockSvr.start();
+
+      try (CfClient client =
+          new CfClient(
+              makeConnectorWithMinimalRetryBackOff(mockSvr.getHostName(), mockSvr.getPort()),
+              config)) {
+
+        client.waitForInitialization();
+
+        // Auth will return success on first go, then randomly fail getAllSegments with a 4xx, we
+        // want it to reauthenticate
+        webserverDispatcher.waitForAllConnections(15);
+
+        assertEquals(
+            2, webserverDispatcher.getAuthAttempts().get(), "not enough authentication attempts");
+      }
     }
   }
 
