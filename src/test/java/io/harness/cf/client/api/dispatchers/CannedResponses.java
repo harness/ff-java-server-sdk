@@ -19,7 +19,7 @@ public class CannedResponses {
 
   @Data
   @AllArgsConstructor
-  static class Event {
+  public static class Event {
     String event, domain, identifier;
     int version;
   }

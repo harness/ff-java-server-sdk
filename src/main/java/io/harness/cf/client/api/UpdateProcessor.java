@@ -47,6 +47,10 @@ class UpdateProcessor implements AutoCloseable {
       running = true;
     } catch (ConnectorException | InterruptedException e) {
       log.error("Starting updater failed with exc: {}", e.getMessage());
+
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
     }
   }
 
@@ -61,6 +65,7 @@ class UpdateProcessor implements AutoCloseable {
         stream.stop();
         running = false;
       }
+      executor.shutdown();
       boolean result = executor.awaitTermination(3, TimeUnit.SECONDS);
       if (result) {
         log.debug("All tasks done");
@@ -69,8 +74,8 @@ class UpdateProcessor implements AutoCloseable {
       }
     } catch (InterruptedException e) {
       log.error("Exception was raised when stopping update tasks", e);
+      Thread.currentThread().interrupt();
     }
-    executor.shutdown();
   }
 
   public void update(@NonNull final Message message) {
@@ -139,6 +144,7 @@ class UpdateProcessor implements AutoCloseable {
         stream.close();
       } catch (InterruptedException e) {
         log.error("Exception was raised while trying to close the stream, err: {}", e.getMessage());
+        Thread.currentThread().interrupt();
       }
     }
     log.info("UpdateProcessor closed");

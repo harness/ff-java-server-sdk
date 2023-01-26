@@ -246,12 +246,13 @@ class InnerClient
       pollProcessor.start();
       pollerStartedAt = new Date();
     } else {
-      log.warn(
-          "Poller was not restarted [closing={} state={} pollStartTime+interval={} now={} ]",
+      log.debug(
+          "Poller already running [closing={} state={} pollStartTime={} interval={} now={}]",
           closing,
           pollProcessor.state(),
-          instant,
-          now);
+          pollerStartedAt.toInstant(),
+          options.getPollIntervalInSeconds(),
+          now.toInstant());
     }
   }
 

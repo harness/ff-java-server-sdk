@@ -23,7 +23,7 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
   private final Updater updater;
   private final Gson gson = new Gson();
   private final Request.Builder builder;
-  private int retryTime = 2_000;
+  private int retryTime;
   private HttpLoggingInterceptor loggingInterceptor;
 
   private ServerSentEvent sse;
@@ -37,7 +37,17 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
       Map<String, String> headers,
       @NonNull Updater updater,
       long sseReadTimeoutMins) {
+    this(url, headers, updater, sseReadTimeoutMins, 2_000);
+  }
+
+  EventSource(
+      @NonNull String url,
+      Map<String, String> headers,
+      @NonNull Updater updater,
+      long sseReadTimeoutMins,
+      int retryDelayMs) {
     this.updater = updater;
+    this.retryTime = retryDelayMs;
     okSse = new OkSse(makeStreamClient(sseReadTimeoutMins));
     builder = new Request.Builder().url(url);
     headers.put("User-Agent", "JavaSDK " + io.harness.cf.Version.VERSION);
@@ -105,6 +115,7 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
   @Override
   public boolean onRetryError(
       ServerSentEvent serverSentEvent, Throwable throwable, Response response) {
+
     log.warn(
         "EventSource onRetryError [throwable={} message={}]",
         throwable.getClass().getSimpleName(),
