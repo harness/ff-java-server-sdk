@@ -33,10 +33,16 @@ class AuthService extends AbstractScheduledService {
       stopAsync();
       log.info("Stopping Auth service");
     } catch (ConnectorException e) {
-      log.error(
-          "Exception while authenticating, retry in {} seconds, error: {}",
-          pollIntervalInSec,
-          e.getMessage());
+      if (e.shouldRetry()) {
+        log.error(
+            "Exception while authenticating, retry in {} seconds, error: {}",
+            pollIntervalInSec,
+            e.getMessage());
+      } else {
+        stopAsync();
+        log.error("Exception while authenticating", e);
+        callback.onFailure(e.getMessage());
+      }
     }
   }
 

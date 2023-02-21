@@ -335,7 +335,7 @@ class InnerClient
       throws InterruptedException, FeatureFlagInitializeException {
     while (!initialized) {
       log.info("Wait for initialization to finish");
-      wait();
+      wait(5000);
 
       if (failure) {
         log.error("Failure while initializing SDK!");
