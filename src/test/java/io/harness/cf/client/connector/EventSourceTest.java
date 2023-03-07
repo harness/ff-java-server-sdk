@@ -76,7 +76,12 @@ class EventSourceTest {
     try (MockWebServer mockSvr = new MockWebServer();
         EventSource eventSource =
             new EventSource(
-                setupMockServer(mockSvr, new StreamDispatcher()), new HashMap<>(), updater, 1, 1)) {
+                setupMockServer(mockSvr, new StreamDispatcher()),
+                new HashMap<>(),
+                updater,
+                1,
+                1,
+                null)) {
       eventSource.start();
 
       TimeUnit.SECONDS.sleep(15);
@@ -103,7 +108,8 @@ class EventSourceTest {
                 new HashMap<>(),
                 updater,
                 1,
-                1)) {
+                1,
+                null)) {
       eventSource.start();
 
       TimeUnit.SECONDS.sleep(15);

@@ -5,9 +5,15 @@ import com.here.oksse.OkSse;
 import com.here.oksse.ServerSentEvent;
 import io.harness.cf.client.dto.Message;
 import io.harness.cf.client.logger.LogUtil;
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import javax.net.ssl.*;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +43,7 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
       Map<String, String> headers,
       @NonNull Updater updater,
       long sseReadTimeoutMins) {
-    this(url, headers, updater, sseReadTimeoutMins, 2_000);
+    this(url, headers, updater, sseReadTimeoutMins, 2_000, null);
   }
 
   EventSource(
@@ -45,10 +51,11 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
       Map<String, String> headers,
       @NonNull Updater updater,
       long sseReadTimeoutMins,
-      int retryDelayMs) {
+      int retryDelayMs,
+      List<X509Certificate> trustedCAs) {
     this.updater = updater;
     this.retryTime = retryDelayMs;
-    okSse = new OkSse(makeStreamClient(sseReadTimeoutMins));
+    okSse = new OkSse(makeStreamClient(sseReadTimeoutMins, trustedCAs));
     builder = new Request.Builder().url(url);
     headers.put("User-Agent", "JavaSDK " + io.harness.cf.Version.VERSION);
     headers.forEach(builder::header);
@@ -56,11 +63,15 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
     log.info("EventSource initialized with url {} and headers {}", url, headers);
   }
 
-  protected OkHttpClient makeStreamClient(long sseReadTimeoutMins) {
+  protected OkHttpClient makeStreamClient(
+      long sseReadTimeoutMins, List<X509Certificate> trustedCAs) {
     OkHttpClient.Builder httpClientBuilder =
         new OkHttpClient.Builder()
             .readTimeout(sseReadTimeoutMins, TimeUnit.MINUTES)
             .retryOnConnectionFailure(true);
+
+    setupTls(httpClientBuilder, trustedCAs);
+
     if (log.isDebugEnabled()) {
       loggingInterceptor = new HttpLoggingInterceptor();
       loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
@@ -83,6 +94,35 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
         });
     log.info("stream http client definition complete");
     return httpClientBuilder.build();
+  }
+
+  @SneakyThrows
+  private void setupTls(OkHttpClient.Builder httpClientBuilder, List<X509Certificate> trustedCAs) {
+
+    try {
+      if (trustedCAs != null && !trustedCAs.isEmpty()) {
+
+        final KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        keyStore.load(null, null);
+        for (int i = 0; i < trustedCAs.size(); i++) {
+          keyStore.setCertificateEntry("ca" + i, trustedCAs.get(i));
+        }
+
+        final TrustManagerFactory trustManagerFactory =
+            TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        trustManagerFactory.init(keyStore);
+        final TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
+
+        final SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(null, trustManagers, new SecureRandom());
+
+        httpClientBuilder.sslSocketFactory(
+            sslContext.getSocketFactory(), (X509TrustManager) trustManagers[0]);
+      }
+    } catch (GeneralSecurityException ex) {
+      log.warn("Failed to setup TLS on SSE endpoint: " + ex.getMessage(), ex);
+      throw new RuntimeException(ex);
+    }
   }
 
   @Override

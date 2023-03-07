@@ -1,5 +1,7 @@
 package io.harness.cf.client.connector;
 
+import java.security.cert.X509Certificate;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -25,4 +27,10 @@ public class HarnessConfig {
 
   /** read timeout in minutes for SSE connections */
   @Builder.Default long sseReadTimeout = 1;
+
+  /**
+   * list of trusted CAs - for when the given config/event URLs are signed with a private CA. You
+   * should include intermediate CAs too to allow the HTTP client to build a full trust chain.
+   */
+  @Builder.Default List<X509Certificate> tlsTrustedCAs = null;
 }

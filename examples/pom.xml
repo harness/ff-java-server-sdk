@@ -65,6 +65,13 @@
             <version>2.19.0</version>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/org.bouncycastle/bcpkix-jdk18on -->
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcpkix-jdk18on</artifactId>
+            <version>1.72</version>
+        </dependency>
+
     </dependencies>
 
 

@@ -8,10 +8,12 @@ import io.harness.cf.api.MetricsApi;
 import io.harness.cf.client.dto.Claim;
 import io.harness.cf.client.logger.LogUtil;
 import io.harness.cf.model.*;
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.security.cert.X509Certificate;
 import java.util.*;
 import lombok.NonNull;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Interceptor;
 import okhttp3.Request;
@@ -51,6 +53,11 @@ public class HarnessConnector implements Connector, AutoCloseable {
     log.info("Connector initialized, with options " + options);
   }
 
+  @SneakyThrows
+  private byte[] certToByteArray(X509Certificate cert) {
+    return cert.getEncoded();
+  }
+
   ApiClient makeApiClient(int retryBackOfDelay) {
     final ApiClient apiClient = new ApiClient();
     apiClient.setBasePath(options.getConfigUrl());
@@ -59,6 +66,9 @@ public class HarnessConnector implements Connector, AutoCloseable {
     apiClient.setWriteTimeout(options.getWriteTimeout());
     apiClient.setDebugging(log.isDebugEnabled());
     apiClient.setUserAgent("JavaSDK " + io.harness.cf.Version.VERSION);
+
+    setupTls(apiClient);
+
     // if http client response is 403 we need to reauthenticate
     apiClient.setHttpClient(
         apiClient
@@ -94,6 +104,9 @@ public class HarnessConnector implements Connector, AutoCloseable {
     apiClient.setWriteTimeout(maxTimeout);
     apiClient.setDebugging(log.isDebugEnabled());
     apiClient.setUserAgent("JavaSDK " + io.harness.cf.Version.VERSION);
+
+    setupTls(apiClient);
+
     apiClient.setHttpClient(
         apiClient
             .getHttpClient()
@@ -325,7 +338,14 @@ public class HarnessConnector implements Connector, AutoCloseable {
     map.put("Authorization", "Bearer " + token);
     map.put("API-Key", apiKey);
     log.info("Initialize new EventSource instance");
-    eventSource = new EventSource(sseUrl, map, updater, Math.max(options.getSseReadTimeout(), 1));
+    eventSource =
+        new EventSource(
+            sseUrl,
+            map,
+            updater,
+            Math.max(options.getSseReadTimeout(), 1),
+            2_000,
+            options.getTlsTrustedCAs());
     return eventSource;
   }
 
@@ -340,6 +360,21 @@ public class HarnessConnector implements Connector, AutoCloseable {
       eventSource.close();
     }
     log.debug("connector closed!");
+  }
+
+  private void setupTls(ApiClient apiClient) {
+    final List<X509Certificate> trustedCAs = options.getTlsTrustedCAs();
+    if (trustedCAs != null && !trustedCAs.isEmpty()) {
+
+      // because openapi doesn't take X509 certs directly we need some boilerplate
+      byte[] certsAsBytes =
+          trustedCAs.stream()
+              .map(this::certToByteArray)
+              .collect(ByteArrayOutputStream::new, (s, b) -> s.write(b, 0, b.length), (a, b) -> {})
+              .toByteArray();
+
+      apiClient.setSslCaCert(new ByteArrayInputStream(certsAsBytes));
+    }
   }
 
   /* package private - should not be used outside of tests */
