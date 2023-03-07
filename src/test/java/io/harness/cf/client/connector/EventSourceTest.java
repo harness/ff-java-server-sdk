@@ -70,7 +70,7 @@ class EventSourceTest {
 
   @Test
   void shouldNotCallErrorHandlerIfRetryEventuallyReconnectsToStreamEndpoint()
-      throws IOException, InterruptedException {
+      throws IOException, InterruptedException, ConnectorException {
     CountingUpdater updater = new CountingUpdater();
 
     try (MockWebServer mockSvr = new MockWebServer();
@@ -98,7 +98,7 @@ class EventSourceTest {
 
   @Test
   void shouldRestartPollerIfAllConnectionAttemptsToStreamEndpointFail()
-      throws IOException, InterruptedException {
+      throws IOException, InterruptedException, ConnectorException {
     CountingUpdater updater = new CountingUpdater();
 
     try (MockWebServer mockSvr = new MockWebServer();

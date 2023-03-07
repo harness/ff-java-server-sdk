@@ -326,7 +326,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
   }
 
   @Override
-  public Service stream(@NonNull final Updater updater) {
+  public Service stream(@NonNull final Updater updater) throws ConnectorException {
     log.debug("Check if eventsource is already initialized");
     if (eventSource != null) {
       log.debug("EventSource is already initialized, closing ...");

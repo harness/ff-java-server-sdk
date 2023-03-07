@@ -5,6 +5,7 @@ import com.here.oksse.OkSse;
 import com.here.oksse.ServerSentEvent;
 import io.harness.cf.client.dto.Message;
 import io.harness.cf.client.logger.LogUtil;
+import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.SecureRandom;
@@ -42,7 +43,8 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
       @NonNull String url,
       Map<String, String> headers,
       @NonNull Updater updater,
-      long sseReadTimeoutMins) {
+      long sseReadTimeoutMins)
+      throws ConnectorException {
     this(url, headers, updater, sseReadTimeoutMins, 2_000, null);
   }
 
@@ -52,7 +54,8 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
       @NonNull Updater updater,
       long sseReadTimeoutMins,
       int retryDelayMs,
-      List<X509Certificate> trustedCAs) {
+      List<X509Certificate> trustedCAs)
+      throws ConnectorException {
     this.updater = updater;
     this.retryTime = retryDelayMs;
     okSse = new OkSse(makeStreamClient(sseReadTimeoutMins, trustedCAs));
@@ -63,8 +66,8 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
     log.info("EventSource initialized with url {} and headers {}", url, headers);
   }
 
-  protected OkHttpClient makeStreamClient(
-      long sseReadTimeoutMins, List<X509Certificate> trustedCAs) {
+  protected OkHttpClient makeStreamClient(long sseReadTimeoutMins, List<X509Certificate> trustedCAs)
+      throws ConnectorException {
     OkHttpClient.Builder httpClientBuilder =
         new OkHttpClient.Builder()
             .readTimeout(sseReadTimeoutMins, TimeUnit.MINUTES)
@@ -96,8 +99,10 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
     return httpClientBuilder.build();
   }
 
-  @SneakyThrows
-  private void setupTls(OkHttpClient.Builder httpClientBuilder, List<X509Certificate> trustedCAs) {
+  public boolean throwex = true;
+
+  private void setupTls(OkHttpClient.Builder httpClientBuilder, List<X509Certificate> trustedCAs)
+      throws ConnectorException {
 
     try {
       if (trustedCAs != null && !trustedCAs.isEmpty()) {
@@ -119,9 +124,10 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
         httpClientBuilder.sslSocketFactory(
             sslContext.getSocketFactory(), (X509TrustManager) trustManagers[0]);
       }
-    } catch (GeneralSecurityException ex) {
-      log.warn("Failed to setup TLS on SSE endpoint: " + ex.getMessage(), ex);
-      throw new RuntimeException(ex);
+    } catch (GeneralSecurityException | IOException ex) {
+      String msg = "Failed to setup TLS on SSE endpoint: " + ex.getMessage();
+      log.warn(msg, ex);
+      throw new ConnectorException(msg, true, ex);
     }
   }
 
