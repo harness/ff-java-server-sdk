@@ -6,7 +6,7 @@
 
     <groupId>io.harness</groupId>
     <artifactId>ff-java-server-sdk</artifactId>
-    <version>1.1.11</version>
+    <version>1.2.0</version>
     <packaging>jar</packaging>
     <name>Harness Feature Flag Java Server SDK</name>
     <description>Harness Feature Flag Java Server SDK</description>
