@@ -70,13 +70,18 @@ class EventSourceTest {
 
   @Test
   void shouldNotCallErrorHandlerIfRetryEventuallyReconnectsToStreamEndpoint()
-      throws IOException, InterruptedException {
+      throws IOException, InterruptedException, ConnectorException {
     CountingUpdater updater = new CountingUpdater();
 
     try (MockWebServer mockSvr = new MockWebServer();
         EventSource eventSource =
             new EventSource(
-                setupMockServer(mockSvr, new StreamDispatcher()), new HashMap<>(), updater, 1, 1)) {
+                setupMockServer(mockSvr, new StreamDispatcher()),
+                new HashMap<>(),
+                updater,
+                1,
+                1,
+                null)) {
       eventSource.start();
 
       TimeUnit.SECONDS.sleep(15);
@@ -93,7 +98,7 @@ class EventSourceTest {
 
   @Test
   void shouldRestartPollerIfAllConnectionAttemptsToStreamEndpointFail()
-      throws IOException, InterruptedException {
+      throws IOException, InterruptedException, ConnectorException {
     CountingUpdater updater = new CountingUpdater();
 
     try (MockWebServer mockSvr = new MockWebServer();
@@ -103,7 +108,8 @@ class EventSourceTest {
                 new HashMap<>(),
                 updater,
                 1,
-                1)) {
+                1,
+                null)) {
       eventSource.start();
 
       TimeUnit.SECONDS.sleep(15);
