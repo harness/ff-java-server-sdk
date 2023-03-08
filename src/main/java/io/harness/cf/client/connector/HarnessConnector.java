@@ -23,6 +23,8 @@ import org.slf4j.MDC;
 @Slf4j
 public class HarnessConnector implements Connector, AutoCloseable {
   public static final String REQUEST_ID_KEY = "requestId";
+  private static final String HARNESS_SDK_INFO =
+      String.format("Java %s Server", io.harness.cf.Version.VERSION);
   private final ClientApi api;
   private final MetricsApi metricsApi;
   private final String apiKey;
@@ -66,6 +68,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
     apiClient.setWriteTimeout(options.getWriteTimeout());
     apiClient.setDebugging(log.isDebugEnabled());
     apiClient.setUserAgent("JavaSDK " + io.harness.cf.Version.VERSION);
+    apiClient.addDefaultHeader("Harness-SDK-Info", HARNESS_SDK_INFO);
 
     setupTls(apiClient);
 
@@ -104,6 +107,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
     apiClient.setWriteTimeout(maxTimeout);
     apiClient.setDebugging(log.isDebugEnabled());
     apiClient.setUserAgent("JavaSDK " + io.harness.cf.Version.VERSION);
+    apiClient.addDefaultHeader("Harness-SDK-Info", HARNESS_SDK_INFO);
 
     setupTls(apiClient);
 
@@ -337,6 +341,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
     final Map<String, String> map = new HashMap<>();
     map.put("Authorization", "Bearer " + token);
     map.put("API-Key", apiKey);
+    map.put("Harness-SDK-Info", HARNESS_SDK_INFO);
     log.info("Initialize new EventSource instance");
     eventSource =
         new EventSource(
