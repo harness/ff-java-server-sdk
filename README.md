@@ -192,3 +192,6 @@ Further examples and config options are in the further reading section:
 test features quicker.
 
 -------------------------
+
+### Code Cleanup (Beta)
+The java sdk supports automated code cleanup. For more info see the [docs](/examples/src/main/java/io/harness/ff/code_cleanup_examples/README.md)

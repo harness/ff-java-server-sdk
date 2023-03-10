@@ -1,0 +1,47 @@
+# Find any instance where we call the function boolVariation() with a feature flag enum value
+# e.g. where @stale_flag_name is STALE_FLAG this would match a call looking like boolVariation(myEnum.STALE_FLAG)
+# note extra params dont matter - this rule will also match boolVariation(myEnum.STALE_FLAG, "other_param", morestuff)
+[[rules]]
+name = "replace_boolVariation_with_boolean_literal"
+query = """((
+    (method_invocation
+        name : (_) @name
+        arguments: ((argument_list
+                        ([
+                          (field_access field: (_)@argument)
+                          (_) @argument
+                         ])) )
+
+    ) @method_invocation
+)
+(#eq? @name "boolVariation")
+(#eq? @argument "@stale_flag_name")
+)"""
+replace_node = "method_invocation"
+replace = "@treated"
+groups = ["replace_expression_with_boolean_literal"]
+holes = ["treated", "stale_flag_name"]
+
+# Cleanup the enum declaration itself e.g.
+# For @stale_flag_name = STALE_FLAG
+# Before :
+#  enum Flags {
+#   ABC, STALE_FLAG, OTHER_FLAG
+#  }
+# After :
+#  enum Flags {
+#   ABC, OTHER_FLAG
+#  }
+#
+[[rules]]
+name = "delete_enum_constant"
+query = """
+    (
+    ((enum_constant name : (_) @n) @ec)
+    (#eq? @n  "@stale_flag_name")
+    )
+    """
+replace_node = "ec"
+replace = ""
+holes = ["stale_flag_name"]
+groups = ["delete_enum_entry"]
