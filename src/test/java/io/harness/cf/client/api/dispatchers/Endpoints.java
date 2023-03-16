@@ -2,7 +2,7 @@ package io.harness.cf.client.api.dispatchers;
 
 public class Endpoints {
 
-  static final String AUTH_ENDPOINT = "/api/1.0/client/auth";
+  public static final String AUTH_ENDPOINT = "/api/1.0/client/auth";
   static final String FEATURES_ENDPOINT =
       "/api/1.0/client/env/00000000-0000-0000-0000-000000000000/feature-configs?cluster=1";
   static final String SEGMENTS_ENDPOINT =

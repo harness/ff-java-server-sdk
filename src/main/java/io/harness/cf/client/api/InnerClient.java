@@ -2,7 +2,6 @@ package io.harness.cf.client.api;
 
 import static com.google.common.util.concurrent.Service.State.*;
 
-import com.google.common.base.Strings;
 import com.google.common.util.concurrent.Service;
 import com.google.gson.JsonObject;
 import io.harness.cf.client.connector.Connector;
@@ -65,10 +64,6 @@ class InnerClient
 
   @Deprecated
   public InnerClient(@NonNull final String sdkKey, @NonNull final Config options) {
-    if (Strings.isNullOrEmpty(sdkKey)) {
-      log.error(MISSING_SDK_KEY);
-      throw new IllegalArgumentException(MISSING_SDK_KEY);
-    }
     HarnessConfig config =
         HarnessConfig.builder()
             .configUrl(options.getConfigUrl())
@@ -82,11 +77,6 @@ class InnerClient
   }
 
   public InnerClient(@NonNull final String sdkKey, @NonNull final BaseConfig options) {
-    if (Strings.isNullOrEmpty(sdkKey)) {
-      log.error(MISSING_SDK_KEY);
-      throw new IllegalArgumentException(MISSING_SDK_KEY);
-    }
-
     HarnessConfig config = HarnessConfig.builder().build();
     HarnessConnector harnessConnector = new HarnessConnector(sdkKey, config);
     setUp(harnessConnector, options);
