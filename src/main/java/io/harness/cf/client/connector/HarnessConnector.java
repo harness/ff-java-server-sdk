@@ -5,6 +5,7 @@ import io.harness.cf.ApiClient;
 import io.harness.cf.ApiException;
 import io.harness.cf.api.ClientApi;
 import io.harness.cf.api.MetricsApi;
+import io.harness.cf.client.api.MissingSdkKeyException;
 import io.harness.cf.client.dto.Claim;
 import io.harness.cf.client.logger.LogUtil;
 import io.harness.cf.model.*;
@@ -48,6 +49,10 @@ public class HarnessConnector implements Connector, AutoCloseable {
   }
 
   public HarnessConnector(@NonNull final String apiKey, @NonNull final HarnessConfig options) {
+    if (isNullOrEmpty(apiKey)) {
+      throw new MissingSdkKeyException();
+    }
+
     this.apiKey = apiKey;
     this.options = options;
     this.api = new ClientApi(makeApiClient(2000));
@@ -152,9 +157,12 @@ public class HarnessConnector implements Connector, AutoCloseable {
       return token;
     } catch (ApiException apiException) {
       if (apiException.getCode() == 401 || apiException.getCode() == 403) {
-        String errorMsg = String.format("Invalid apiKey %s. SDK will serve default values", apiKey);
+        String errorMsg =
+            String.format(
+                "HTTP error code %d returned for authentication endpoint. Check API key. SDK will serve default values",
+                apiException.getCode());
         log.error(errorMsg);
-        throw new ConnectorException(errorMsg, apiException.getCode(), apiException.getMessage());
+        throw new ConnectorException(errorMsg, false, apiException);
       }
       log.error("Failed to get auth token", apiException);
       throw new ConnectorException(
@@ -382,10 +390,19 @@ public class HarnessConnector implements Connector, AutoCloseable {
     }
   }
 
+  private static boolean isNullOrEmpty(String string) {
+    return string == null || string.trim().isEmpty();
+  }
+
   /* package private - should not be used outside of tests */
 
   HarnessConnector(
       @NonNull final String apiKey, @NonNull final HarnessConfig options, int retryBackOffDelay) {
+
+    if (isNullOrEmpty(apiKey)) {
+      throw new MissingSdkKeyException();
+    }
+
     this.apiKey = apiKey;
     this.options = options;
     this.api = new ClientApi(makeApiClient(retryBackOffDelay));

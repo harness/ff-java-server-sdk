@@ -4,6 +4,7 @@ import static com.google.common.util.concurrent.Service.State.RUNNING;
 import static io.harness.cf.client.api.TestUtils.*;
 import static io.harness.cf.client.api.dispatchers.CannedResponses.makeDummyJwtToken;
 import static io.harness.cf.client.api.dispatchers.CannedResponses.makeMockJsonResponse;
+import static io.harness.cf.client.api.dispatchers.Endpoints.AUTH_ENDPOINT;
 import static io.harness.cf.client.connector.HarnessConnectorUtils.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -31,6 +32,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class CfClientTest {
 
@@ -116,8 +118,101 @@ class CfClientTest {
   void shouldFailIfEmptySdkKeyGiven() {
     Exception thrown =
         assertThrows(
-            IllegalArgumentException.class, () -> new CfClient(""), "Exception was not thrown");
-    assertInstanceOf(IllegalArgumentException.class, thrown);
+            MissingSdkKeyException.class, () -> new CfClient(""), "Exception was not thrown");
+    assertInstanceOf(MissingSdkKeyException.class, thrown);
+  }
+
+  @Test
+  void shouldFailIfNullSdkKeyGiven() {
+    Exception thrown =
+        assertThrows(
+            NullPointerException.class,
+            () -> new CfClient((String) null),
+            "Exception was not thrown");
+    assertInstanceOf(NullPointerException.class, thrown);
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void shouldAllowEvaluationsToContinueWhenAuthFails(boolean shouldWaitForInit)
+      throws InterruptedException, IOException {
+
+    BaseConfig config =
+        BaseConfig.builder()
+            .pollIntervalInSeconds(1)
+            .analyticsEnabled(false)
+            .streamEnabled(true)
+            .build();
+
+    Http403OnAuthDispatcher webserverDispatcher = new Http403OnAuthDispatcher(4); // auth error
+
+    try (MockWebServer mockSvr = new MockWebServer()) {
+      mockSvr.setDispatcher(webserverDispatcher);
+      mockSvr.start();
+
+      try (CfClient client =
+          new CfClient(
+              makeConnectorWithMinimalRetryBackOff(mockSvr.getHostName(), mockSvr.getPort()),
+              config)) {
+
+        if (shouldWaitForInit) {
+          try {
+            client.waitForInitialization();
+          } catch (FeatureFlagInitializeException ex) {
+            // ignore
+          }
+        }
+
+        // Iterate a few times, check we're getting defaults and not blocking
+        for (int i = 0; i < 1000; i++) {
+          if (i % 100 == 0)
+            System.out.printf(
+                "Test that xVariation doesn't block and serves default when auth fails, iteration #%d%n",
+                i);
+
+          boolean b1 = client.boolVariation("test", null, true);
+          boolean b2 =
+              client.boolVariation("test", Target.builder().identifier("test").build(), true);
+          assertTrue(b1);
+          assertTrue(b2);
+
+          String s1 = client.stringVariation("test", null, "def");
+          String s2 =
+              client.stringVariation("test", Target.builder().identifier("test").build(), "def");
+          assertEquals("def", s1);
+          assertEquals("def", s2);
+
+          double n1 = client.numberVariation("test", null, 321);
+          double n2 =
+              client.numberVariation("test", Target.builder().identifier("test").build(), 321);
+          assertEquals(321, n1);
+          assertEquals(321, n2);
+
+          JsonObject json = new JsonObject();
+          json.addProperty("prop", "val");
+
+          JsonObject j1 = client.jsonVariation("test", null, json);
+          JsonObject j2 =
+              client.jsonVariation("test", Target.builder().identifier("test").build(), json);
+          assertEquals("val", j1.get("prop").getAsString());
+          assertEquals("val", j2.get("prop").getAsString());
+        }
+
+        webserverDispatcher.waitForAllConnections(15);
+
+        assertEquals(
+            3 + 1,
+            webserverDispatcher.getUrlMap().get(AUTH_ENDPOINT),
+            "not enough authentication attempts");
+
+        assertEquals(
+            1, webserverDispatcher.getUrlMap().size(), "not enough authentication attempts");
+
+        assertTrue(
+            webserverDispatcher.getUrlMap().containsKey(AUTH_ENDPOINT),
+            "only auth endpoint should have been called");
+      }
+    }
   }
 
   @Test
@@ -366,7 +461,7 @@ class CfClientTest {
 
         client.waitForInitialization();
 
-        // First 3 attempts to connect to auth endpoint will return a 4xx, followed by a 200 success
+        // First 3 attempts to connect to auth endpoint will return a 408, followed by a 200 success
         webserverDispatcher.waitForAllConnections(15);
 
         final int expectedAuths = 3 + 3 + 1; // 3+3 failed retries (4xx), 1 success (200)
