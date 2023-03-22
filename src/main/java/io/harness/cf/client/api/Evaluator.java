@@ -16,7 +16,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.slf4j.MDC;
 
 @Slf4j
-class Evaluator implements Evaluation {
+public class Evaluator implements Evaluation {
 
   public static final int ONE_HUNDRED = 100;
 

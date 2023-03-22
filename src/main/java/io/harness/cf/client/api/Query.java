@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import lombok.NonNull;
 
-interface Query {
+public interface Query {
 
   Optional<FeatureConfig> getFlag(@NonNull String identifier);
 
