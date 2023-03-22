@@ -8,7 +8,6 @@ import static io.harness.cf.client.api.dispatchers.Endpoints.AUTH_ENDPOINT;
 import static io.harness.cf.client.connector.HarnessConnectorUtils.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.gson.JsonObject;
 import io.harness.cf.client.api.dispatchers.*;
 import io.harness.cf.client.api.testutils.DummyConnector;
@@ -17,6 +16,7 @@ import io.harness.cf.client.dto.Target;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.time.Duration;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -69,6 +69,9 @@ class CfClientTest {
 
   @Test
   void testConstructors() throws IOException {
+    HashSet<String> privateAttributes = new HashSet<>();
+    privateAttributes.add("privateFeature1");
+    privateAttributes.add("privateFeature2");
 
     final Config config =
         Config.builder()
@@ -79,7 +82,7 @@ class CfClientTest {
             .frequency(321)
             .bufferSize(999)
             .allAttributesPrivate(true)
-            .privateAttributes(ImmutableSet.of("privateFeature1", "privateFeature2"))
+            .privateAttributes(privateAttributes)
             .metricsServiceAcceptableDuration(9999)
             .debug(true)
             .cache(new DummyCache())

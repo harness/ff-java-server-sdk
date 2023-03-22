@@ -1,8 +1,8 @@
 package io.harness.cf.client.api;
 
-import com.google.common.base.Strings;
 import com.google.common.util.concurrent.AbstractScheduledService;
 import com.google.common.util.concurrent.AtomicLongMap;
+import io.harness.cf.client.common.StringUtils;
 import io.harness.cf.client.connector.Connector;
 import io.harness.cf.client.connector.ConnectorException;
 import io.harness.cf.client.dto.Target;
@@ -232,7 +232,7 @@ class MetricsProcessor extends AbstractScheduledService {
       }
 
       targetData.setIdentifier(target.getIdentifier());
-      if (Strings.isNullOrEmpty(target.getName())) {
+      if (StringUtils.isNullOrEmpty(target.getName())) {
         targetData.setName(target.getIdentifier());
       } else {
         targetData.setName(target.getName());

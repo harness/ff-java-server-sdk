@@ -1,7 +1,7 @@
 package io.harness.cf.client.connector;
 
-import com.google.common.base.Strings;
 import com.sun.nio.file.SensitivityWatchEventModifier;
+import io.harness.cf.client.common.StringUtils;
 import io.harness.cf.client.dto.Message;
 import java.io.IOException;
 import java.nio.file.*;
@@ -91,7 +91,7 @@ class FileWatcher implements Runnable, AutoCloseable, Service {
 
   public static String removeFileExtension(
       @NonNull final String filename, final boolean removeAllExtensions) {
-    if (Strings.isNullOrEmpty(filename)) {
+    if (StringUtils.isNullOrEmpty(filename)) {
       return filename;
     }
 

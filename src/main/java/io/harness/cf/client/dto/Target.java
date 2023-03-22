@@ -1,8 +1,9 @@
 package io.harness.cf.client.dto;
 
-import com.google.common.base.Strings;
 import java.util.Map;
 import java.util.Set;
+
+import io.harness.cf.client.common.StringUtils;
 import lombok.*;
 
 @Builder
@@ -30,7 +31,7 @@ public class Target {
 
   public boolean isValid() {
 
-    return !Strings.isNullOrEmpty(identifier);
+    return !StringUtils.isNullOrEmpty(identifier);
   }
 
   public io.harness.cf.model.Target ApiTarget() {

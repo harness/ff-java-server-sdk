@@ -2,7 +2,7 @@ package io.harness.cf.client.api;
 
 import static io.harness.cf.client.api.Operators.*;
 
-import com.google.common.base.Strings;
+import io.harness.cf.client.common.StringUtils;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.sangupta.murmur.Murmur3;
@@ -27,7 +27,7 @@ class Evaluator implements Evaluation {
   }
 
   protected Optional<Object> getAttrValue(Target target, @NonNull String attribute) {
-    if (Strings.isNullOrEmpty(attribute)) {
+    if (StringUtils.isNullOrEmpty(attribute)) {
       log.debug("Attribute is empty");
       return Optional.empty();
     }
