@@ -35,8 +35,10 @@ public class TestWebServerDispatcher extends Dispatcher {
       case "/api/1.0/client/env/00000000-0000-0000-0000-000000000000/feature-configs/simplebool?cluster=1":
         return makeMockSingleBoolFlagResponse(200, "simplebool", "off", version.get());
       default:
-        throw new UnsupportedOperationException(
-            "ERROR: url not mapped " + recordedRequest.getPath());
+        System.out.println("ERROR: url not mapped  ------> " + recordedRequest.getPath());
+        return new MockResponse()
+            .setResponseCode(200)
+            .setBody(""); // just return 200 for stuff we don't implement
     }
   }
 }

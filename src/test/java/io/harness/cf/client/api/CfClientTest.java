@@ -48,6 +48,21 @@ class CfClientTest {
   }
 
   @Test
+  public void run_mock_web_server_standalone() throws Exception {
+
+    TestWebServerDispatcher webserverDispatcher = new TestWebServerDispatcher();
+
+    try (MockWebServer mockSvr = new MockWebServer()) {
+      mockSvr.setDispatcher(webserverDispatcher);
+      mockSvr.start(50011);
+
+      System.out.println("mock web server url:" + mockSvr.getHostName() + ":" + mockSvr.getPort());
+
+      TimeUnit.HOURS.sleep(24);
+    }
+  }
+
+  @Test
   void shouldGetInstanceWithoutErrors() {
     assertDoesNotThrow(CfClient::getInstance, "Exception should not be thrown");
   }
