@@ -34,6 +34,8 @@ public class HarnessConnector implements Connector, AutoCloseable {
   private String token;
   private String environment;
   private String cluster;
+  private String environmentIdentifier;
+  private String accountID;
 
   private EventSource eventSource;
   private Runnable onUnauthorized;
@@ -74,6 +76,8 @@ public class HarnessConnector implements Connector, AutoCloseable {
     apiClient.setDebugging(log.isDebugEnabled());
     apiClient.setUserAgent("JavaSDK " + io.harness.cf.Version.VERSION);
     apiClient.addDefaultHeader("Harness-SDK-Info", HARNESS_SDK_INFO);
+    apiClient.addDefaultHeader("Harness-EnvironmentID", environmentIdentifier);
+    apiClient.addDefaultHeader("Harness-AccountID", accountID);
 
     setupTls(apiClient);
 
@@ -113,6 +117,8 @@ public class HarnessConnector implements Connector, AutoCloseable {
     apiClient.setDebugging(log.isDebugEnabled());
     apiClient.setUserAgent("JavaSDK " + io.harness.cf.Version.VERSION);
     apiClient.addDefaultHeader("Harness-SDK-Info", HARNESS_SDK_INFO);
+    apiClient.addDefaultHeader("Harness-EnvironmentID", environmentIdentifier);
+    apiClient.addDefaultHeader("Harness-AccountID", accountID);
 
     setupTls(apiClient);
 
@@ -195,7 +201,14 @@ public class HarnessConnector implements Connector, AutoCloseable {
     log.debug("Claims successfully parsed from decoded payload");
     environment = claim.getEnvironment();
     cluster = claim.getClusterIdentifier();
-    log.info("Token successfully processed, environment {}, cluster {}", environment, cluster);
+    accountID = claim.getAccountID();
+    environmentIdentifier = claim.getEnvironmentIdentifier();
+    log.info(
+        "Token successfully processed, environment {}, cluster {}, account {}, environmentIdentifier {}",
+        environment,
+        cluster,
+        accountID,
+        environmentIdentifier);
   }
 
   @Override
@@ -350,6 +363,9 @@ public class HarnessConnector implements Connector, AutoCloseable {
     map.put("Authorization", "Bearer " + token);
     map.put("API-Key", apiKey);
     map.put("Harness-SDK-Info", HARNESS_SDK_INFO);
+    map.put("Harness-EnvironmentID", environmentIdentifier);
+    map.put("Harness-AccountID", accountID);
+
     log.info("Initialize new EventSource instance");
     eventSource =
         new EventSource(
@@ -408,9 +424,8 @@ public class HarnessConnector implements Connector, AutoCloseable {
     this.api = new ClientApi(makeApiClient(retryBackOffDelay));
     this.metricsApi = new MetricsApi(makeMetricsApiClient(retryBackOffDelay));
     log.info(
-        "Connector initialized, with options "
-            + options
-            + " and retry backoff delay "
-            + retryBackOffDelay);
+        "Connector initialized, with options {} and retry backoff delay {}",
+        options,
+        retryBackOffDelay);
   }
 }
