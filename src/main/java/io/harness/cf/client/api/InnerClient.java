@@ -219,7 +219,6 @@ class InnerClient
 
   @Override
   public void onDisconnected() {
-    log.info("onDisconnected triggered, starting poller to get latest flags");
     // onDisconnected can be called multiple times from updater because of retries
     // and we cannot create many poller instances so we need to check if
     // on closing the client, state of the poller and when poller is last time started
@@ -231,6 +230,8 @@ class InnerClient
     if (!closing
         && pollProcessor.state() == Service.State.TERMINATED
         && now.after(Date.from(instant))) {
+      log.info("onDisconnected triggered, starting poller to get latest flags");
+
       pollProcessor =
           new PollingProcessor(connector, repository, options.getPollIntervalInSeconds(), this);
       pollProcessor.start();
@@ -243,6 +244,8 @@ class InnerClient
           pollerStartedAt.toInstant(),
           options.getPollIntervalInSeconds(),
           now.toInstant());
+      log.info("SSE disconnect detected - asking poller to refresh flags");
+      pollProcessor.retrieveAll();
     }
   }
 

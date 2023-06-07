@@ -78,11 +78,15 @@ class PollingProcessor extends AbstractScheduledService {
     return completableFuture;
   }
 
+  public void retrieveAll() {
+    CompletableFuture.allOf(retrieveFlags(), retrieveSegments()).join();
+  }
+
   @Override
   protected void runOneIteration() {
     log.debug("running poll iteration");
     try {
-      CompletableFuture.allOf(retrieveFlags(), retrieveSegments()).join();
+      retrieveAll();
       if (!initialized) {
         initialized = true;
         log.info("PollingProcessor initialized");
