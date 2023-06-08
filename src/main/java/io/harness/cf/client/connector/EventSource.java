@@ -1,8 +1,6 @@
 package io.harness.cf.client.connector;
 
 import com.google.gson.Gson;
-import com.here.oksse.OkSse;
-import com.here.oksse.ServerSentEvent;
 import io.harness.cf.client.dto.Message;
 import io.harness.cf.client.logger.LogUtil;
 import java.io.IOException;
@@ -16,24 +14,24 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.*;
 import lombok.NonNull;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
+import okhttp3.*;
 import okhttp3.logging.HttpLoggingInterceptor;
+import okhttp3.sse.EventSourceListener;
+import okhttp3.sse.EventSources;
+import org.jetbrains.annotations.NotNull;
 
 @Slf4j
-public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Service {
+public class EventSource extends EventSourceListener implements AutoCloseable, Service {
 
-  private final OkSse okSse;
   private final Updater updater;
   private final Gson gson = new Gson();
   private final Request.Builder builder;
-  private int retryTime;
-  private HttpLoggingInterceptor loggingInterceptor;
-
-  private ServerSentEvent sse;
+  private final int retryBackoffDelay;
+  private final HttpLoggingInterceptor loggingInterceptor;
+  private final okhttp3.sse.EventSource.Factory sseFactory;
+  private final OkHttpClient streamClient;
+  private okhttp3.sse.EventSource sse;
 
   static {
     LogUtil.setSystemProps();
@@ -53,12 +51,15 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
       Map<String, String> headers,
       @NonNull Updater updater,
       long sseReadTimeoutMins,
-      int retryDelayMs,
+      int retryBackoffDelay,
       List<X509Certificate> trustedCAs)
       throws ConnectorException {
     this.updater = updater;
-    this.retryTime = retryDelayMs;
-    okSse = new OkSse(makeStreamClient(sseReadTimeoutMins, trustedCAs));
+    this.retryBackoffDelay = retryBackoffDelay;
+    this.streamClient = makeStreamClient(sseReadTimeoutMins, trustedCAs);
+    this.sseFactory = EventSources.createFactory(this.streamClient);
+    this.loggingInterceptor = new HttpLoggingInterceptor();
+
     builder = new Request.Builder().url(url);
     headers.put("User-Agent", "JavaSDK " + io.harness.cf.Version.VERSION);
     headers.forEach(builder::header);
@@ -76,13 +77,11 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
     setupTls(httpClientBuilder, trustedCAs);
 
     if (log.isDebugEnabled()) {
-      loggingInterceptor = new HttpLoggingInterceptor();
-      loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
       httpClientBuilder.addInterceptor(loggingInterceptor);
     } else {
       httpClientBuilder.interceptors().remove(loggingInterceptor);
-      loggingInterceptor = null;
     }
+
     httpClientBuilder.addInterceptor(
         chain -> {
           final Request request =
@@ -95,11 +94,93 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
 
           return chain.proceed(request);
         });
+
+    httpClientBuilder.addInterceptor(makeRetryInterceptor());
     log.info("stream http client definition complete");
     return httpClientBuilder.build();
   }
 
-  public boolean throwex = true;
+  private Interceptor makeRetryInterceptor() {
+    return new Interceptor() {
+      @NotNull
+      @Override
+      public Response intercept(@NotNull Chain chain) throws IOException {
+        int tryCount = 1;
+        int maxTryCount = 3;
+        boolean successful;
+        Response response = null;
+        String msg = "";
+        do {
+          try {
+            if (response != null) response.close();
+
+            response = chain.proceed(chain.request());
+            successful = response.isSuccessful();
+            if (!successful) {
+              msg = String.format("httpCode=%d %s", response.code(), response.message());
+              if (!shouldRetryHttpErrorCode(response.code())) {
+                return response;
+              }
+            } else if (tryCount > 1) {
+              log.info(
+                  "Connection to {} was successful after {} attempts",
+                  chain.request().url(),
+                  tryCount);
+            }
+
+          } catch (Exception ex) {
+            log.trace("Error while attempting to make request", ex);
+            msg = ex.getMessage();
+            response = makeErrorResp(chain, msg);
+            successful = false;
+            if (!shouldRetryException(ex)) {
+              return response;
+            }
+          }
+          if (!successful) {
+            final boolean limitReached = tryCount > maxTryCount;
+            log.warn(
+                "Request attempt {} to {} was not successful, [{}]{}",
+                tryCount,
+                chain.request().url(),
+                msg,
+                limitReached
+                    ? ", retry limited reached"
+                    : String.format(", retrying in %dms", retryBackoffDelay * tryCount));
+            updater.onError();
+            if (!limitReached) {
+              sleep((long) retryBackoffDelay * tryCount);
+            }
+          }
+        } while (!successful && tryCount++ <= maxTryCount);
+
+        return response;
+      }
+
+      private boolean shouldRetryException(Exception ex) {
+        return true;
+      }
+
+      private Response makeErrorResp(Chain chain, String msg) {
+        return new Response.Builder()
+            .code(404) /* dummy response: real reason is in the message */
+            .request(chain.request())
+            .protocol(Protocol.HTTP_2)
+            .message(msg)
+            .body(ResponseBody.create("", MediaType.parse("text/plain")))
+            .build();
+      }
+
+      private void sleep(long delayMs) {
+        try {
+          TimeUnit.MILLISECONDS.sleep(delayMs);
+        } catch (InterruptedException e) {
+          log.debug("Retry backoff interrupted", e);
+          Thread.currentThread().interrupt();
+        }
+      }
+    };
+  }
 
   private void setupTls(OkHttpClient.Builder httpClientBuilder, List<X509Certificate> trustedCAs)
       throws ConnectorException {
@@ -132,7 +213,7 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
   }
 
   @Override
-  public void onOpen(ServerSentEvent serverSentEvent, Response response) {
+  public void onOpen(okhttp3.sse.EventSource eventSource, Response response) {
     log.info("EventSource onOpen");
     if (updater != null) {
       log.info("EventSource connected!");
@@ -141,77 +222,39 @@ public class EventSource implements ServerSentEvent.Listener, AutoCloseable, Ser
   }
 
   @Override
-  public void onMessage(ServerSentEvent sse, String id, String event, String message) {
-    log.info("EventSource onMessage {}", message);
-    Message msg = gson.fromJson(message, Message.class);
+  public void onEvent(okhttp3.sse.EventSource eventSource, String id, String type, String data) {
+    log.info("EventSource onMessage {}", data);
+    Message msg = gson.fromJson(data, Message.class);
     updater.update(msg);
   }
 
-  @Override
-  public void onComment(ServerSentEvent serverSentEvent, String s) {
-    /* comment is not used */
-  }
-
-  @Override
-  public boolean onRetryTime(ServerSentEvent serverSentEvent, long l) {
-    log.warn("EventSource onRetryTime {}", l);
-    return true;
-  }
-
-  @Override
-  public boolean onRetryError(
-      ServerSentEvent serverSentEvent, Throwable throwable, Response response) {
-
-    log.warn(
-        "EventSource onRetryError [throwable={} message={}]",
-        throwable.getClass().getSimpleName(),
-        throwable.getMessage());
-    log.trace("onRetryError exception", throwable);
-
-    updater.onError();
-    if (response != null) {
-      return shouldRetryForHttpErrorCode(response.code());
-    }
-    return true;
-  }
-
-  private boolean shouldRetryForHttpErrorCode(int httpCode) {
+  private boolean shouldRetryHttpErrorCode(int httpCode) {
     if (httpCode == 501) return false;
 
     return httpCode == 429 || httpCode >= 500;
   }
 
   @Override
-  public void onClosed(ServerSentEvent serverSentEvent) {
+  public void onClosed(okhttp3.sse.EventSource eventSource) {
     log.info("EventSource onClosed - disconnected");
     updater.onDisconnected();
-  }
-
-  @SneakyThrows
-  @Override
-  public Request onPreRetry(ServerSentEvent serverSentEvent, Request request) {
-    log.info("EventSource onPreRetry, retry after {}ms", retryTime);
-    Thread.sleep(retryTime);
-    retryTime = retryTime * 2;
-    log.info("EventSource retrying");
-    return request;
   }
 
   @Override
   public void start() {
     log.info("Starting EventSource service.");
-    sse = okSse.newServerSentEvent(builder.build(), this);
+    sse = sseFactory.newEventSource(builder.build(), this);
   }
 
   @Override
   public void stop() {
     log.info("Stopping EventSource service.");
-    sse.close();
+    sse.cancel();
   }
 
   public void close() {
     stop();
-    okSse.getClient().connectionPool().evictAll();
+    this.streamClient.connectionPool().evictAll();
     log.info("EventSource closed");
   }
 }
