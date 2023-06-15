@@ -12,8 +12,6 @@ import io.harness.cf.client.dto.Message;
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Variation;
-import java.time.Instant;
-import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
@@ -50,8 +48,6 @@ class InnerClient
   private boolean pollerReady = false;
   private boolean streamReady = false;
   private boolean metricReady = false;
-
-  private Date pollerStartedAt;
 
   private static final String MISSING_SDK_KEY = "SDK key cannot be empty!";
 
@@ -104,8 +100,6 @@ class InnerClient
         new PollingProcessor(this.connector, repository, options.getPollIntervalInSeconds(), this);
     metricsProcessor = new MetricsProcessor(this.connector, this.options, this);
     updateProcessor = new UpdateProcessor(this.connector, this.repository, this);
-
-    pollerStartedAt = new Date();
 
     // start with authentication
     authService.startAsync();
@@ -219,31 +213,19 @@ class InnerClient
 
   @Override
   public void onDisconnected() {
-    // onDisconnected can be called multiple times from updater because of retries
-    // and we cannot create many poller instances so we need to check if
-    // on closing the client, state of the poller and when poller is last time started
-    Date now = new Date();
-    if (pollerStartedAt == null) {
-      pollerStartedAt = new Date();
-    }
-    Instant instant = pollerStartedAt.toInstant().plusSeconds(options.getPollIntervalInSeconds());
-    if (!closing
-        && pollProcessor.state() == Service.State.TERMINATED
-        && now.after(Date.from(instant))) {
+    if (!closing && pollProcessor.state() == Service.State.TERMINATED) {
       log.info("onDisconnected triggered, starting poller to get latest flags");
 
+      pollProcessor.close();
       pollProcessor =
           new PollingProcessor(connector, repository, options.getPollIntervalInSeconds(), this);
       pollProcessor.start();
-      pollerStartedAt = new Date();
     } else {
-      log.debug(
-          "Poller already running [closing={} state={} pollStartTime={} interval={} now={}]",
+      log.info(
+          "Poller already running [closing={} state={} interval={}]",
           closing,
           pollProcessor.state(),
-          pollerStartedAt.toInstant(),
-          options.getPollIntervalInSeconds(),
-          now.toInstant());
+          options.getPollIntervalInSeconds());
       log.info("SSE disconnect detected - asking poller to refresh flags");
       pollProcessor.retrieveAll();
     }

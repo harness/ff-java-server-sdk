@@ -48,9 +48,6 @@ class EventSourceTest {
     public MockResponse dispatch(RecordedRequest recordedRequest) {
       out.println("DISPATCH GOT ------> " + recordedRequest.getPath());
 
-      // recordedRequest.getHeaders().forEach(h -> out.printf("    %s: %s\n", h.component1(),
-      // h.component2()));
-
       if (Objects.requireNonNull(recordedRequest.getPath()).equals("/api/1.0/stream?cluster=1")) {
         return makeStreamResponse();
       }
@@ -88,12 +85,11 @@ class EventSourceTest {
     }
 
     // for this test, connection to the /stream endpoint will fail several times but eventually
-    // connect.
-    // There should be at least 1 connect event. Each retry calls onError
+    // connect. There should be at least 1 connect event.
 
     assertTrue(updater.getConnectCount().get() >= 1);
     assertEquals(0, updater.getFailureCount().get());
-    assertEquals(3, updater.getErrorCount().get());
+    assertEquals(0, updater.getErrorCount().get());
   }
 
   @Test
@@ -116,11 +112,11 @@ class EventSourceTest {
     }
 
     // for this test, connection to the /stream endpoint will never succeed.
-    // we expect the error handler to be called, connect handler should not be called
+    // we expect the disconnect handler to be called, connect handler should not be called
 
     assertEquals(0, updater.getConnectCount().get());
     assertEquals(0, updater.getFailureCount().get());
-    assertTrue(updater.getErrorCount().get() >= 1);
+    assertTrue(updater.getDisconnectCount().get() >= 1);
   }
 
   @SneakyThrows
