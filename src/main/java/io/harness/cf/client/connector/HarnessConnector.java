@@ -76,8 +76,6 @@ public class HarnessConnector implements Connector, AutoCloseable {
     apiClient.setDebugging(log.isDebugEnabled());
     apiClient.setUserAgent("JavaSDK " + io.harness.cf.Version.VERSION);
     apiClient.addDefaultHeader("Harness-SDK-Info", HARNESS_SDK_INFO);
-    apiClient.addDefaultHeader("Harness-EnvironmentID", environmentIdentifier);
-    apiClient.addDefaultHeader("Harness-AccountID", accountID);
 
     setupTls(apiClient);
 
@@ -117,8 +115,6 @@ public class HarnessConnector implements Connector, AutoCloseable {
     apiClient.setDebugging(log.isDebugEnabled());
     apiClient.setUserAgent("JavaSDK " + io.harness.cf.Version.VERSION);
     apiClient.addDefaultHeader("Harness-SDK-Info", HARNESS_SDK_INFO);
-    apiClient.addDefaultHeader("Harness-EnvironmentID", environmentIdentifier);
-    apiClient.addDefaultHeader("Harness-AccountID", accountID);
 
     setupTls(apiClient);
 
@@ -144,7 +140,8 @@ public class HarnessConnector implements Connector, AutoCloseable {
   protected String getRequestID() {
     String requestId = MDC.get(REQUEST_ID_KEY);
     if (requestId == null) {
-      requestId = "";
+      requestId = UUID.randomUUID().toString();
+      MDC.put(REQUEST_ID_KEY, requestId);
     }
     return requestId;
   }
@@ -203,6 +200,12 @@ public class HarnessConnector implements Connector, AutoCloseable {
     cluster = claim.getClusterIdentifier();
     accountID = claim.getAccountID();
     environmentIdentifier = claim.getEnvironmentIdentifier();
+
+    api.getApiClient().addDefaultHeader("Harness-EnvironmentID", environmentIdentifier);
+    api.getApiClient().addDefaultHeader("Harness-AccountID", accountID);
+    metricsApi.getApiClient().addDefaultHeader("Harness-EnvironmentID", environmentIdentifier);
+    metricsApi.getApiClient().addDefaultHeader("Harness-AccountID", accountID);
+
     log.info(
         "Token successfully processed, environment {}, cluster {}, account {}, environmentIdentifier {}",
         environment,
