@@ -207,6 +207,8 @@ class InnerClient
   public void onConnected() {
     log.info("onConnected triggered");
     if (pollProcessor.state() == Service.State.RUNNING) {
+      // refresh any flags that may have gotten out of sync if the SSE connection was down
+      pollProcessor.retrieveAll();
       pollProcessor.stop();
     }
   }
