@@ -17,21 +17,23 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
 import okhttp3.logging.HttpLoggingInterceptor;
-import okhttp3.sse.EventSourceListener;
-import okhttp3.sse.EventSources;
+import okio.BufferedSource;
 import org.jetbrains.annotations.NotNull;
 
 @Slf4j
-public class EventSource extends EventSourceListener implements AutoCloseable, Service {
+public class EventSource implements Callback, AutoCloseable, Service {
 
   private final Updater updater;
   private final Gson gson = new Gson();
-  private final Request.Builder builder;
-  private final int retryBackoffDelay;
   private final HttpLoggingInterceptor loggingInterceptor;
-  private final okhttp3.sse.EventSource.Factory sseFactory;
-  private final OkHttpClient streamClient;
-  private okhttp3.sse.EventSource sse;
+  private final long retryBackoffDelay;
+  private OkHttpClient streamClient;
+  private Call call;
+
+  private final String url;
+  private final Map<String, String> headers;
+  private final long sseReadTimeoutMins;
+  private final List<X509Certificate> trustedCAs;
 
   static {
     LogUtil.setSystemProps();
@@ -52,25 +54,21 @@ public class EventSource extends EventSourceListener implements AutoCloseable, S
       @NonNull Updater updater,
       long sseReadTimeoutMins,
       int retryBackoffDelay,
-      List<X509Certificate> trustedCAs)
-      throws ConnectorException {
+      List<X509Certificate> trustedCAs) {
+    this.url = url;
+    this.headers = headers;
     this.updater = updater;
+    this.sseReadTimeoutMins = sseReadTimeoutMins;
     this.retryBackoffDelay = retryBackoffDelay;
-    this.streamClient = makeStreamClient(sseReadTimeoutMins, trustedCAs);
-    this.sseFactory = EventSources.createFactory(this.streamClient);
+    this.trustedCAs = trustedCAs;
     this.loggingInterceptor = new HttpLoggingInterceptor();
-
-    builder = new Request.Builder().url(url);
-    headers.put("User-Agent", "JavaSDK " + io.harness.cf.Version.VERSION);
-    headers.forEach(builder::header);
-    updater.onReady();
-    log.info("EventSource initialized with url {} and headers {}", url, headers);
   }
 
   protected OkHttpClient makeStreamClient(long sseReadTimeoutMins, List<X509Certificate> trustedCAs)
       throws ConnectorException {
     OkHttpClient.Builder httpClientBuilder =
         new OkHttpClient.Builder()
+            .eventListener(EventListener.NONE)
             .readTimeout(sseReadTimeoutMins, TimeUnit.MINUTES)
             .retryOnConnectionFailure(true);
 
@@ -82,21 +80,7 @@ public class EventSource extends EventSourceListener implements AutoCloseable, S
       httpClientBuilder.interceptors().remove(loggingInterceptor);
     }
 
-    httpClientBuilder.addInterceptor(
-        chain -> {
-          final Request request =
-              chain
-                  .request()
-                  .newBuilder()
-                  .addHeader("X-Request-ID", UUID.randomUUID().toString())
-                  .build();
-          log.info("interceptor: requesting url {}", request.url().url());
-
-          return chain.proceed(request);
-        });
-
     httpClientBuilder.addInterceptor(makeRetryInterceptor());
-    log.info("stream http client definition complete");
     return httpClientBuilder.build();
   }
 
@@ -106,7 +90,7 @@ public class EventSource extends EventSourceListener implements AutoCloseable, S
       @Override
       public Response intercept(@NotNull Chain chain) throws IOException {
         int tryCount = 1;
-        int maxTryCount = 3;
+        int maxTryCount = 5;
         boolean successful;
         Response response = null;
         String msg = "";
@@ -147,7 +131,7 @@ public class EventSource extends EventSourceListener implements AutoCloseable, S
                 limitReached
                     ? ", retry limited reached"
                     : String.format(", retrying in %dms", retryBackoffDelay * tryCount));
-            updater.onError();
+
             if (!limitReached) {
               sleep((long) retryBackoffDelay * tryCount);
             }
@@ -159,6 +143,12 @@ public class EventSource extends EventSourceListener implements AutoCloseable, S
 
       private boolean shouldRetryException(Exception ex) {
         return true;
+      }
+
+      private boolean shouldRetryHttpErrorCode(int httpCode) {
+        if (httpCode == 501) return false;
+
+        return httpCode == 429 || httpCode >= 500;
       }
 
       private Response makeErrorResp(Chain chain, String msg) {
@@ -213,48 +203,91 @@ public class EventSource extends EventSourceListener implements AutoCloseable, S
   }
 
   @Override
-  public void onOpen(okhttp3.sse.EventSource eventSource, Response response) {
-    log.info("EventSource onOpen");
-    if (updater != null) {
-      log.info("EventSource connected!");
-      updater.onConnected();
-    }
-  }
+  public void start() throws ConnectorException, InterruptedException {
+    log.info("EventSource connecting with url {} and headers {}", url, headers);
 
-  @Override
-  public void onEvent(okhttp3.sse.EventSource eventSource, String id, String type, String data) {
-    log.info("EventSource onMessage {}", data);
-    Message msg = gson.fromJson(data, Message.class);
-    updater.update(msg);
-  }
+    this.streamClient = makeStreamClient(sseReadTimeoutMins, trustedCAs);
 
-  private boolean shouldRetryHttpErrorCode(int httpCode) {
-    if (httpCode == 501) return false;
+    final Request.Builder builder =
+        new Request.Builder()
+            .url(url)
+            .addHeader("User-Agent", "JavaSDK " + io.harness.cf.Version.VERSION)
+            .addHeader("X-Request-ID", UUID.randomUUID().toString());
 
-    return httpCode == 429 || httpCode >= 500;
-  }
+    headers.forEach(builder::header);
 
-  @Override
-  public void onClosed(okhttp3.sse.EventSource eventSource) {
-    log.info("EventSource onClosed - disconnected");
-    updater.onDisconnected();
-  }
+    this.call = streamClient.newCall(builder.build());
 
-  @Override
-  public void start() {
-    log.info("Starting EventSource service.");
-    sse = sseFactory.newEventSource(builder.build(), this);
+    call.enqueue(this);
+    updater.onReady();
   }
 
   @Override
   public void stop() {
     log.info("Stopping EventSource service.");
-    sse.cancel();
+
+    if (call != null) {
+      call.cancel();
+    }
   }
 
   public void close() {
     stop();
     this.streamClient.connectionPool().evictAll();
     log.info("EventSource closed");
+  }
+
+  @Override // Callback
+  public void onFailure(@NotNull Call call, @NotNull IOException e) {
+    log.warn("SSE stream error", e);
+    updater.onDisconnected();
+  }
+
+  @Override // Callback
+  public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+    log.debug("SSE stream data: {}", response.message());
+
+    try {
+      if (!response.isSuccessful()) {
+        throw new SSEStreamException("Invalid SSE HTTP response: " + response);
+      }
+
+      if (response.body() == null) {
+        throw new SSEStreamException("Invalid SSE HTTP response: empty body");
+      }
+
+      updater.onConnected();
+
+      final BufferedSource reader = response.body().source();
+
+      String line;
+      while ((line = reader.readUtf8Line()) != null) {
+        log.info("SSE stream data: {}", line);
+
+        if (line.startsWith("data:")) {
+          Message msg = gson.fromJson(line.substring(6), Message.class);
+          updater.update(msg);
+        }
+      }
+
+      throw new SSEStreamException("End of SSE stream");
+    } catch (Throwable ex) {
+      log.warn("SSE Stream aborted: " + ex.getMessage());
+      updater.onDisconnected();
+      if (ex instanceof SSEStreamException) {
+        throw ex;
+      }
+      throw new SSEStreamException(ex.getMessage(), ex);
+    }
+  }
+
+  private static class SSEStreamException extends RuntimeException {
+    public SSEStreamException(String msg, Throwable cause) {
+      super(msg, cause);
+    }
+
+    public SSEStreamException(String msg) {
+      super(msg);
+    }
   }
 }

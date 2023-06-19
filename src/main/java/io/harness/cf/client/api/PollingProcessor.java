@@ -4,7 +4,6 @@ import com.google.common.util.concurrent.AbstractScheduledService;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.harness.cf.client.common.ScheduledServiceStateLogger;
 import io.harness.cf.client.connector.Connector;
-import io.harness.cf.client.connector.ConnectorException;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Segment;
 import java.util.List;
@@ -49,7 +48,7 @@ class PollingProcessor extends AbstractScheduledService {
             }
           });
       completableFuture.complete(featureConfig);
-    } catch (ConnectorException e) {
+    } catch (Throwable e) {
       log.error(
           "Exception was raised when fetching flags data with the message {}", e.getMessage());
       completableFuture.completeExceptionally(e);
@@ -70,7 +69,7 @@ class PollingProcessor extends AbstractScheduledService {
             }
           });
       completableFuture.complete(segments);
-    } catch (ConnectorException e) {
+    } catch (Throwable e) {
       log.error(
           "Exception was raised when fetching flags data with the message {}", e.getMessage(), e);
       completableFuture.completeExceptionally(e);
