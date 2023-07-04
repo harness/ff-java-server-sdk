@@ -2,11 +2,11 @@ package io.harness.cf.client.api;
 
 import static io.harness.cf.client.api.Operators.*;
 
-import io.harness.cf.client.common.StringUtils;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.sangupta.murmur.Murmur3;
 import com.sangupta.murmur.MurmurConstants;
+import io.harness.cf.client.common.StringUtils;
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.*;
 import java.util.*;
@@ -341,7 +341,9 @@ public class Evaluator implements Evaluation {
                 element -> element.contains(preReqEvaluatedVariation.get().getIdentifier()))) {
           return false;
         } else {
-          return checkPreRequisite(preReqFeatureConfig.get(), target);
+          if (!checkPreRequisite(preReqFeatureConfig.get(), target)) {
+            return false;
+          }
         }
       }
     }
