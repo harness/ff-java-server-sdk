@@ -72,17 +72,35 @@ public class CannedResponses {
   }
 
   public static String makeDummyJwtToken() {
+    return makeDummyJwtToken(
+        "00000000-0000-0000-0000-000000000000", "Production", "aaaaa_BBBBB-cccccccccc");
+  }
+
+  public static String makeDummyJwtToken(String envUuid, String env, String accountID) {
     final String header = "{\"alg\":\"HS256\",\"typ\":\"JWT\"}";
-    final String payload =
-        "{\"environment\":\"00000000-0000-0000-0000-000000000000\","
-            + "\"environmentIdentifier\":\"Production\","
-            + "\"project\":\"00000000-0000-0000-0000-000000000000\","
+    String payload = "{";
+
+    if (envUuid != null) {
+      payload += "\"environment\":\"" + envUuid + "\",";
+    }
+
+    if (env != null) {
+      payload += "\"environmentIdentifier\":\"" + env + "\",";
+    }
+
+    if (accountID != null) {
+      payload += "\"accountID\":\"" + accountID + "\",";
+    }
+
+    payload +=
+        "\"project\":\"00000000-0000-0000-0000-000000000000\","
             + "\"projectIdentifier\":\"dev\","
-            + "\"accountID\":\"aaaaa_BBBBB-cccccccccc\","
             + "\"organization\":\"00000000-0000-0000-0000-000000000000\","
             + "\"organizationIdentifier\":\"default\","
             + "\"clusterIdentifier\":\"1\","
-            + "\"key_type\":\"Server\"}";
+            + "\"key_type\":\"Server\""
+            + "}";
+
     final byte[] hmac256 = new byte[32];
     return Base64.getEncoder().encodeToString(header.getBytes(StandardCharsets.UTF_8))
         + "."

@@ -32,7 +32,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
   private final HarnessConfig options;
 
   private String token;
-  private String environment;
+  private String environment; // UUID
   private String cluster;
   private String environmentIdentifier;
   private String accountID;
@@ -198,13 +198,18 @@ public class HarnessConnector implements Connector, AutoCloseable {
     log.debug("Claims successfully parsed from decoded payload");
     environment = claim.getEnvironment();
     cluster = claim.getClusterIdentifier();
-    accountID = claim.getAccountID();
-    environmentIdentifier = claim.getEnvironmentIdentifier();
+    accountID = emptyToNull(claim.getAccountID());
+    environmentIdentifier = getEnvOrUuidEnv(claim.getEnvironmentIdentifier(), environment);
 
-    api.getApiClient().addDefaultHeader("Harness-EnvironmentID", environmentIdentifier);
-    api.getApiClient().addDefaultHeader("Harness-AccountID", accountID);
-    metricsApi.getApiClient().addDefaultHeader("Harness-EnvironmentID", environmentIdentifier);
-    metricsApi.getApiClient().addDefaultHeader("Harness-AccountID", accountID);
+    if (environmentIdentifier != null) {
+      api.getApiClient().addDefaultHeader("Harness-EnvironmentID", environmentIdentifier);
+      metricsApi.getApiClient().addDefaultHeader("Harness-EnvironmentID", environmentIdentifier);
+    }
+
+    if (accountID != null) {
+      api.getApiClient().addDefaultHeader("Harness-AccountID", accountID);
+      metricsApi.getApiClient().addDefaultHeader("Harness-AccountID", accountID);
+    }
 
     log.info(
         "Token successfully processed, environment {}, cluster {}, account {}, environmentIdentifier {}",
@@ -212,6 +217,15 @@ public class HarnessConnector implements Connector, AutoCloseable {
         cluster,
         accountID,
         environmentIdentifier);
+  }
+
+  private String getEnvOrUuidEnv(String env, String envUuid) {
+    String envToReturn = emptyToNull(env);
+    return (envToReturn == null) ? emptyToNull(envUuid) : envToReturn;
+  }
+
+  private String emptyToNull(String jsonValue) {
+    return (jsonValue != null && !jsonValue.trim().isEmpty()) ? jsonValue : null;
   }
 
   @Override
@@ -366,8 +380,14 @@ public class HarnessConnector implements Connector, AutoCloseable {
     map.put("Authorization", "Bearer " + token);
     map.put("API-Key", apiKey);
     map.put("Harness-SDK-Info", HARNESS_SDK_INFO);
-    map.put("Harness-EnvironmentID", environmentIdentifier);
-    map.put("Harness-AccountID", accountID);
+
+    if (environmentIdentifier != null) {
+      map.put("Harness-EnvironmentID", environmentIdentifier);
+    }
+
+    if (accountID != null) {
+      map.put("Harness-AccountID", accountID);
+    }
 
     log.info("Initialize new EventSource instance");
     eventSource =
@@ -430,5 +450,16 @@ public class HarnessConnector implements Connector, AutoCloseable {
         "Connector initialized, with options {} and retry backoff delay {}",
         options,
         retryBackOffDelay);
+  }
+
+  HarnessConnector(
+      @NonNull String apiKey,
+      @NonNull HarnessConfig options,
+      ClientApi clientApi,
+      MetricsApi metricsApi) {
+    this.apiKey = apiKey;
+    this.options = options;
+    this.api = clientApi;
+    this.metricsApi = metricsApi;
   }
 }
