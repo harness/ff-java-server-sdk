@@ -32,6 +32,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class CfClientTest {
@@ -507,6 +508,72 @@ class CfClientTest {
 
         assertEquals(
             2, webserverDispatcher.getAuthAttempts().get(), "not enough authentication attempts");
+      }
+    }
+  }
+
+  @ParameterizedTest
+  @NullSource()
+  @ValueSource(strings = {"dummyAccId", "", " ", "\t", "\n", "\r"})
+  void shouldTestVariousJwtAccountIDs(String nextAccountId) throws Exception {
+    BaseConfig config =
+        BaseConfig.builder()
+            .pollIntervalInSeconds(1)
+            .analyticsEnabled(false)
+            .streamEnabled(true)
+            .debug(false)
+            .build();
+
+    JwtMissingFieldsAuthDispatcher webserverDispatcher =
+        new JwtMissingFieldsAuthDispatcher("devEnv", nextAccountId);
+
+    try (MockWebServer mockSvr = new MockWebServer()) {
+      mockSvr.setDispatcher(webserverDispatcher);
+      mockSvr.start();
+
+      try (CfClient client =
+          new CfClient(
+              makeConnectorWithMinimalRetryBackOff(mockSvr.getHostName(), mockSvr.getPort()),
+              config)) {
+
+        client.waitForInitialization();
+        webserverDispatcher.waitForAllEndpointsToBeCalled(15);
+        webserverDispatcher.getErrors().forEach(Throwable::printStackTrace);
+
+        assertTrue(webserverDispatcher.getErrors().isEmpty());
+      }
+    }
+  }
+
+  @ParameterizedTest
+  @NullSource()
+  @ValueSource(strings = {"dummyAccId", "", " ", "\t", "\n", "\r"})
+  void shouldTestVariousJwtEnvironmentIdentifiers(String nextEnvId) throws Exception {
+    BaseConfig config =
+        BaseConfig.builder()
+            .pollIntervalInSeconds(1)
+            .analyticsEnabled(false)
+            .streamEnabled(true)
+            .debug(false)
+            .build();
+
+    JwtMissingFieldsAuthDispatcher webserverDispatcher =
+        new JwtMissingFieldsAuthDispatcher(nextEnvId, "dummyAccount");
+
+    try (MockWebServer mockSvr = new MockWebServer()) {
+      mockSvr.setDispatcher(webserverDispatcher);
+      mockSvr.start();
+
+      try (CfClient client =
+          new CfClient(
+              makeConnectorWithMinimalRetryBackOff(mockSvr.getHostName(), mockSvr.getPort()),
+              config)) {
+
+        client.waitForInitialization();
+        webserverDispatcher.waitForAllEndpointsToBeCalled(15);
+        webserverDispatcher.getErrors().forEach(Throwable::printStackTrace);
+
+        assertTrue(webserverDispatcher.getErrors().isEmpty());
       }
     }
   }
