@@ -39,6 +39,12 @@ public class CannedResponses {
     return makeMockJsonResponse(httpCode, "{\"authToken\": \"" + makeDummyJwtToken() + "\"}");
   }
 
+  public static MockResponse makeAuthResponse(
+      int httpCode, String envUuid, String env, String accountId) {
+    return makeMockJsonResponse(
+        httpCode, "{\"authToken\": \"" + makeDummyJwtToken(envUuid, env, accountId) + "\"}");
+  }
+
   public static MockResponse makeMockStreamResponse(int httpCode, Event... events) {
 
     final StringBuilder builder = new StringBuilder();
