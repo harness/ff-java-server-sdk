@@ -38,7 +38,7 @@ public class SdkCodes {
   }
 
   public static void infoStreamEventReceived(String eventJson) {
-    log.info(sdkErrMsg(5002, of(eventJson)));
+    log.info(sdkErrMsg(5002, ofNullable(eventJson)));
   }
 
   public static void infoMetricsThreadStarted(int intervalSec) {
@@ -46,11 +46,11 @@ public class SdkCodes {
   }
 
   public static void infoMetricsThreadExited() {
-    log.info(sdkErrMsg(7000));
+    log.info(sdkErrMsg(7001));
   }
 
   public static void warnAuthFailedSrvDefaults(String reason) {
-    log.warn(sdkErrMsg(2001, Optional.of(reason)));
+    log.warn(sdkErrMsg(2001, Optional.ofNullable(reason)));
   }
 
   public static void warnAuthRetying(int attempt) {
@@ -58,11 +58,11 @@ public class SdkCodes {
   }
 
   public static void warnStreamDisconnected(String reason) {
-    log.warn(sdkErrMsg(5001, Optional.of(reason)));
+    log.warn(sdkErrMsg(5001, Optional.ofNullable(reason)));
   }
 
   public static void warnPostMetricsFailed(String reason) {
-    log.warn(sdkErrMsg(7002, Optional.of(reason)));
+    log.warn(sdkErrMsg(7002, Optional.ofNullable(reason)));
   }
 
   public static void warnDefaultVariationServed(String identifier, Target target, String def) {
@@ -94,13 +94,13 @@ public class SdkCodes {
                 // SDK_STREAM_5xxx
                 {"5000", "SSE stream connected ok"},
                 {"5001", "SSE stream disconnected, reason:"},
-                {"5002", "SSE event received: "},
+                {"5002", "SSE event received:"},
                 {"5003", "SSE retrying to connect in"},
                 // SDK_EVAL_6xxx
                 {"6000", "Evaluated variation successfully"},
                 {"6001", "Default variation was served"},
                 // SDK_METRICS_7xxx
-                {"7000", "Metrics thread started, intervalMs: "},
+                {"7000", "Metrics thread started, intervalMs:"},
                 {"7001", "Metrics thread exited"},
                 {"7002", "Posting metrics failed, reason:"}
               })
