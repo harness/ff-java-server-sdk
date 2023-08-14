@@ -4,6 +4,7 @@ import static com.google.common.util.concurrent.Service.State.*;
 
 import com.google.common.util.concurrent.Service;
 import com.google.gson.JsonObject;
+import io.harness.cf.client.common.SdkCodes;
 import io.harness.cf.client.connector.Connector;
 import io.harness.cf.client.connector.HarnessConfig;
 import io.harness.cf.client.connector.HarnessConnector;
@@ -48,8 +49,6 @@ class InnerClient
   private boolean pollerReady = false;
   private boolean streamReady = false;
   private boolean metricReady = false;
-
-  private static final String MISSING_SDK_KEY = "SDK key cannot be empty!";
 
   private final ConcurrentHashMap<Event, CopyOnWriteArrayList<Consumer<String>>> events =
       new ConcurrentHashMap<>();
@@ -205,7 +204,8 @@ class InnerClient
 
   @Override
   public void onConnected() {
-    log.info("onConnected triggered");
+    SdkCodes.infoStreamConnected();
+
     if (pollProcessor.state() == Service.State.RUNNING) {
       // refresh any flags that may have gotten out of sync if the SSE connection was down
       pollProcessor.retrieveAll();
@@ -214,7 +214,10 @@ class InnerClient
   }
 
   @Override
-  public void onDisconnected() {
+  public void onDisconnected(String reason) {
+
+    SdkCodes.warnStreamDisconnected(reason);
+
     if (!closing && pollProcessor.state() == Service.State.TERMINATED) {
       log.info("onDisconnected triggered, starting poller to get latest flags");
 
@@ -240,22 +243,15 @@ class InnerClient
   }
 
   @Override
-  public void onError() {
-    log.info("onError triggered");
-    // when error happens on updater (stream)
-    onDisconnected();
-  }
-
-  @Override
   public synchronized void onFailure(@NonNull final String error) {
-    log.info("onFailure triggered [error={}] ", error);
+    SdkCodes.warnAuthFailedSrvDefaults(error);
     failure = true;
     notifyAll();
   }
 
   @Override
   public void update(@NonNull final Message message) {
-    log.info("update triggered [event={}] ", message.getEvent());
+    log.debug("update triggered [event={}] ", message.getEvent());
     updateProcessor.update(message);
   }
 
@@ -297,7 +293,7 @@ class InnerClient
     initialized = true;
     notifyAll();
     notifyConsumers(Event.READY, null);
-    log.info("Initialization is complete");
+    SdkCodes.infoSdkInitOk();
   }
 
   protected void notifyConsumers(@NonNull final Event event, final String value) {

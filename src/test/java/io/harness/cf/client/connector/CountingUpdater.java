@@ -13,7 +13,6 @@ class CountingUpdater implements Updater {
   @Getter @Setter private PollingAtomicLong readyCount = new PollingAtomicLong(0);
   @Getter @Setter private PollingAtomicLong failureCount = new PollingAtomicLong(0);
   @Getter @Setter private PollingAtomicLong updateCount = new PollingAtomicLong(0);
-  @Getter @Setter private PollingAtomicLong errorCount = new PollingAtomicLong(0);
 
   @Override
   public void onConnected() {
@@ -22,8 +21,8 @@ class CountingUpdater implements Updater {
   }
 
   @Override
-  public void onDisconnected() {
-    log.debug("onDisconnected");
+  public void onDisconnected(String reason) {
+    log.debug("onDisconnected" + reason);
     disconnectCount.incrementAndGet();
   }
 
@@ -37,12 +36,6 @@ class CountingUpdater implements Updater {
   public void onFailure(String message) {
     log.debug("onFailure: " + message);
     failureCount.incrementAndGet();
-  }
-
-  @Override
-  public void onError() {
-    log.info("onError");
-    errorCount.incrementAndGet();
   }
 
   @Override

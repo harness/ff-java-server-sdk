@@ -6,6 +6,7 @@ import io.harness.cf.ApiException;
 import io.harness.cf.api.ClientApi;
 import io.harness.cf.api.MetricsApi;
 import io.harness.cf.client.api.MissingSdkKeyException;
+import io.harness.cf.client.common.SdkCodes;
 import io.harness.cf.client.dto.Claim;
 import io.harness.cf.client.logger.LogUtil;
 import io.harness.cf.model.*;
@@ -52,6 +53,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
 
   public HarnessConnector(@NonNull final String apiKey, @NonNull final HarnessConfig options) {
     if (isNullOrEmpty(apiKey)) {
+      SdkCodes.errorMissingSdkKey();
       throw new MissingSdkKeyException();
     }
 

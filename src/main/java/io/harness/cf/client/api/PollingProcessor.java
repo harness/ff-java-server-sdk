@@ -3,6 +3,7 @@ package io.harness.cf.client.api;
 import com.google.common.util.concurrent.AbstractScheduledService;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.harness.cf.client.common.ScheduledServiceStateLogger;
+import io.harness.cf.client.common.SdkCodes;
 import io.harness.cf.client.connector.Connector;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Segment;
@@ -111,7 +112,7 @@ class PollingProcessor extends AbstractScheduledService {
     if (isRunning()) {
       return;
     }
-    log.info("Starting PollingProcessor with request interval: {}", pollIntervalSeconds);
+    SdkCodes.infoPollStarted(pollIntervalSeconds);
     startAsync();
   }
 
@@ -119,7 +120,7 @@ class PollingProcessor extends AbstractScheduledService {
     log.info("Stopping PollingProcessor");
     if (isRunning()) {
       stopAsync();
-      log.info("PollingProcessor stopped");
+      SdkCodes.infoPollingStopped();
     }
   }
 

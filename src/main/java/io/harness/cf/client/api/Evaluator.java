@@ -6,6 +6,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.sangupta.murmur.Murmur3;
 import com.sangupta.murmur.MurmurConstants;
+import io.harness.cf.client.common.SdkCodes;
 import io.harness.cf.client.common.StringUtils;
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.*;
@@ -411,29 +412,51 @@ public class Evaluator implements Evaluation {
       String identifier, Target target, boolean defaultValue, FlagEvaluateCallback callback) {
     final Optional<Variation> variation =
         evaluate(identifier, target, FeatureConfig.KindEnum.BOOLEAN, callback);
-    return variation.map(value -> Boolean.parseBoolean(value.getValue())).orElse(defaultValue);
+
+    if (variation.isPresent()) {
+      return Boolean.parseBoolean(variation.get().getValue());
+    }
+
+    SdkCodes.warnDefaultVariationServed(identifier, target, String.valueOf(defaultValue));
+    return defaultValue;
   }
 
   public String stringVariation(
       String identifier, Target target, String defaultValue, FlagEvaluateCallback callback) {
     final Optional<Variation> variation =
         evaluate(identifier, target, FeatureConfig.KindEnum.STRING, callback);
-    return variation.map(Variation::getValue).orElse(defaultValue);
+
+    if (variation.isPresent()) {
+      return variation.get().getValue();
+    }
+
+    SdkCodes.warnDefaultVariationServed(identifier, target, defaultValue);
+    return defaultValue;
   }
 
   public double numberVariation(
       String identifier, Target target, double defaultValue, FlagEvaluateCallback callback) {
     final Optional<Variation> variation =
         evaluate(identifier, target, FeatureConfig.KindEnum.INT, callback);
-    return variation.map(value -> Double.parseDouble(value.getValue())).orElse(defaultValue);
+
+    if (variation.isPresent()) {
+      return Double.parseDouble(variation.get().getValue());
+    }
+
+    SdkCodes.warnDefaultVariationServed(identifier, target, String.valueOf(defaultValue));
+    return defaultValue;
   }
 
   public JsonObject jsonVariation(
       String identifier, Target target, JsonObject defaultValue, FlagEvaluateCallback callback) {
     final Optional<Variation> variation =
         evaluate(identifier, target, FeatureConfig.KindEnum.JSON, callback);
-    if (variation.isPresent())
+
+    if (variation.isPresent()) {
       return new Gson().fromJson(variation.get().getValue(), JsonObject.class);
+    }
+
+    SdkCodes.warnDefaultVariationServed(identifier, target, defaultValue.toString());
     return defaultValue;
   }
 }

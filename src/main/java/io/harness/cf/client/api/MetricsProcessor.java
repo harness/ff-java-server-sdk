@@ -2,6 +2,7 @@ package io.harness.cf.client.api;
 
 import com.google.common.util.concurrent.AbstractScheduledService;
 import com.google.common.util.concurrent.AtomicLongMap;
+import io.harness.cf.client.common.SdkCodes;
 import io.harness.cf.client.common.StringUtils;
 import io.harness.cf.client.connector.Connector;
 import io.harness.cf.client.connector.ConnectorException;
@@ -152,7 +153,7 @@ class MetricsProcessor extends AbstractScheduledService {
           }
           log.info("Successfully sent analytics data to the server");
         } catch (ConnectorException e) {
-          log.error("Exception while posting metrics to the event server");
+          SdkCodes.warnPostMetricsFailed(e.getMessage());
         }
       }
       globalTargetSet.addAll(stagingTargetSet);
@@ -268,13 +269,14 @@ class MetricsProcessor extends AbstractScheduledService {
   }
 
   public void start() {
-    log.info("Starting MetricsProcessor with request interval: {}", config.getFrequency());
+    SdkCodes.infoMetricsThreadStarted(config.getFrequency());
     startAsync();
   }
 
   public void stop() {
-    log.info("Stopping MetricsProcessor");
+    log.debug("Stopping MetricsProcessor");
     stopAsync();
+    SdkCodes.infoMetricsThreadExited();
   }
 
   public void close() {
