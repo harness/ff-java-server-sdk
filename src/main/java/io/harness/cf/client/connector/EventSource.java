@@ -1,6 +1,7 @@
 package io.harness.cf.client.connector;
 
 import com.google.gson.Gson;
+import io.harness.cf.client.common.SdkCodes;
 import io.harness.cf.client.dto.Message;
 import io.harness.cf.client.logger.LogUtil;
 import java.io.IOException;
@@ -240,7 +241,7 @@ public class EventSource implements Callback, AutoCloseable, Service {
   @Override // Callback
   public void onFailure(@NotNull Call call, @NotNull IOException e) {
     log.warn("SSE stream error", e);
-    updater.onDisconnected();
+    updater.onDisconnected(e.getMessage());
   }
 
   @Override // Callback
@@ -266,6 +267,7 @@ public class EventSource implements Callback, AutoCloseable, Service {
 
         if (line.startsWith("data:")) {
           Message msg = gson.fromJson(line.substring(6), Message.class);
+          SdkCodes.infoStreamEventReceived(line.substring(6));
           updater.update(msg);
         }
       }
@@ -273,7 +275,7 @@ public class EventSource implements Callback, AutoCloseable, Service {
       throw new SSEStreamException("End of SSE stream");
     } catch (Throwable ex) {
       log.warn("SSE Stream aborted: " + ex.getMessage());
-      updater.onDisconnected();
+      updater.onDisconnected(ex.getMessage());
       if (ex instanceof SSEStreamException) {
         throw ex;
       }

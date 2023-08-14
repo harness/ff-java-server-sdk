@@ -210,7 +210,7 @@ public class LocalConnector implements Connector, AutoCloseable {
       log.info("FileWatcherService stopping");
       flagWatcher.stop();
       segmentWatcher.stop();
-      updater.onDisconnected();
+      updater.onDisconnected("LocalConnector stopped");
       log.info("FileWatcherService stopped");
     }
 

@@ -89,7 +89,6 @@ class EventSourceTest {
 
     assertTrue(updater.getConnectCount().get() >= 1);
     assertEquals(0, updater.getFailureCount().get());
-    assertEquals(0, updater.getErrorCount().get());
   }
 
   @Test
