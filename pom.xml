@@ -188,6 +188,13 @@
         </dependency>
     </dependencies>
 
+    <!--
+    If building from source, to generate the OpenAPI code you need to run "mvn clean compile" instead of calling the
+    plugin directly via "openapi-generator:generate". This will avoid 'inputSpec' missing or invalid errors.
+
+    https://github.com/OpenAPITools/openapi-generator/issues/2207
+    -->
+
     <build>
         <plugins>
             <plugin>
