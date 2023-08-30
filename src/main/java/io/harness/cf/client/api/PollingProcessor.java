@@ -1,26 +1,29 @@
 package io.harness.cf.client.api;
 
-import com.google.common.util.concurrent.AbstractScheduledService;
-import com.google.common.util.concurrent.MoreExecutors;
-import io.harness.cf.client.common.ScheduledServiceStateLogger;
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import io.harness.cf.client.common.SdkCodes;
 import io.harness.cf.client.connector.Connector;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Segment;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-class PollingProcessor extends AbstractScheduledService {
+class PollingProcessor {
 
   private final Connector connector;
   private final int pollIntervalSeconds;
   private final Repository repository;
   private boolean initialized = false;
   private final PollerCallback callback;
+  private boolean isRunning = false;
+
+  private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
   public PollingProcessor(
       @NonNull final Connector connector,
@@ -31,9 +34,6 @@ class PollingProcessor extends AbstractScheduledService {
     this.pollIntervalSeconds = pollIntervalSeconds;
     this.repository = repository;
     this.callback = callback;
-    this.addListener(
-        new ScheduledServiceStateLogger(PollingProcessor.class.getSimpleName()),
-        MoreExecutors.directExecutor());
   }
 
   public CompletableFuture<List<FeatureConfig>> retrieveFlags() {
@@ -82,8 +82,7 @@ class PollingProcessor extends AbstractScheduledService {
     CompletableFuture.allOf(retrieveFlags(), retrieveSegments()).join();
   }
 
-  @Override
-  protected void runOneIteration() {
+  private void runOneIteration() {
     log.debug("running poll iteration");
     try {
       retrieveAll();
@@ -101,31 +100,49 @@ class PollingProcessor extends AbstractScheduledService {
     }
   }
 
-  @NonNull
-  @Override
-  protected Scheduler scheduler() {
-    // first argument is for initial delay so this should be always 0
-    return Scheduler.newFixedDelaySchedule(0, pollIntervalSeconds, TimeUnit.SECONDS);
-  }
-
   public void start() {
     if (isRunning()) {
       return;
     }
+
+    scheduler.scheduleAtFixedRate(this::runOneIteration, 0, pollIntervalSeconds, SECONDS);
     SdkCodes.infoPollStarted(pollIntervalSeconds);
-    startAsync();
+    isRunning = true;
   }
 
   public void stop() {
     log.info("Stopping PollingProcessor");
-    if (isRunning()) {
-      stopAsync();
-      SdkCodes.infoPollingStopped();
+
+    if (scheduler.isShutdown()) {
+      return;
+    }
+
+    isRunning = false;
+    scheduler.shutdown();
+
+    try {
+      if (!scheduler.awaitTermination(10, SECONDS)) {
+        scheduler.shutdownNow();
+        if (scheduler.awaitTermination(10, SECONDS)) {
+          SdkCodes.infoPollingStopped();
+        } else {
+          log.warn("Polling thread pool did not terminate");
+        }
+      } else {
+        SdkCodes.infoPollingStopped();
+      }
+    } catch (InterruptedException ie) {
+      scheduler.shutdownNow();
+      Thread.currentThread().interrupt();
     }
   }
 
   public void close() {
     stop();
     log.info("Closing PollingProcessor");
+  }
+
+  public boolean isRunning() {
+    return isRunning;
   }
 }
