@@ -1,20 +1,28 @@
 package io.harness.cf.client.api;
 
-import com.google.common.util.concurrent.AbstractScheduledService;
+import static io.harness.cf.client.common.Utils.shutdownExecutorService;
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import io.harness.cf.client.common.SdkCodes;
 import io.harness.cf.client.common.StringUtils;
 import io.harness.cf.client.connector.Connector;
 import io.harness.cf.client.connector.ConnectorException;
 import io.harness.cf.client.dto.Target;
-import io.harness.cf.model.*;
+import io.harness.cf.model.KeyValue;
+import io.harness.cf.model.Metrics;
+import io.harness.cf.model.MetricsData;
+import io.harness.cf.model.TargetData;
+import io.harness.cf.model.Variation;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.LongAdder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-class MetricsProcessor extends AbstractScheduledService {
+class MetricsProcessor {
 
   static class FrequencyMap<K> {
 
@@ -85,9 +93,9 @@ class MetricsProcessor extends AbstractScheduledService {
   private final BaseConfig config;
   private final FrequencyMap<MetricEvent> frequencyMap;
   private final Set<Target> uniqueTargetSet;
-  private final ScheduledExecutorService executor;
 
-  private String jarVersion = "";
+  private boolean isRunning = false;
+  private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
   private final LongAdder metricsSent = new LongAdder();
 
@@ -95,11 +103,8 @@ class MetricsProcessor extends AbstractScheduledService {
       @NonNull Connector connector, @NonNull BaseConfig config, @NonNull MetricsCallback callback) {
     this.connector = connector;
     this.config = config;
-    this.executor = executor();
-
     this.frequencyMap = new FrequencyMap<>();
     this.uniqueTargetSet = ConcurrentHashMap.newKeySet();
-
     callback.onMetricsReady();
   }
 
@@ -120,7 +125,7 @@ class MetricsProcessor extends AbstractScheduledService {
             config.getBufferSize());
       }
       // If the map is starting to grow too much then push the events now and reset the counters
-      executor.submit(this::runOneIteration);
+      scheduler.schedule(this::runOneIteration, 0, SECONDS);
     }
 
     Target metricTarget = globalTarget;
@@ -138,8 +143,8 @@ class MetricsProcessor extends AbstractScheduledService {
   /** This method sends the metrics data to the analytics server and resets the cache */
   public void sendDataAndResetCache(
       final Map<MetricEvent, Long> freqMap, final Set<Target> uniqueTargets) {
+
     log.debug("Reading from queue and preparing the metrics");
-    jarVersion = getVersion();
 
     if (!freqMap.isEmpty()) {
 
@@ -195,7 +200,7 @@ class MetricsProcessor extends AbstractScheduledService {
                   new KeyValue(TARGET_ATTRIBUTE, summary.getTargetIdentifier()),
                   new KeyValue(SDK_TYPE, SERVER),
                   new KeyValue(SDK_LANGUAGE, "java"),
-                  new KeyValue(SDK_VERSION, jarVersion)));
+                  new KeyValue(SDK_VERSION, io.harness.cf.Version.VERSION)));
           if (metrics.getMetricsData() != null) {
             metrics.getMetricsData().add(metricsData);
           }
@@ -250,12 +255,7 @@ class MetricsProcessor extends AbstractScheduledService {
     }
   }
 
-  private String getVersion() {
-    return io.harness.cf.Version.VERSION;
-  }
-
-  @Override
-  protected void runOneIteration() {
+  void runOneIteration() {
     if (log.isDebugEnabled()) {
       log.debug(
           "Drain metrics queue : frequencyMap size={} uniqueTargetSet size={}",
@@ -267,22 +267,24 @@ class MetricsProcessor extends AbstractScheduledService {
     uniqueTargetSet.clear();
   }
 
-  @NonNull
-  @Override
-  protected Scheduler scheduler() {
-    return Scheduler.newFixedDelaySchedule(
-        config.getFrequency(), config.getFrequency(), TimeUnit.SECONDS);
-  }
-
   public void start() {
+    if (isRunning) {
+      return;
+    }
+    scheduler.scheduleAtFixedRate(this::runOneIteration, 0, config.getFrequency(), SECONDS);
     SdkCodes.infoMetricsThreadStarted(config.getFrequency());
-    startAsync();
   }
 
   public void stop() {
     log.debug("Stopping MetricsProcessor");
-    stopAsync();
-    SdkCodes.infoMetricsThreadExited();
+    if (scheduler.isShutdown()) {
+      return;
+    }
+    isRunning = false;
+    shutdownExecutorService(
+        scheduler,
+        SdkCodes::infoMetricsThreadExited,
+        errMsg -> log.warn("failed to stop metrics scheduler: {}", errMsg));
   }
 
   public void close() {
@@ -293,7 +295,7 @@ class MetricsProcessor extends AbstractScheduledService {
   /* package private */
 
   synchronized void flushQueue() {
-    executor.submit(this::runOneIteration);
+    scheduler.schedule(this::runOneIteration, 0, SECONDS);
   }
 
   long getMetricsSent() {

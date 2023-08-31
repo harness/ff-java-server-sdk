@@ -1,7 +1,5 @@
 package io.harness.cf.client.api;
 
-import static com.google.common.util.concurrent.Service.State.*;
-
 import com.google.gson.JsonObject;
 import io.harness.cf.client.common.SdkCodes;
 import io.harness.cf.client.connector.*;

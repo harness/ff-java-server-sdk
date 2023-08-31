@@ -4,11 +4,14 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.Maps;
 import io.harness.cf.client.connector.Connector;
 import io.harness.cf.client.connector.ConnectorException;
 import io.harness.cf.client.dto.Target;
-import io.harness.cf.model.*;
+import io.harness.cf.model.FeatureConfig;
+import io.harness.cf.model.KeyValue;
+import io.harness.cf.model.Metrics;
+import io.harness.cf.model.MetricsData;
+import io.harness.cf.model.Variation;
 import java.util.*;
 import java.util.concurrent.*;
 import lombok.NonNull;
@@ -154,7 +157,7 @@ public class MetricsProcessorTest implements MetricsCallback {
     Set<Target> uniqueTargets = new HashSet<>();
     uniqueTargets.add(target);
 
-    Map<MetricEvent, Long> freqMap = Maps.newHashMap();
+    Map<MetricEvent, Long> freqMap = new ConcurrentHashMap<>();
     freqMap.put(event, 6L);
 
     Metrics metrics = metricsProcessor.prepareSummaryMetricsBody(freqMap, uniqueTargets);

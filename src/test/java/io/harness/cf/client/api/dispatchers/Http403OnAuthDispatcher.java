@@ -1,8 +1,8 @@
 package io.harness.cf.client.api.dispatchers;
 
-import com.google.common.util.concurrent.AtomicLongMap;
 import io.harness.cf.client.api.testutils.PollingAtomicLong;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import okhttp3.mockwebserver.*;
@@ -17,15 +17,19 @@ public class Http403OnAuthDispatcher extends Dispatcher {
     connectAttempts = new PollingAtomicLong(minConnectToWaitFor);
   }
 
-  @Getter final AtomicLongMap<String> urlMap = AtomicLongMap.create();
+  @Getter final ConcurrentHashMap<String, Long> urlMap = new ConcurrentHashMap<>();
 
   @Override
   @SneakyThrows
   public MockResponse dispatch(RecordedRequest recordedRequest) {
     System.out.println("DISPATCH GOT ------> " + recordedRequest.getPath());
     connectAttempts.getAndIncrement();
-    urlMap.incrementAndGet(Objects.requireNonNull(recordedRequest.getPath()));
+    incrementKey(urlMap, Objects.requireNonNull(recordedRequest.getPath()));
     return new MockResponse().setResponseCode(403);
+  }
+
+  private void incrementKey(ConcurrentHashMap<String, Long> map, String key) {
+    map.compute(key, (k, v) -> (v == null) ? 1L : v + 1L);
   }
 
   public void waitForAllConnections(int waitTimeSeconds) throws InterruptedException {

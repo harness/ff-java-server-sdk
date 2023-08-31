@@ -38,6 +38,7 @@ public class BaseConfig {
   /** If metrics service POST call is taking > this time, we need to know about it */
   @Builder.Default private final long metricsServiceAcceptableDuration = 10000;
 
+  /** Get metrics post frequency in seconds */
   public int getFrequency() {
     return Math.max(frequency, Config.MIN_FREQUENCY);
   }
