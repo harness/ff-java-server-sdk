@@ -1,5 +1,6 @@
 package io.harness.cf.client.api;
 
+import static io.harness.cf.client.common.Utils.shutdownExecutorService;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import io.harness.cf.client.common.SdkCodes;
@@ -118,23 +119,10 @@ class PollingProcessor {
     }
 
     isRunning = false;
-    scheduler.shutdown();
-
-    try {
-      if (!scheduler.awaitTermination(10, SECONDS)) {
-        scheduler.shutdownNow();
-        if (scheduler.awaitTermination(10, SECONDS)) {
-          SdkCodes.infoPollingStopped();
-        } else {
-          log.warn("Polling thread pool did not terminate");
-        }
-      } else {
-        SdkCodes.infoPollingStopped();
-      }
-    } catch (InterruptedException ie) {
-      scheduler.shutdownNow();
-      Thread.currentThread().interrupt();
-    }
+    shutdownExecutorService(
+        scheduler,
+        SdkCodes::infoPollingStopped,
+        errMsg -> log.warn("failed to stop polling scheduler: {}", errMsg));
   }
 
   public void close() {
