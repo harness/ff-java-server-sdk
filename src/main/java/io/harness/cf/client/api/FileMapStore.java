@@ -5,6 +5,7 @@ import io.harness.cf.client.logger.LogUtil;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
@@ -28,6 +29,12 @@ public class FileMapStore implements Storage, AutoCloseable {
       map.loadFromXML(is);
       log.info("FileMapStore initialized");
     } catch (NoSuchFileException | InvalidPropertiesFormatException ignored) {
+    } catch (UnsupportedEncodingException ex) {
+      // As of 1.3.x we no longer support MapDB to reduce SDK size. If you still require it you can
+      // provide your own implementation via the Storage interface
+      throw new RuntimeException(
+          "Unsupported file format. Please remove file or use a different name if upgrading from SDK 1.2.x",
+          ex);
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
