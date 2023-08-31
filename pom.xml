@@ -135,18 +135,6 @@
         </dependency>
 
         <dependency>
-            <groupId>org.mapdb</groupId>
-            <artifactId>mapdb</artifactId>
-            <version>3.0.8</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.jetbrains.kotlin</groupId>
-                    <artifactId>kotlin-stdlib</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-collections4</artifactId>
             <version>4.4</version>
@@ -193,6 +181,13 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <!--
+    If building from source, to generate the OpenAPI code you need to run "mvn clean compile" instead of calling the
+    plugin directly via "openapi-generator:generate". This will avoid 'inputSpec' missing or invalid errors.
+
+    https://github.com/OpenAPITools/openapi-generator/issues/2207
+    -->
 
     <build>
         <plugins>

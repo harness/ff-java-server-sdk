@@ -107,15 +107,19 @@ public class MetricsProcessorTest implements MetricsCallback {
   }
 
   @SuppressWarnings("BusyWait")
-  private void waitForAllMetricEventsToArrive(MetricsProcessor processor, int metricCount)
+  private void waitForAllMetricEventsToArrive(MetricsProcessor processor, int totalMetricCount)
       throws InterruptedException {
     final int delayMs = 100;
     int maxWaitTime = 30_000 / delayMs;
-    while (processor.getMetricsSent() < metricCount && maxWaitTime > 0) {
-      System.out.println(
-          "Waiting for all metric events to arrive..."
-              + (metricCount - processor.getMetricsSent())
-              + " events left");
+    while (processor.getMetricsSent() < totalMetricCount && maxWaitTime > 0) {
+
+      System.out.printf(
+          "Waiting for all metric events to arrive... totalMetricCount=%d metricsSent=%d mapSize=%d pending=%d\n",
+          totalMetricCount,
+          processor.getMetricsSent(),
+          processor.getQueueSize(),
+          processor.getPendingMetricsToBeSent());
+
       Thread.sleep(delayMs);
       maxWaitTime--;
     }

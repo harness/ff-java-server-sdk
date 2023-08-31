@@ -1,7 +1,6 @@
 package io.harness.cf.client.api;
 
 import com.google.common.util.concurrent.AbstractScheduledService;
-import com.google.common.util.concurrent.AtomicLongMap;
 import io.harness.cf.client.common.SdkCodes;
 import io.harness.cf.client.common.StringUtils;
 import io.harness.cf.client.connector.Connector;
@@ -19,41 +18,48 @@ class MetricsProcessor extends AbstractScheduledService {
 
   static class FrequencyMap<K> {
 
-    private final AtomicLongMap<K> map;
+    private final ConcurrentHashMap<K, Long> freqMap;
 
     FrequencyMap() {
-      map = AtomicLongMap.create();
+      freqMap = new ConcurrentHashMap<>();
     }
 
     void increment(K key) {
-      map.incrementAndGet(key);
-    }
-
-    long get(K key) {
-      return map.get(key);
+      freqMap.compute(key, (k, v) -> (v == null) ? 1L : v + 1L);
     }
 
     int size() {
-      return map.size();
+      return freqMap.size();
     }
 
     long sum() {
-      return map.sum();
+      return freqMap.values().stream().mapToLong(Long::longValue).sum();
     }
 
     Map<K, Long> drainToMap() {
-      // Guava doesn't have a function to atomically drain an AtomicLongMap.
+      // ConcurrentHashMap doesn't have a function to atomically drain an AtomicLongMap.
       // Here we need to atomically set each key to zero as we transfer it to the new map else we
       // see missed evaluations
-      final HashMap<K, Long> result = new HashMap<>();
-      map.asMap()
-          .forEach(
-              (k, v) -> {
-                final long oldVal = map.getAndUpdate(k, old -> 0);
-                result.put(k, oldVal);
-              });
-      map.removeAllZeros();
-      return result;
+      final HashMap<K, Long> snapshotMap = new HashMap<>();
+      freqMap.forEach((k, v) -> transferValueIntoMapAtomicallyAndUpdateTo(k, snapshotMap, 0));
+      snapshotMap.forEach((k, v) -> freqMap.remove(k, 0L));
+
+      if (log.isTraceEnabled()) {
+        log.trace(
+            "snapshot got {} events",
+            snapshotMap.values().stream().mapToLong(Long::longValue).sum());
+      }
+      return snapshotMap;
+    }
+
+    private void transferValueIntoMapAtomicallyAndUpdateTo(
+        K key, Map<K, Long> targetMap, long newValue) {
+      freqMap.computeIfPresent(
+          key,
+          (k, v) -> {
+            targetMap.put(k, v);
+            return newValue;
+          });
     }
   }
 
@@ -132,12 +138,12 @@ class MetricsProcessor extends AbstractScheduledService {
   /** This method sends the metrics data to the analytics server and resets the cache */
   public void sendDataAndResetCache(
       final Map<MetricEvent, Long> freqMap, final Set<Target> uniqueTargets) {
-    log.info("Reading from queue and preparing the metrics");
+    log.debug("Reading from queue and preparing the metrics");
     jarVersion = getVersion();
 
     if (!freqMap.isEmpty()) {
 
-      log.info("Preparing summary metrics");
+      log.debug("Preparing summary metrics");
       // We will only submit summary metrics to the event server
       Metrics metrics = prepareSummaryMetricsBody(freqMap, uniqueTargets);
       if ((metrics.getMetricsData() != null && !metrics.getMetricsData().isEmpty())
