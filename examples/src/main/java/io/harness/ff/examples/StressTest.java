@@ -3,16 +3,13 @@ package io.harness.ff.examples;
 import io.harness.cf.client.api.CfClient;
 import io.harness.cf.client.api.Config;
 import io.harness.cf.client.api.FeatureFlagInitializeException;
-import io.harness.cf.client.api.FileMapStore;
 import io.harness.cf.client.dto.Target;
 import lombok.NonNull;
-import lombok.extern.log4j.Log4j;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.Random;
 import java.util.concurrent.*;
-import java.util.logging.Logger;
 
 /**
  * This application stress-test the SDK

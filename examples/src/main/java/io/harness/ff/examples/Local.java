@@ -3,7 +3,7 @@ package io.harness.ff.examples;
 import io.harness.cf.client.api.CfClient;
 import io.harness.cf.client.api.Config;
 import io.harness.cf.client.api.Event;
-import io.harness.cf.client.api.FileMapStore;
+import io.harness.cf.client.api.XmlFileMapStore;
 import io.harness.cf.client.connector.LocalConnector;
 import io.harness.cf.client.dto.Target;
 import lombok.extern.slf4j.Slf4j;
@@ -28,7 +28,7 @@ public class Local {
                                     client.close();
                                 }));
 
-        final FileMapStore fileStore = new FileMapStore("Non-Freemium");
+        final XmlFileMapStore fileStore = new XmlFileMapStore("Non-Freemium");
         LocalConnector connector = new LocalConnector("./local");
         client = new CfClient(connector, Config.builder().store(fileStore).build());
         client.on(Event.READY, result -> log.info("READY"));
