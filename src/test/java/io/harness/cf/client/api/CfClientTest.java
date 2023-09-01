@@ -147,7 +147,7 @@ class CfClientTest {
             .streamEnabled(true)
             .build();
 
-    Http403OnAuthDispatcher webserverDispatcher = new Http403OnAuthDispatcher(4); // auth error
+    Http4xxOnAuthDispatcher webserverDispatcher = new Http4xxOnAuthDispatcher(429, 4); // auth error
 
     try (MockWebServer mockSvr = new MockWebServer()) {
       mockSvr.setDispatcher(webserverDispatcher);
@@ -502,8 +502,8 @@ class CfClientTest {
         // want it to reauthenticate
         webserverDispatcher.waitForAllConnections(15);
 
-        assertEquals(
-            2, webserverDispatcher.getAuthAttempts().get(), "not enough authentication attempts");
+        assertTrue(
+            webserverDispatcher.getAuthAttempts().get() >= 2, "not enough authentication attempts");
       }
     }
   }

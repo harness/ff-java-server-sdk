@@ -86,17 +86,17 @@ public class HarnessConnector implements Connector, AutoCloseable {
         apiClient
             .getHttpClient()
             .newBuilder()
-            .addInterceptor(this::interceptor)
-            .addInterceptor(new RetryInterceptor(3, retryBackOfDelay))
+            .addInterceptor(this::reauthInterceptor)
+            .addInterceptor(new NewRetryInterceptor(retryBackOfDelay))
             .build());
     log.info("apiClient definition complete");
     return apiClient;
   }
 
-  private Response interceptor(Interceptor.Chain chain) throws IOException {
+  private Response reauthInterceptor(Interceptor.Chain chain) throws IOException {
     final Request request =
         chain.request().newBuilder().addHeader("X-Request-ID", getRequestID()).build();
-    log.info("interceptor: requesting url {}", request.url().url());
+    log.info("auth interceptor: requesting url {}", request.url().url());
 
     Response response = chain.proceed(request);
 

@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -22,7 +23,7 @@ class PollingProcessor {
   private final Repository repository;
   private boolean initialized = false;
   private final PollerCallback callback;
-  private boolean isRunning = false;
+  private ScheduledFuture<?> runningTask = null;
 
   private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
@@ -84,6 +85,7 @@ class PollingProcessor {
   }
 
   private void runOneIteration() {
+    Thread.currentThread().setName("PollThread");
     log.debug("running poll iteration");
     try {
       retrieveAll();
@@ -106,9 +108,9 @@ class PollingProcessor {
       return;
     }
 
-    scheduler.scheduleAtFixedRate(this::runOneIteration, 0, pollIntervalSeconds, SECONDS);
+    runningTask =
+        scheduler.scheduleAtFixedRate(this::runOneIteration, 0, pollIntervalSeconds, SECONDS);
     SdkCodes.infoPollStarted(pollIntervalSeconds);
-    isRunning = true;
   }
 
   public void stop() {
@@ -118,19 +120,26 @@ class PollingProcessor {
       return;
     }
 
-    isRunning = false;
-    shutdownExecutorService(
-        scheduler,
-        SdkCodes::infoPollingStopped,
-        errMsg -> log.warn("failed to stop polling scheduler: {}", errMsg));
+    if (runningTask == null) {
+      return;
+    }
+
+    runningTask.cancel(false);
+    runningTask = null;
   }
 
   public void close() {
     stop();
+
+    shutdownExecutorService(
+        scheduler,
+        SdkCodes::infoPollingStopped,
+        errMsg -> log.warn("failed to stop polling scheduler: {}", errMsg));
+
     log.info("Closing PollingProcessor");
   }
 
   public boolean isRunning() {
-    return isRunning;
+    return runningTask != null && !runningTask.isCancelled();
   }
 }

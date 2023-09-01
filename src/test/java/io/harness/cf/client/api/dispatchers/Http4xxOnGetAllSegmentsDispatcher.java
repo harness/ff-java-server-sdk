@@ -32,13 +32,16 @@ public class Http4xxOnGetAllSegmentsDispatcher extends TestWebServerDispatcher {
     final long reqNo = getSegmentsAttempts.getAndIncrement();
 
     if (reqNo == 0) {
+      System.out.println("--> return 200");
       return makeMockJsonResponse(200, makeSegmentsJson()); // 1st will succeed
     } else if (reqNo >= 1 && reqNo <= 4) {
+      System.out.println("--> return 403");
       return makeMockEmptyJsonResponse(
           403,
           "Forbidden - reqNo "
               + reqNo); // Fail 2nd-4th request to bypass retries and trigger re-auth
     } else {
+      System.out.println("--> return 200");
       return makeMockJsonResponse(
           200, makeSegmentsJson()); // 5th and subsequent requests will return 200s
     }

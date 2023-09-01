@@ -7,10 +7,8 @@ import io.harness.cf.client.dto.Message;
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Variation;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 class InnerClient
     implements AutoCloseable,
         FlagEvaluateCallback,
+        AuthCallback,
         PollerCallback,
         RepositoryCallback,
         MetricsCallback,
@@ -34,6 +33,7 @@ class InnerClient
   private Evaluation evaluator;
   private Repository repository;
   private BaseConfig options;
+  private AuthService authService;
   private PollingProcessor pollProcessor;
   private MetricsProcessor metricsProcessor;
   private UpdateProcessor updateProcessor;
@@ -88,60 +88,14 @@ class InnerClient
     // initialization
     repository = new StorageRepository(options.getCache(), options.getStore(), this);
     evaluator = new Evaluator(repository);
+    authService = new AuthService(this.connector, options.getPollIntervalInSeconds(), this);
     pollProcessor =
         new PollingProcessor(this.connector, repository, options.getPollIntervalInSeconds(), this);
     metricsProcessor = new MetricsProcessor(this.connector, this.options, this);
     updateProcessor = new UpdateProcessor(this.connector, this.repository, this);
 
     // start with authentication
-    authenticateAsync();
-  }
-
-  private void authenticateAsync() {
-    CompletableFuture.supplyAsync(this::authenticate);
-  }
-
-  private boolean authenticate() {
-
-    final int AUTH_TIMEOUT_MS = 60_000;
-    final long expireTime = System.currentTimeMillis() + AUTH_TIMEOUT_MS;
-    final int delayMs = ThreadLocalRandom.current().nextInt(5000, 10000);
-    boolean authenticated = false;
-    int attempt = 1;
-
-    do {
-      try {
-        connector.authenticate();
-        SdkCodes.infoSdkAuthOk();
-        onAuthSuccess();
-        authenticated = true;
-      } catch (ConnectorException e) {
-        int currentDelayMs = delayMs * attempt++;
-
-        if (!e.shouldRetry()) {
-          log.error("Exception while authenticating", e);
-          onFailure(e.getMessage());
-          break;
-        }
-
-        log.warn(
-            "Authentication attempt #{} failed, will retry in {}ms, error: {}",
-            attempt,
-            currentDelayMs,
-            e.getMessage());
-        try {
-          Thread.sleep(currentDelayMs);
-        } catch (InterruptedException ex) {
-          Thread.currentThread().interrupt();
-        }
-      }
-    } while (!authenticated && System.currentTimeMillis() < expireTime);
-
-    if (System.currentTimeMillis() >= expireTime) {
-      log.warn("auth timeout: Was not able to authenticate within {}ms", AUTH_TIMEOUT_MS);
-    }
-
-    return authenticated;
+    authService.start();
   }
 
   protected void onUnauthorized() {
@@ -158,12 +112,13 @@ class InnerClient
       metricsProcessor.stop();
     }
 
-    authenticateAsync();
+    authService.start();
 
-    log.info("Finished re-auth");
+    log.info("re-auth started");
   }
 
-  private void onAuthSuccess() {
+  @Override
+  public void onAuthSuccess() {
     log.info("SDK successfully logged in");
     if (closing) {
       return;
@@ -398,6 +353,7 @@ class InnerClient
     log.info("Closing the client");
     closing = true;
     off();
+    authService.close();
     repository.close();
     pollProcessor.close();
     updateProcessor.close();

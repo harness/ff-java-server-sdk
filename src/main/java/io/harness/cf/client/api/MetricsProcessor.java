@@ -17,6 +17,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.LongAdder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -94,7 +95,7 @@ class MetricsProcessor {
   private final FrequencyMap<MetricEvent> frequencyMap;
   private final Set<Target> uniqueTargetSet;
 
-  private boolean isRunning = false;
+  private ScheduledFuture<?> runningTask = null;
   private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
   private final LongAdder metricsSent = new LongAdder();
@@ -256,6 +257,7 @@ class MetricsProcessor {
   }
 
   void runOneIteration() {
+    Thread.currentThread().setName("MetricsThread");
     if (log.isDebugEnabled()) {
       log.debug(
           "Drain metrics queue : frequencyMap size={} uniqueTargetSet size={}",
@@ -268,10 +270,11 @@ class MetricsProcessor {
   }
 
   public void start() {
-    if (isRunning) {
+    if (isRunning()) {
       return;
     }
-    scheduler.scheduleAtFixedRate(this::runOneIteration, 0, config.getFrequency(), SECONDS);
+    runningTask =
+        scheduler.scheduleAtFixedRate(this::runOneIteration, 0, config.getFrequency(), SECONDS);
     SdkCodes.infoMetricsThreadStarted(config.getFrequency());
   }
 
@@ -280,16 +283,28 @@ class MetricsProcessor {
     if (scheduler.isShutdown()) {
       return;
     }
-    isRunning = false;
-    shutdownExecutorService(
-        scheduler,
-        SdkCodes::infoMetricsThreadExited,
-        errMsg -> log.warn("failed to stop metrics scheduler: {}", errMsg));
+
+    if (runningTask == null) {
+      return;
+    }
+
+    runningTask.cancel(false);
+    runningTask = null;
   }
 
   public void close() {
     stop();
+
+    shutdownExecutorService(
+        scheduler,
+        SdkCodes::infoMetricsThreadExited,
+        errMsg -> log.warn("failed to stop metrics scheduler: {}", errMsg));
+
     log.info("Closing MetricsProcessor");
+  }
+
+  public boolean isRunning() {
+    return runningTask != null && !runningTask.isCancelled();
   }
 
   /* package private */

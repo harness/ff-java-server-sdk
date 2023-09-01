@@ -10,6 +10,10 @@ public interface Connector {
 
   String authenticate() throws ConnectorException;
 
+  /**
+   * If the http interceptor detects unauthorised during an API call then this callback is used to
+   * retry auth
+   */
   void setOnUnauthorized(Runnable runnable);
 
   List<FeatureConfig> getFlags() throws ConnectorException;
