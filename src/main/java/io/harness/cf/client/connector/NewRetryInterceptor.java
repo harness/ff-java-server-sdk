@@ -10,16 +10,22 @@ import org.jetbrains.annotations.NotNull;
 public class NewRetryInterceptor implements Interceptor {
 
   private final long retryBackoffDelay;
+  private final long maxTryCount;
 
   public NewRetryInterceptor(long retryBackoffDelay) {
     this.retryBackoffDelay = retryBackoffDelay;
+    this.maxTryCount = 5;
+  }
+
+  public NewRetryInterceptor(long maxTryCount, long retryBackoffDelay) {
+    this.retryBackoffDelay = retryBackoffDelay;
+    this.maxTryCount = maxTryCount;
   }
 
   @NotNull
   @Override
   public Response intercept(@NotNull Chain chain) throws IOException {
     int tryCount = 1;
-    int maxTryCount = 5;
     boolean successful;
     Response response = null;
     String msg = "";

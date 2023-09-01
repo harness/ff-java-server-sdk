@@ -303,7 +303,7 @@ public class Evaluator implements Evaluation {
   protected boolean checkPreRequisite(FeatureConfig parentFeatureConfig, Target target) {
     List<Prerequisite> prerequisites = parentFeatureConfig.getPrerequisites();
     if (!CollectionUtils.isEmpty(prerequisites)) {
-      log.info(
+      log.debug(
           "Checking pre requisites {} of parent feature {}",
           prerequisites,
           parentFeatureConfig.getFeature());
@@ -324,7 +324,7 @@ public class Evaluator implements Evaluation {
               "Could not evaluate the prerequisite details of feature flag :{}", preReqFeature);
           return true;
         }
-        log.info(
+        log.debug(
             "Pre requisite flag {} has variation {} for target {}",
             preReqFeatureConfig.get().getFeature(),
             preReqEvaluatedVariation.get(),
@@ -333,7 +333,7 @@ public class Evaluator implements Evaluation {
         // Compare if the pre requisite variation is a possible valid value of
         // the pre requisite FF
         List<String> validPreReqVariations = pqs.getVariations();
-        log.info(
+        log.debug(
             "Pre requisite flag {} should have the variations {}",
             preReqFeatureConfig.get().getFeature(),
             validPreReqVariations);

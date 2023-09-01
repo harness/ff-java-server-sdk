@@ -274,7 +274,8 @@ class MetricsProcessor {
       return;
     }
     runningTask =
-        scheduler.scheduleAtFixedRate(this::runOneIteration, 0, config.getFrequency(), SECONDS);
+        scheduler.scheduleAtFixedRate(
+            this::runOneIteration, config.getFrequency() / 2, config.getFrequency(), SECONDS);
     SdkCodes.infoMetricsThreadStarted(config.getFrequency());
   }
 

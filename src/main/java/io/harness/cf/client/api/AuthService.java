@@ -68,7 +68,7 @@ class AuthService {
 
     runningTask.cancel(false);
     runningTask = null;
-    log.info("authentication job done");
+    log.debug("authentication job done");
   }
 
   public void close() {

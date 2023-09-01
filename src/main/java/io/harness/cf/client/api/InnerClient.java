@@ -119,7 +119,7 @@ class InnerClient
 
   @Override
   public void onAuthSuccess() {
-    log.info("SDK successfully logged in");
+    log.debug("SDK successfully logged in");
     if (closing) {
       return;
     }
@@ -224,7 +224,7 @@ class InnerClient
 
   @Override
   public void onReady() {
-    log.info("onReady triggered");
+    log.debug("onReady triggered");
     initialize(Processor.STREAM);
   }
 
@@ -257,15 +257,15 @@ class InnerClient
     switch (processor) {
       case POLL:
         pollerReady = true;
-        log.info("PollingProcessor ready");
+        log.debug("PollingProcessor ready");
         break;
       case STREAM:
         streamReady = true;
-        log.info("Updater ready");
+        log.debug("Updater ready");
         break;
       case METRICS:
         metricReady = true;
-        log.info("MetricsProcessor ready");
+        log.debug("MetricsProcessor ready");
         break;
     }
 

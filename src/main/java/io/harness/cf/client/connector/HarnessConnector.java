@@ -14,6 +14,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.X509Certificate;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -59,8 +60,9 @@ public class HarnessConnector implements Connector, AutoCloseable {
 
     this.apiKey = apiKey;
     this.options = options;
-    this.api = new ClientApi(makeApiClient(2000));
-    this.metricsApi = new MetricsApi(makeMetricsApiClient(2000));
+    this.api = new ClientApi(makeApiClient(ThreadLocalRandom.current().nextInt(5000, 10000)));
+    this.metricsApi =
+        new MetricsApi(makeMetricsApiClient(ThreadLocalRandom.current().nextInt(5000, 10000)));
     log.info("Connector initialized, with options " + options);
   }
 
@@ -87,7 +89,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
             .getHttpClient()
             .newBuilder()
             .addInterceptor(this::reauthInterceptor)
-            .addInterceptor(new NewRetryInterceptor(retryBackOfDelay))
+            .addInterceptor(new NewRetryInterceptor(3, retryBackOfDelay))
             .build());
     log.info("apiClient definition complete");
     return apiClient;
@@ -96,7 +98,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
   private Response reauthInterceptor(Interceptor.Chain chain) throws IOException {
     final Request request =
         chain.request().newBuilder().addHeader("X-Request-ID", getRequestID()).build();
-    log.info("auth interceptor: requesting url {}", request.url().url());
+    log.debug("403 interceptor check: requesting url {}", request.url().url());
 
     Response response = chain.proceed(request);
 
@@ -125,7 +127,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
             .getHttpClient()
             .newBuilder()
             .addInterceptor(this::metricsInterceptor)
-            .addInterceptor(new RetryInterceptor(3, retryBackoffDelay))
+            .addInterceptor(new NewRetryInterceptor(3, retryBackoffDelay))
             .build());
     log.info("metricsApiClient definition complete");
     return apiClient;
