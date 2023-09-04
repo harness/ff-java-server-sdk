@@ -35,6 +35,8 @@ public class LocalConnector implements Connector, AutoCloseable {
 
   public LocalConnector(@NonNull final String source) {
     this.source = source;
+    Stream.of("flags", "segments", "metrics")
+        .forEach(nextDir -> Paths.get(source, nextDir).toFile().mkdirs());
     log.info("LocalConnector initialized with source {}", source);
   }
 
@@ -55,6 +57,7 @@ public class LocalConnector implements Connector, AutoCloseable {
       throws ConnectorException {
     log.debug("List files in {} with {}", source, domain);
     try {
+      Paths.get(source, domain).toFile().mkdirs();
       Stream<File> fileStream =
           Files.list(Paths.get(source, domain))
               .filter(Files::isRegularFile)
