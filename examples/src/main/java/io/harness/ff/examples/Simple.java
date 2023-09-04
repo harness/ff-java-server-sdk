@@ -27,7 +27,7 @@ class Simple {
                                     client.close();
                                 }));
 
-        final FileMapStore fileStore = new FileMapStore("Non-Freemium");
+        final XmlFileMapStore fileStore = new XmlFileMapStore("Non-Freemium");
         client = new CfClient(SDK_KEY, Config.builder().store(fileStore).build());
         client.waitForInitialization();
 

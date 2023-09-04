@@ -4,7 +4,7 @@ import com.google.gson.JsonObject;
 import io.harness.cf.client.api.CfClient;
 import io.harness.cf.client.api.Config;
 import io.harness.cf.client.api.Event;
-import io.harness.cf.client.api.FileMapStore;
+import io.harness.cf.client.api.XmlFileMapStore;
 import io.harness.cf.client.dto.Target;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
@@ -30,7 +30,7 @@ public class EventExample {
                                     client.close();
                                 }));
 
-        final FileMapStore fileStore = new FileMapStore("Non-Freemium");
+        final XmlFileMapStore fileStore = new XmlFileMapStore("Non-Freemium");
         client = new CfClient(SDK_KEY, Config.builder().store(fileStore).build());
         client.on(Event.READY, result -> log.info("READY"));
 

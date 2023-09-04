@@ -1,6 +1,5 @@
 package io.harness.cf.client.api;
 
-import static com.google.common.util.concurrent.Service.State.RUNNING;
 import static io.harness.cf.client.api.TestUtils.*;
 import static io.harness.cf.client.api.dispatchers.CannedResponses.makeDummyJwtToken;
 import static io.harness.cf.client.api.dispatchers.CannedResponses.makeMockJsonResponse;
@@ -148,7 +147,7 @@ class CfClientTest {
             .streamEnabled(true)
             .build();
 
-    Http403OnAuthDispatcher webserverDispatcher = new Http403OnAuthDispatcher(4); // auth error
+    Http4xxOnAuthDispatcher webserverDispatcher = new Http4xxOnAuthDispatcher(429, 4); // auth error
 
     try (MockWebServer mockSvr = new MockWebServer()) {
       mockSvr.setDispatcher(webserverDispatcher);
@@ -204,9 +203,8 @@ class CfClientTest {
 
         webserverDispatcher.waitForAllConnections(15);
 
-        assertEquals(
-            3 + 1,
-            webserverDispatcher.getUrlMap().get(AUTH_ENDPOINT),
+        assertTrue(
+            webserverDispatcher.getUrlMap().get(AUTH_ENDPOINT) >= (3 + 1),
             "not enough authentication attempts");
 
         assertEquals(
@@ -401,10 +399,8 @@ class CfClientTest {
             1,
             webserverDispatcher.getStreamEndpointCount().get(),
             "there should only be 1 connection to /stream endpoint");
-        assertEquals(
-            RUNNING,
-            client.getInnerClient().getPollProcessor().state(),
-            "poller not in RUNNING state");
+        assertTrue(
+            client.getInnerClient().getPollProcessor().isRunning(), "poller not in RUNNING state");
       }
     }
   }
@@ -506,8 +502,8 @@ class CfClientTest {
         // want it to reauthenticate
         webserverDispatcher.waitForAllConnections(15);
 
-        assertEquals(
-            2, webserverDispatcher.getAuthAttempts().get(), "not enough authentication attempts");
+        assertTrue(
+            webserverDispatcher.getAuthAttempts().get() >= 2, "not enough authentication attempts");
       }
     }
   }

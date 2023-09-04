@@ -5,15 +5,17 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.Getter;
 import lombok.SneakyThrows;
-import okhttp3.mockwebserver.*;
+import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.RecordedRequest;
 
-public class Http403OnAuthDispatcher extends Dispatcher {
+public class Http4xxOnAuthDispatcher extends Dispatcher {
 
   private final PollingAtomicLong connectAttempts;
+  private final int httpCodeToReturn;
 
-  public Http403OnAuthDispatcher(int minConnectToWaitFor) {
+  public Http4xxOnAuthDispatcher(int httpCodeToReturn, int minConnectToWaitFor) {
+    this.httpCodeToReturn = httpCodeToReturn;
     connectAttempts = new PollingAtomicLong(minConnectToWaitFor);
   }
 
@@ -25,7 +27,7 @@ public class Http403OnAuthDispatcher extends Dispatcher {
     System.out.println("DISPATCH GOT ------> " + recordedRequest.getPath());
     connectAttempts.getAndIncrement();
     incrementKey(urlMap, Objects.requireNonNull(recordedRequest.getPath()));
-    return new MockResponse().setResponseCode(403);
+    return new MockResponse().setResponseCode(httpCodeToReturn);
   }
 
   private void incrementKey(ConcurrentHashMap<String, Long> map, String key) {

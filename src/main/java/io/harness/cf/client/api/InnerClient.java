@@ -1,14 +1,8 @@
 package io.harness.cf.client.api;
 
-import static com.google.common.util.concurrent.Service.State.*;
-
-import com.google.common.util.concurrent.Service;
 import com.google.gson.JsonObject;
 import io.harness.cf.client.common.SdkCodes;
-import io.harness.cf.client.connector.Connector;
-import io.harness.cf.client.connector.HarnessConfig;
-import io.harness.cf.client.connector.HarnessConnector;
-import io.harness.cf.client.connector.Updater;
+import io.harness.cf.client.connector.*;
 import io.harness.cf.client.dto.Message;
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.FeatureConfig;
@@ -101,7 +95,7 @@ class InnerClient
     updateProcessor = new UpdateProcessor(this.connector, this.repository, this);
 
     // start with authentication
-    authService.startAsync();
+    authService.start();
   }
 
   protected void onUnauthorized() {
@@ -118,21 +112,14 @@ class InnerClient
       metricsProcessor.stop();
     }
 
-    if (authService.state() == TERMINATED || authService.state() == FAILED) {
-      authService.close();
-      authService = new AuthService(this.connector, options.getPollIntervalInSeconds(), this);
-    }
+    authService.start();
 
-    if (authService.state() != RUNNING) {
-      authService.startAsync();
-    }
-
-    log.info("Finished re-auth, auth service state={}", authService.state());
+    log.info("re-auth started");
   }
 
   @Override
   public void onAuthSuccess() {
-    log.info("SDK successfully logged in");
+    log.debug("SDK successfully logged in");
     if (closing) {
       return;
     }
@@ -206,7 +193,7 @@ class InnerClient
   public void onConnected() {
     SdkCodes.infoStreamConnected();
 
-    if (pollProcessor.state() == Service.State.RUNNING) {
+    if (pollProcessor.isRunning()) {
       // refresh any flags that may have gotten out of sync if the SSE connection was down
       pollProcessor.retrieveAll();
       pollProcessor.stop();
@@ -218,7 +205,7 @@ class InnerClient
 
     SdkCodes.warnStreamDisconnected(reason);
 
-    if (!closing && pollProcessor.state() == Service.State.TERMINATED) {
+    if (!closing && !pollProcessor.isRunning()) {
       log.info("onDisconnected triggered, starting poller to get latest flags");
 
       pollProcessor.close();
@@ -227,9 +214,8 @@ class InnerClient
       pollProcessor.start();
     } else {
       log.info(
-          "Poller already running [closing={} state={} interval={}]",
+          "Poller already running [closing={} interval={}]",
           closing,
-          pollProcessor.state(),
           options.getPollIntervalInSeconds());
       log.info("SSE disconnect detected - asking poller to refresh flags");
       pollProcessor.retrieveAll();
@@ -238,11 +224,10 @@ class InnerClient
 
   @Override
   public void onReady() {
-    log.info("onReady triggered");
+    log.debug("onReady triggered");
     initialize(Processor.STREAM);
   }
 
-  @Override
   public synchronized void onFailure(@NonNull final String error) {
     SdkCodes.warnAuthFailedSrvDefaults(error);
     failure = true;
@@ -272,15 +257,15 @@ class InnerClient
     switch (processor) {
       case POLL:
         pollerReady = true;
-        log.info("PollingProcessor ready");
+        log.debug("PollingProcessor ready");
         break;
       case STREAM:
         streamReady = true;
-        log.info("Updater ready");
+        log.debug("Updater ready");
         break;
       case METRICS:
         metricReady = true;
-        log.info("MetricsProcessor ready");
+        log.debug("MetricsProcessor ready");
         break;
     }
 

@@ -14,7 +14,7 @@ class FileMapStoreTest {
     File file = File.createTempFile(FileMapStoreTest.class.getSimpleName(), ".tmp");
     file.deleteOnExit();
 
-    try (FileMapStore store = new FileMapStore(file.getAbsolutePath())) {
+    try (XmlFileMapStore store = new XmlFileMapStore(file.getAbsolutePath())) {
 
       store.set("testkey1", "testval1");
       store.set("testkey2", "testval2");

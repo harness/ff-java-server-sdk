@@ -4,7 +4,7 @@ import com.google.gson.JsonObject;
 import io.harness.cf.client.api.CfClient;
 import io.harness.cf.client.api.Config;
 import io.harness.cf.client.api.FeatureFlagInitializeException;
-import io.harness.cf.client.api.FileMapStore;
+import io.harness.cf.client.api.XmlFileMapStore;
 import io.harness.cf.client.dto.Target;
 import lombok.extern.slf4j.Slf4j;
 
@@ -14,7 +14,7 @@ public class TryWithRes {
 
     public static void main(String... args) throws InterruptedException {
 
-        try (final FileMapStore fileStore = new FileMapStore("Non-Freemium");
+        try (final XmlFileMapStore fileStore = new XmlFileMapStore("Non-Freemium");
              final CfClient client = new CfClient(SDK_KEY, Config.builder().store(fileStore).build())) {
             client.waitForInitialization();
 

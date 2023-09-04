@@ -26,8 +26,10 @@ public class Http4xxOnFirstAuthDispatcher extends TestWebServerDispatcher {
     System.out.println("DISPATCH authAttempts = " + authAttempts.get());
 
     if (authAttempts.getAndIncrement() < 6) {
+      System.out.println("--> 408");
       return makeAuthResponse(408);
     }
+    System.out.println("--> 200");
     return makeAuthResponse(200);
   }
 

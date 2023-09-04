@@ -47,7 +47,7 @@ public class Example {
         for (final String keyName : keys.keySet()) {
 
             final String apiKey = keys.get(keyName);
-            final FileMapStore fileStore = new FileMapStore(keyName);
+            final XmlFileMapStore fileStore = new XmlFileMapStore(keyName);
             final Config.ConfigBuilder<?, ?> builder = Config.builder();
 
             if (keyName.equals("UAT")) {
