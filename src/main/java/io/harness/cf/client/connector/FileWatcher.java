@@ -1,6 +1,5 @@
 package io.harness.cf.client.connector;
 
-import com.sun.nio.file.SensitivityWatchEventModifier;
 import io.harness.cf.client.common.StringUtils;
 import io.harness.cf.client.dto.Message;
 import java.io.IOException;
@@ -26,12 +25,9 @@ class FileWatcher implements Runnable, AutoCloseable, Service {
     watcher = FileSystems.getDefault().newWatchService();
     path.register(
         watcher,
-        new WatchEvent.Kind[] {
-          StandardWatchEventKinds.ENTRY_CREATE,
-          StandardWatchEventKinds.ENTRY_DELETE,
-          StandardWatchEventKinds.ENTRY_MODIFY
-        },
-        SensitivityWatchEventModifier.HIGH);
+        StandardWatchEventKinds.ENTRY_CREATE,
+        StandardWatchEventKinds.ENTRY_DELETE,
+        StandardWatchEventKinds.ENTRY_MODIFY);
     log.info("FileWatcher initialized with path {}/{}", path, domain);
   }
 
