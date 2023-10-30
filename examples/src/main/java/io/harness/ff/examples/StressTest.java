@@ -53,7 +53,6 @@ public class StressTest {
 
             final Target target = Target.builder()
                     .identifier("Target_" + random)
-                    .isPrivate(false)
                     .name("Target_" + random)
                     .build();
 

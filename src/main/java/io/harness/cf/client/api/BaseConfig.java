@@ -30,9 +30,9 @@ public class BaseConfig {
   @Builder.Default private final int bufferSize = 2048;
 
   // Flag to set all attributes as private
-  @Builder.Default private final boolean allAttributesPrivate = false;
+  @Deprecated @Builder.Default private final boolean allAttributesPrivate = false;
   // Custom list to set the attributes which are private; move over to target
-  @Builder.Default private final Set<String> privateAttributes = Collections.emptySet();
+  @Deprecated @Builder.Default private final Set<String> privateAttributes = Collections.emptySet();
 
   @Builder.Default private final boolean debug = false;
   /** If metrics service POST call is taking > this time, we need to know about it */

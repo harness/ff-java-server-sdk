@@ -1,10 +1,10 @@
 package io.harness.cf.client.dto;
 
+import io.harness.cf.client.common.StringUtils;
 import java.util.Map;
 import java.util.Set;
-
-import io.harness.cf.client.common.StringUtils;
 import lombok.*;
+import lombok.experimental.Accessors;
 
 @Builder
 @Getter
@@ -18,10 +18,14 @@ public class Target {
   private String identifier;
 
   @Singular private Map<String, Object> attributes;
-  private boolean isPrivate; // If the target is private
 
-  @Singular
-  private Set<String> privateAttributes; // Custom set to set the attributes which are private
+  @Deprecated // private attributes will be removed in a future release
+  @Getter
+  @Accessors(fluent = true)
+  @Builder.Default
+  private Boolean isPrivate = false;
+
+  @Deprecated @Singular private Set<String> privateAttributes;
 
   @Override
   public String toString() {

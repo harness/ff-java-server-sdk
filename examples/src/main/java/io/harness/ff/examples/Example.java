@@ -65,7 +65,6 @@ public class Example {
             final Target target =
                     Target.builder()
                             .identifier("Target_" + random)
-                            .isPrivate(false)
                             .attribute("Test_key_" + getRandom(), getRandom())
                             .attribute("Test_key_" + getRandom(), getRandom())
                             .attribute("Test_key_" + getRandom(), getRandom())
