@@ -44,7 +44,6 @@ public class ExcessiveLogs {
         final Target target =
                 Target.builder()
                         .identifier("target1")
-                        .isPrivate(false)
                         .attribute("testKey", "TestValue")
                         .name("target1")
                         .build();
