@@ -4,6 +4,7 @@ import io.harness.cf.client.common.StringUtils;
 import java.util.Map;
 import java.util.Set;
 import lombok.*;
+import lombok.experimental.Accessors;
 
 @Builder
 @Getter
@@ -19,6 +20,8 @@ public class Target {
   @Singular private Map<String, Object> attributes;
 
   @Deprecated // private attributes will be removed in a future release
+  @Getter
+  @Accessors(fluent = true)
   private Boolean isPrivate = false;
 
   @Deprecated @Singular private Set<String> privateAttributes;
