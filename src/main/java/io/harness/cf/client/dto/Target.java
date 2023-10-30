@@ -22,6 +22,7 @@ public class Target {
   @Deprecated // private attributes will be removed in a future release
   @Getter
   @Accessors(fluent = true)
+  @Builder.Default
   private Boolean isPrivate = false;
 
   @Deprecated @Singular private Set<String> privateAttributes;
