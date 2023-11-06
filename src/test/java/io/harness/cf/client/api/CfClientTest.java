@@ -1,9 +1,9 @@
 package io.harness.cf.client.api;
 
 import static io.harness.cf.client.api.TestUtils.*;
-import static io.harness.cf.client.api.dispatchers.CannedResponses.makeDummyJwtToken;
-import static io.harness.cf.client.api.dispatchers.CannedResponses.makeMockJsonResponse;
+import static io.harness.cf.client.api.dispatchers.CannedResponses.*;
 import static io.harness.cf.client.api.dispatchers.Endpoints.AUTH_ENDPOINT;
+import static io.harness.cf.client.api.dispatchers.Endpoints.STREAM_ENDPOINT;
 import static io.harness.cf.client.connector.HarnessConnectorUtils.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -20,12 +20,19 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
+
+import lombok.Getter;
 import lombok.NonNull;
+import lombok.SneakyThrows;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.RecordedRequest;
+import okhttp3.mockwebserver.SocketPolicy;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -590,6 +597,53 @@ class CfClientTest {
     @Override
     public List<String> keys() {
       return null;
+    }
+  }
+
+  static class ResetStreamDispatcher extends TestWebServerDispatcher {
+    private final AtomicInteger version = new AtomicInteger(1);
+    @Getter private final AtomicInteger streamCount = new AtomicInteger(1);
+
+    @Override
+    @SneakyThrows
+    @NotNull
+    public MockResponse dispatch(@NotNull RecordedRequest recordedRequest) {
+      if (STREAM_ENDPOINT.equals(recordedRequest.getPath())) {
+        System.out.println("Trigger RESET_STREAM_AT_START for stream endpoint");
+        return makeMockStreamResponse(
+                200,
+                makeFlagPatchEvent("simplebool", version.getAndIncrement()),
+                makeFlagPatchEvent("simplebool", version.getAndIncrement()),
+                makeFlagPatchEvent("simplebool", version.getAndIncrement()))
+            .setSocketPolicy(SocketPolicy.DISCONNECT_DURING_RESPONSE_BODY);
+      }
+      return super.dispatch(recordedRequest);
+    }
+  };
+
+  @Test
+  void shouldAttemptToReconnectIfStreamInterrupted() throws Exception {
+    BaseConfig config =
+        BaseConfig.builder().analyticsEnabled(false).streamEnabled(true).debug(false).build();
+
+    ResetStreamDispatcher dispatcher = new ResetStreamDispatcher();
+    try (MockWebServer mockSvr = new MockWebServer()) {
+      mockSvr.setDispatcher(dispatcher);
+      mockSvr.start();
+
+      try (CfClient client =
+          new CfClient(
+              makeConnectorWithMinimalRetryBackOff(mockSvr.getHostName(), mockSvr.getPort()),
+              config)) {
+
+        client.waitForInitialization();
+
+        TimeUnit.SECONDS.sleep(15);
+
+        assertTrue(
+            dispatcher.streamCount.get() >= 1,
+            "not connection attempts to attempts to /stream endpoint");
+      }
     }
   }
 }
