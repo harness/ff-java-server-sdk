@@ -189,7 +189,7 @@ public class EventSource implements Callback, AutoCloseable, Service {
       updater.onDisconnected("End of SSE stream");
     } catch (Throwable ex) {
       log.warn("SSE Stream aborted: " + ex.getMessage());
-      log.trace("SSE Stream aborted trace", ex);
+      log.error("SSE Stream aborted trace", ex);
       updater.onDisconnected(ex.getMessage());
     }
   }
