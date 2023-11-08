@@ -667,7 +667,8 @@ class CfClientTest {
         assertTrue(success, "timeout waiting for /stream endpoint connections");
         assertTrue(
             dispatcher.streamCount.get() >= 2,
-            "no connection attempts to attempts to /stream endpoint");
+            "not enough connection attempts to attempts to /stream endpoint: "
+                + dispatcher.streamCount.get());
       }
     }
   }
