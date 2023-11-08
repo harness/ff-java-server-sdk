@@ -146,7 +146,9 @@ public class EventSource implements Callback, AutoCloseable, Service {
 
   public void close() {
     stop();
-    this.streamClient.connectionPool().evictAll();
+    if (this.streamClient != null) {
+      this.streamClient.connectionPool().evictAll();
+    }
     log.info("EventSource closed");
   }
 
