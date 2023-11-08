@@ -212,6 +212,11 @@ class InnerClient
       pollProcessor =
           new PollingProcessor(connector, repository, options.getPollIntervalInSeconds(), this);
       pollProcessor.start();
+
+      if (updateProcessor != null && options.isStreamEnabled()) {
+        updateProcessor.restart();
+      }
+
     } else {
       log.info(
           "Poller already running [closing={} interval={}]",

@@ -149,4 +149,10 @@ class UpdateProcessor implements AutoCloseable {
     }
     log.info("UpdateProcessor closed");
   }
+
+  public void restart() {
+    log.info("Restart SSE stream");
+    stop();
+    start();
+  }
 }

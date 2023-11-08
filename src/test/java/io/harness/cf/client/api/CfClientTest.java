@@ -20,11 +20,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
-
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.SneakyThrows;
@@ -36,10 +34,7 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.NullSource;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.*;
 
 class CfClientTest {
 
@@ -600,33 +595,63 @@ class CfClientTest {
     }
   }
 
-  static class ResetStreamDispatcher extends TestWebServerDispatcher {
+  static class SocketPolicyStreamDispatcher extends TestWebServerDispatcher {
     private final AtomicInteger version = new AtomicInteger(1);
-    @Getter private final AtomicInteger streamCount = new AtomicInteger(1);
+    @Getter private final AtomicInteger streamCount = new AtomicInteger(0);
+    private final CountDownLatch streamCountLatch;
+    private final SocketPolicy policy;
+
+    SocketPolicyStreamDispatcher(SocketPolicy policy, int streamConnectCount) {
+      this.streamCountLatch = new CountDownLatch(streamConnectCount);
+      this.policy = policy;
+    }
 
     @Override
     @SneakyThrows
     @NotNull
     public MockResponse dispatch(@NotNull RecordedRequest recordedRequest) {
       if (STREAM_ENDPOINT.equals(recordedRequest.getPath())) {
-        System.out.println("Trigger RESET_STREAM_AT_START for stream endpoint");
+        streamCountLatch.countDown();
+        streamCount.incrementAndGet();
+
+        System.out.printf(
+            "DISPATCH GOT ------> %s (%d)\n", recordedRequest.getPath(), streamCount.get());
+
         return makeMockStreamResponse(
                 200,
                 makeFlagPatchEvent("simplebool", version.getAndIncrement()),
                 makeFlagPatchEvent("simplebool", version.getAndIncrement()),
                 makeFlagPatchEvent("simplebool", version.getAndIncrement()))
-            .setSocketPolicy(SocketPolicy.DISCONNECT_DURING_RESPONSE_BODY);
+            .setSocketPolicy(policy);
       }
       return super.dispatch(recordedRequest);
     }
+
+    public boolean waitForStreamConnections() throws InterruptedException {
+      boolean result = streamCountLatch.await(15, TimeUnit.SECONDS);
+      System.out.println("streamCountLatch remaining=" + streamCountLatch.getCount());
+      return result;
+    }
   };
 
-  @Test
-  void shouldAttemptToReconnectIfStreamInterrupted() throws Exception {
+  @ParameterizedTest
+  @EnumSource(
+      value = SocketPolicy.class,
+      names = {
+        "KEEP_OPEN", /* will cause end of stream after the 3 events are sent */
+        "DISCONNECT_AT_START",
+        "DISCONNECT_DURING_RESPONSE_BODY",
+        "DISCONNECT_AFTER_REQUEST",
+        "DISCONNECT_DURING_REQUEST_BODY",
+        "RESET_STREAM_AT_START",
+        "SHUTDOWN_OUTPUT_AT_END",
+        "SHUTDOWN_INPUT_AT_END"
+      })
+  void shouldAttemptToReconnectIfStreamInterrupted(SocketPolicy nextPolicyToTest) throws Exception {
     BaseConfig config =
         BaseConfig.builder().analyticsEnabled(false).streamEnabled(true).debug(false).build();
 
-    ResetStreamDispatcher dispatcher = new ResetStreamDispatcher();
+    SocketPolicyStreamDispatcher dispatcher = new SocketPolicyStreamDispatcher(nextPolicyToTest, 2);
     try (MockWebServer mockSvr = new MockWebServer()) {
       mockSvr.setDispatcher(dispatcher);
       mockSvr.start();
@@ -637,12 +662,12 @@ class CfClientTest {
               config)) {
 
         client.waitForInitialization();
+        boolean success = dispatcher.waitForStreamConnections();
 
-        TimeUnit.SECONDS.sleep(15);
-
+        assertTrue(success, "timeout waiting for /stream endpoint connections");
         assertTrue(
-            dispatcher.streamCount.get() >= 1,
-            "not connection attempts to attempts to /stream endpoint");
+            dispatcher.streamCount.get() >= 2,
+            "no connection attempts to attempts to /stream endpoint");
       }
     }
   }
