@@ -1,5 +1,7 @@
 package io.harness.cf.client.connector;
 
+import static io.harness.cf.client.common.Utils.redactHeaders;
+
 import com.google.gson.Gson;
 import io.harness.cf.client.common.SdkCodes;
 import io.harness.cf.client.dto.Message;
@@ -117,7 +119,7 @@ public class EventSource implements Callback, AutoCloseable, Service {
 
   @Override
   public void start() throws ConnectorException, InterruptedException {
-    log.info("EventSource connecting with url {} and headers {}", url, headers);
+    log.info("EventSource connecting with url {} and headers {}", url, redactHeaders(headers));
 
     this.streamClient = makeStreamClient(sseReadTimeoutMins, trustedCAs);
 
@@ -189,7 +191,7 @@ public class EventSource implements Callback, AutoCloseable, Service {
       updater.onDisconnected("End of SSE stream");
     } catch (Throwable ex) {
       log.warn("SSE Stream aborted: " + ex.getMessage());
-      log.error("SSE Stream aborted trace", ex);
+      log.trace("SSE Stream aborted trace", ex);
       updater.onDisconnected(ex.getMessage());
     }
   }
