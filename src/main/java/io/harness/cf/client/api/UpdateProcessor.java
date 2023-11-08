@@ -79,6 +79,11 @@ class UpdateProcessor implements AutoCloseable {
   }
 
   public void update(@NonNull final Message message) {
+    if (executor.isShutdown() || executor.isTerminated()) {
+      log.warn("Update processor is terminating/restarting. Update skipped: {}", message);
+      return;
+    }
+
     if (message.getDomain().equals("flag")) {
       log.debug("execute processFlag with message {}", message);
       executor.submit(processFlag(message));
