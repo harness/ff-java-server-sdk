@@ -23,7 +23,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
-import lombok.Getter;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import okhttp3.mockwebserver.MockResponse;
@@ -597,7 +596,6 @@ class CfClientTest {
 
   static class SocketPolicyStreamDispatcher extends TestWebServerDispatcher {
     private final AtomicInteger version = new AtomicInteger(1);
-    @Getter private final AtomicInteger streamCount = new AtomicInteger(0);
     private final CountDownLatch streamCountLatch;
     private final SocketPolicy policy;
 
@@ -612,10 +610,10 @@ class CfClientTest {
     public MockResponse dispatch(@NotNull RecordedRequest recordedRequest) {
       if (STREAM_ENDPOINT.equals(recordedRequest.getPath())) {
         streamCountLatch.countDown();
-        streamCount.incrementAndGet();
 
         System.out.printf(
-            "DISPATCH GOT ------> %s (%d)\n", recordedRequest.getPath(), streamCount.get());
+            "DISPATCH GOT ------> %s (%d)\n",
+            recordedRequest.getPath(), recordedRequest.getSequenceNumber());
 
         return makeMockStreamResponse(
                 200,
@@ -651,7 +649,10 @@ class CfClientTest {
     BaseConfig config =
         BaseConfig.builder().analyticsEnabled(false).streamEnabled(true).debug(false).build();
 
-    SocketPolicyStreamDispatcher dispatcher = new SocketPolicyStreamDispatcher(nextPolicyToTest, 2);
+    int minConnectCount = 2;
+
+    SocketPolicyStreamDispatcher dispatcher =
+        new SocketPolicyStreamDispatcher(nextPolicyToTest, minConnectCount);
     try (MockWebServer mockSvr = new MockWebServer()) {
       mockSvr.setDispatcher(dispatcher);
       mockSvr.start();
@@ -664,11 +665,8 @@ class CfClientTest {
         client.waitForInitialization();
         boolean success = dispatcher.waitForStreamConnections();
 
-        assertTrue(success, "timeout waiting for /stream endpoint connections");
         assertTrue(
-            dispatcher.streamCount.get() >= 2,
-            "not enough connection attempts to attempts to /stream endpoint: "
-                + dispatcher.streamCount.get());
+            success, "timeout waiting for " + minConnectCount + " /stream endpoint connections");
       }
     }
   }
