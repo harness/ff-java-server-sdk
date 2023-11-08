@@ -10,7 +10,7 @@
     </appender>
 
     <logger name="io.harness.cf.client" level="INFO"/>
-
+    <logger name="io.harness.cf.client.api.MetricsProcessor" level="ERROR"/>
     <root level="INFO">
         <appender-ref ref="STDOUT" />
     </root>

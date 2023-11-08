@@ -2,6 +2,9 @@ package io.harness.cf.client.common;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 
@@ -30,5 +33,13 @@ public class Utils {
       scheduler.shutdownNow();
       Thread.currentThread().interrupt();
     }
+  }
+
+  public static Map<String, String> redactHeaders(Map<String, String> hdrsMap) {
+    if (hdrsMap == null || hdrsMap.isEmpty()) return Collections.emptyMap();
+    HashMap<String, String> map = new HashMap<>(hdrsMap);
+    map.computeIfPresent("Authorization", (k, v) -> "*");
+    map.computeIfPresent("API-Key", (k, v) -> "*");
+    return map;
   }
 }

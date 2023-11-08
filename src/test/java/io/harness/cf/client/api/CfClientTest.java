@@ -1,9 +1,9 @@
 package io.harness.cf.client.api;
 
 import static io.harness.cf.client.api.TestUtils.*;
-import static io.harness.cf.client.api.dispatchers.CannedResponses.makeDummyJwtToken;
-import static io.harness.cf.client.api.dispatchers.CannedResponses.makeMockJsonResponse;
+import static io.harness.cf.client.api.dispatchers.CannedResponses.*;
 import static io.harness.cf.client.api.dispatchers.Endpoints.AUTH_ENDPOINT;
+import static io.harness.cf.client.api.dispatchers.Endpoints.STREAM_ENDPOINT;
 import static io.harness.cf.client.connector.HarnessConnectorUtils.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -24,15 +24,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import lombok.NonNull;
+import lombok.SneakyThrows;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.RecordedRequest;
+import okhttp3.mockwebserver.SocketPolicy;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.NullSource;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.*;
 
 class CfClientTest {
 
@@ -590,6 +591,83 @@ class CfClientTest {
     @Override
     public List<String> keys() {
       return null;
+    }
+  }
+
+  static class SocketPolicyStreamDispatcher extends TestWebServerDispatcher {
+    private final AtomicInteger version = new AtomicInteger(1);
+    private final CountDownLatch streamCountLatch;
+    private final SocketPolicy policy;
+
+    SocketPolicyStreamDispatcher(SocketPolicy policy, int streamConnectCount) {
+      this.streamCountLatch = new CountDownLatch(streamConnectCount);
+      this.policy = policy;
+    }
+
+    @Override
+    @SneakyThrows
+    @NotNull
+    public MockResponse dispatch(@NotNull RecordedRequest recordedRequest) {
+      if (STREAM_ENDPOINT.equals(recordedRequest.getPath())) {
+        streamCountLatch.countDown();
+
+        System.out.printf(
+            "DISPATCH GOT ------> %s (%d)\n",
+            recordedRequest.getPath(), recordedRequest.getSequenceNumber());
+
+        return makeMockStreamResponse(
+                200,
+                makeFlagPatchEvent("simplebool", version.getAndIncrement()),
+                makeFlagPatchEvent("simplebool", version.getAndIncrement()),
+                makeFlagPatchEvent("simplebool", version.getAndIncrement()))
+            .setSocketPolicy(policy);
+      }
+      return super.dispatch(recordedRequest);
+    }
+
+    public boolean waitForStreamConnections() throws InterruptedException {
+      boolean result = streamCountLatch.await(15, TimeUnit.SECONDS);
+      System.out.println("streamCountLatch remaining=" + streamCountLatch.getCount());
+      return result;
+    }
+  };
+
+  @ParameterizedTest
+  @EnumSource(
+      value = SocketPolicy.class,
+      names = {
+        "KEEP_OPEN", /* will cause end of stream after the 3 events are sent */
+        "DISCONNECT_AT_START",
+        "DISCONNECT_DURING_RESPONSE_BODY",
+        "DISCONNECT_AFTER_REQUEST",
+        "DISCONNECT_DURING_REQUEST_BODY",
+        "RESET_STREAM_AT_START",
+        "SHUTDOWN_OUTPUT_AT_END",
+        "SHUTDOWN_INPUT_AT_END"
+      })
+  void shouldAttemptToReconnectIfStreamInterrupted(SocketPolicy nextPolicyToTest) throws Exception {
+    BaseConfig config =
+        BaseConfig.builder().analyticsEnabled(false).streamEnabled(true).debug(false).build();
+
+    int minConnectCount = 2;
+
+    SocketPolicyStreamDispatcher dispatcher =
+        new SocketPolicyStreamDispatcher(nextPolicyToTest, minConnectCount);
+    try (MockWebServer mockSvr = new MockWebServer()) {
+      mockSvr.setDispatcher(dispatcher);
+      mockSvr.start();
+
+      try (CfClient client =
+          new CfClient(
+              makeConnectorWithMinimalRetryBackOff(mockSvr.getHostName(), mockSvr.getPort()),
+              config)) {
+
+        client.waitForInitialization();
+        boolean success = dispatcher.waitForStreamConnections();
+
+        assertTrue(
+            success, "timeout waiting for " + minConnectCount + " /stream endpoint connections");
+      }
     }
   }
 }
