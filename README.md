@@ -69,7 +69,7 @@ The first step is to install the FF SDK as a dependency in your application usin
 
 Refer to the [Harness Feature Flag Java Server SDK](https://mvnrepository.com/artifact/io.harness/ff-java-server-sdk) to identify the latest version for your build automation tool.
 
-This section lists dependencies for Maven and Gradle and uses the 1.2.3 version as an example:
+This section lists dependencies for Maven and Gradle:
 
 #### Maven
 
@@ -85,7 +85,7 @@ Add the following Maven dependency in your project's pom.xml file:
 #### Gradle
 
 ```
-implementation group: 'io.harness', name: 'ff-java-server-sdk', version: '1.2.3'
+implementation 'io.harness:ff-java-server-sdk:1.3.0'
 ```
 
 ### Code Sample
