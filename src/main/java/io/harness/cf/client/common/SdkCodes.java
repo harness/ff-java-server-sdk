@@ -71,6 +71,11 @@ public class SdkCodes {
     log.warn(sdkErrMsg(6001, of(msg)));
   }
 
+  public static void warnBucketByAttributeNotFound(String bucketBy, String usingValue) {
+    String msg = String.format("missing=%s, using value=%s", bucketBy, usingValue);
+    log.warn(sdkErrMsg(6002, of(msg)));
+  }
+
   private static final Map<Integer, String> MAP =
       Arrays.stream(
               new String[][] {
@@ -99,6 +104,10 @@ public class SdkCodes {
                 // SDK_EVAL_6xxx
                 {"6000", "Evaluated variation successfully"},
                 {"6001", "Default variation was served"},
+                {
+                  "6002",
+                  "BucketBy attribute not found in target attributes, falling back to 'identifier':"
+                },
                 // SDK_METRICS_7xxx
                 {"7000", "Metrics thread started, intervalMs:"},
                 {"7001", "Metrics thread exited"},
