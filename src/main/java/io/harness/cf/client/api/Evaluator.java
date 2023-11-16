@@ -5,7 +5,6 @@ import static io.harness.cf.client.api.Operators.*;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.sangupta.murmur.Murmur3;
-import com.sangupta.murmur.MurmurConstants;
 import io.harness.cf.client.common.SdkCodes;
 import io.harness.cf.client.common.StringUtils;
 import io.harness.cf.client.dto.Target;
@@ -44,7 +43,7 @@ public class Evaluator implements Evaluation {
       case "name":
         return Optional.ofNullable(target.getName());
       default:
-        if (target.getAttributes() != null) {
+        if (target.getAttributes() != null && target.getAttributes().containsKey(attribute)) {
           log.debug("Checking attributes field {}", attribute);
           return Optional.ofNullable(target.getAttributes().get(attribute));
         }
@@ -65,21 +64,34 @@ public class Evaluator implements Evaluation {
     return variation;
   }
 
-  protected int getNormalizedNumber(@NonNull Object property, @NonNull String bucketBy) {
+  static int getNormalizedNumber(@NonNull Object property, @NonNull String bucketBy) {
     byte[] value = String.join(":", bucketBy, property.toString()).getBytes();
-    long hasher = Murmur3.hash_x86_32(value, value.length, MurmurConstants.UINT_MASK);
+    long hasher = Murmur3.hash_x86_32(value, value.length, 0);
     int result = (int) (hasher % Evaluator.ONE_HUNDRED) + 1;
-    log.debug("normalized number for {} = {}", Arrays.toString(value), result);
+    log.debug("normalized number for {} = {}", new String(value), result);
     return result;
   }
 
   protected boolean isEnabled(Target target, String bucketBy, int percentage) {
-    final Optional<Object> attrValue = getAttrValue(target, bucketBy);
+    Optional<Object> attrValue = getAttrValue(target, bucketBy);
     if (!attrValue.isPresent()) {
-      log.debug("Returns false attribute not present {}", bucketBy);
-      return false;
+      String oldBB = bucketBy;
+      bucketBy = "identifier";
+      attrValue = getAttrValue(target, bucketBy);
+      if (!attrValue.isPresent()) {
+        return false;
+      }
+      SdkCodes.warnBucketByAttributeNotFound(oldBB, target.getIdentifier());
     }
     int bucketId = getNormalizedNumber(attrValue.get(), bucketBy);
+    if (log.isDebugEnabled()) {
+      log.debug(
+          "MM3 percentage_check={} bucket_by={} value={} bucket={}",
+          percentage,
+          bucketBy,
+          attrValue.orElse(""),
+          bucketId);
+    }
     return percentage > 0 && bucketId <= percentage;
   }
 

@@ -44,15 +44,21 @@ public class EvaluatorTest {
   }
 
   @Test
+  public void checkBucket57IsMatchingCorrectly() {
+    int bucket = Evaluator.getNormalizedNumber("test", "identifier");
+    assertEquals(57, bucket);
+  }
+
+  @Test
   public void testPercentageRollout() throws URISyntaxException, IOException {
 
     // JSON has a weight distribution of 25%, 50%, 25%, 0%
 
-    testPercentageRolloutMatches("andrew.bell@harness.io", "variationB"); // 31
-    testPercentageRolloutMatches("nobody1@harness.io", "variationA"); // 19
-    testPercentageRolloutMatches("nobody2@harness.io", "variationB"); // 36
-    testPercentageRolloutMatches("nobody3@harness.io", "variationA"); // 12
-    testPercentageRolloutMatches("nobody4@harness.io", "variationC"); // 87
+    testPercentageRolloutMatches("nobody0@harness.io", "variationB"); // 36
+    testPercentageRolloutMatches("nobody1@harness.io", "variationA"); // 10
+    testPercentageRolloutMatches("nobody2@harness.io", "variationA"); // 17
+    testPercentageRolloutMatches("nobody3@harness.io", "variationA"); // 15
+    testPercentageRolloutMatches("nobody4@harness.io", "variationC"); // 86
   }
 
   private void testPercentageRolloutMatches(String targetIdentifier, String expectedVariant)
@@ -93,10 +99,7 @@ public class EvaluatorTest {
   @Test
   public void shouldReturnFalseWhenClauseEmptyOrInvalid() {
     final Target target =
-        Target.builder()
-            .identifier("andrew.bell@harness.io")
-            .name("andrew.bell@harness.io")
-            .build();
+        Target.builder().identifier("testuser@harness.io").name("testuser@harness.io").build();
     assertFalse(evaluator.evaluateClause(null, target));
 
     Clause mockClause = mock(Clause.class);
@@ -116,13 +119,13 @@ public class EvaluatorTest {
 
   @Test
   public void shouldEvaluateOperatorClauseCorrectly() {
-    evaluateOperatorClause("andrew.bell@harness.io", STARTS_WITH, "andrew");
-    evaluateOperatorClause("andrew.bell@harness.io", ENDS_WITH, ".io");
-    evaluateOperatorClause("andrew.bell@harness.io", MATCH, ".*harness.*");
-    evaluateOperatorClause("andrew.bell@harness.io", CONTAINS, "bell");
-    evaluateOperatorClause("andrew.bell@harness.io", EQUAL, "Andrew.Bell@Harness.IO");
-    evaluateOperatorClause("andrew.bell@harness.io", EQUAL_SENSITIVE, "andrew.bell@harness.io");
-    evaluateOperatorClause("andrew", IN, "andrew,bell,harness,io");
+    evaluateOperatorClause("testuser@harness.io", STARTS_WITH, "testuser");
+    evaluateOperatorClause("testuser@harness.io", ENDS_WITH, ".io");
+    evaluateOperatorClause("testuser@harness.io", MATCH, ".*harness.*");
+    evaluateOperatorClause("testuser@harness.io", CONTAINS, "user");
+    evaluateOperatorClause("testuser@harness.io", EQUAL, "testuser@Harness.IO");
+    evaluateOperatorClause("testuser@harness.io", EQUAL_SENSITIVE, "testuser@harness.io");
+    evaluateOperatorClause("abc", IN, "abc,def,harness,io");
   }
 
   @Test
@@ -156,10 +159,7 @@ public class EvaluatorTest {
   @Test
   public void shouldReturnFalseWhenGetAttrValueEmptyOrInvalid() {
     Target target =
-        Target.builder()
-            .identifier("andrew.bell@harness.io")
-            .name("andrew.bell@harness.io")
-            .build();
+        Target.builder().identifier("testuser@harness.io").name("testuser@harness.io").build();
 
     assertFalse(evaluator.getAttrValue(target, "").isPresent());
     assertFalse(evaluator.getAttrValue(null, "notempty").isPresent());
@@ -172,9 +172,9 @@ public class EvaluatorTest {
 
   @Test
   public void shouldReturnCorrectAttrForGetAttrValue() {
-    Target target = Target.builder().identifier("andrew.bell@harness.io").name("andrew").build();
+    Target target = Target.builder().identifier("testuser@harness.io").name("andrew").build();
 
-    assertEquals("andrew.bell@harness.io", evaluator.getAttrValue(target, "identifier").get());
+    assertEquals("testuser@harness.io", evaluator.getAttrValue(target, "identifier").get());
     assertEquals("andrew", evaluator.getAttrValue(target, "name").get());
   }
 
