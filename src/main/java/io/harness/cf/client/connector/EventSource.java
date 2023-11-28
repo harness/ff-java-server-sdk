@@ -179,7 +179,7 @@ public class EventSource implements Callback, AutoCloseable, Service {
 
       String line;
       while ((line = reader.readUtf8Line()) != null) {
-        log.info("SSE stream data: {}", line);
+        log.debug("SSE stream data: {}", line);
 
         if (line.startsWith("data:")) {
           Message msg = gson.fromJson(line.substring(6), Message.class);
