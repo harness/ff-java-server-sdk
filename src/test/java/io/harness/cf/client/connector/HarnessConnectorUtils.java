@@ -1,6 +1,5 @@
 package io.harness.cf.client.connector;
 
-
 public class HarnessConnectorUtils {
   public static HarnessConnector makeConnector(String host, int port) {
     final String url = String.format("http://%s:%s/api/1.0", host, port);

@@ -1,0 +1,259 @@
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+
+buildscript {
+    repositories { maven { url "https://repo1.maven.org/maven2" } }
+}
+
+plugins {
+    id 'java'
+    id 'jvm-test-suite'
+    id 'maven-publish'
+    id "signing"
+    id "org.openapi.generator" version libs.versions.openapi.generator
+    id "com.diffplug.spotless" version libs.versions.spotless
+    id "com.github.evestera.depsize" version libs.versions.depsize
+    id 'jacoco-report-aggregation'
+    id "com.github.spotbugs" version libs.versions.spotbugs
+}
+
+
+apply plugin: 'org.openapi.generator'
+
+allprojects {
+    repositories {
+        mavenLocal()
+        maven {
+            url = uri('https://repo.maven.apache.org/maven2/')
+        }
+    }
+
+    java {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        withJavadocJar()
+        withSourcesJar()
+    }
+
+    apply plugin: 'java-library'
+}
+
+dependencies {
+    api libs.okhttp3.core
+    api libs.okhttp3.logging.interceptor
+    api libs.apache.maven.model
+    api libs.apache.commons.collections4
+    api libs.threetenbp
+    api libs.gson.fire
+    api libs.google.gson
+    api libs.google.findbugs
+    api libs.caffeine.cache
+    api libs.murmur3
+    api libs.swagger.annotations
+    api libs.javax.annotation.api
+    api libs.slf4j.api
+
+    compileOnly libs.lombok
+    annotationProcessor libs.lombok
+}
+
+group = 'io.harness'
+version = libs.versions.sdk.get()
+description = 'Harness Feature Flag Java Server SDK'
+
+openApiGenerate {
+    generatorName = "java"
+    inputSpec = "$rootDir/src/main/resources/client-v1.yaml".toString()
+    outputDir = "$buildDir/generated".toString()
+    templateDir = "$rootDir/template"
+    apiPackage = "io.harness.cf.api"
+    invokerPackage = "io.harness.cf"
+    modelPackage = "io.harness.cf.model"
+    generateApiDocumentation = false
+    generateModelDocumentation = false
+    generateModelTests = false
+    generateApiTests = false
+    typeMappings = [ "OffsetDateTime" : "Date" ]
+    importMappings = [ "java.time.OffsetDateTime" : "java.util.Date" ]
+    configOptions  = [
+            java8: "true",
+            dateLibrary : "java8",
+            serializableModel : "true",
+            //additionalModelTypeAnnotations : "@FieldDefaults(makeFinal=true)"
+    ]
+}
+
+tasks.register('generateVersion', Copy) {
+    def tokens = [version: project.version]
+    inputs.properties tokens
+    from "src/template/java"
+    into "$buildDir/generated-version/src/main/java"
+    expand tokens
+}
+
+testing {
+    suites {
+        test {
+            useJUnitJupiter()
+
+            dependencies {
+                implementation project()
+                implementation libs.logback.classic
+                implementation platform(libs.junit.bom)
+                runtimeOnly libs.junit.platform.launcher
+                implementation libs.mockito.junit5
+                implementation libs.okhttp3.mockwebserver
+                compileOnly libs.lombok
+                annotationProcessor libs.lombok
+            }
+
+            targets {
+                all {
+                    testTask.configure {
+                        testLogging {
+                            events "passed", "skipped", "failed"
+                            showStackTraces = true
+                            exceptionFormat = TestExceptionFormat.FULL
+                            debug {
+                                events "started","passed", "skipped", "failed", "standard_out", "standard_error"
+                                showStandardStreams = true
+                                showStackTraces = true
+                                exceptionFormat = TestExceptionFormat.FULL
+                            }
+                            info = debug
+                        }
+                    }
+                }
+            }
+
+            sources {
+                java {
+                    srcDirs += [ "$buildDir/generated/src/main/java", "$buildDir/generated-version/src/main/java"]
+                }
+            }
+        }
+    }
+}
+
+publishing {
+    repositories {
+        maven {
+            def sonatypeSnapshotRepo = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+            def sonatypeStagingRepo="https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
+            url = version.endsWith('SNAPSHOT') ? sonatypeSnapshotRepo : sonatypeStagingRepo
+        }
+    }
+
+    publications.create("mavenJava", MavenPublication) {
+        from components.java
+
+        pom {
+           description = project.description
+           name = project.name
+           url = "https://github.com/harness/ff-java-server-sdk"
+
+           licenses {
+               license {
+                   name = "Apache License, Version 2.0"
+                   url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                   distribution = "repo"
+               }
+           }
+
+           scm {
+               developerConnection = "scm:git:ssh://https://github.com/harness/ff-java-server-sdk.git"
+               connection = "scm:git:ssh://https://github.com/harness/ff-java-server-sdk.git"
+               url = "https://github.com/drone/ff-java-server-sdk"
+           }
+
+           developers {
+               developer {
+                   id = "andybharness"
+                   name = "Andrew Bell"
+                   email = "andrew.bell@harness.io"
+                   organization = "Harness Inc"
+                   organizationUrl = "https://www.harness.io/"
+               }
+               developer {
+                   id = "davejohnston"
+                   name = "Dave Johnston"
+                   email = "dave.johnston@harness.io"
+                   organization = "Harness Inc"
+                   organizationUrl = "https://www.harness.io/"
+               }
+               developer {
+                   id = "enver-bisevac"
+                   name = "Enver Bisevac"
+                   email = "enver.bisevac@harness.io"
+                   organization = "Harness Inc"
+                   organizationUrl = "https://www.harness.io/"
+               }
+               developer {
+                   id = "rushabh-harness"
+                   name = "Rushabh Shah"
+                   email = "rushabh@harness.io"
+                   organization = "Harness Inc"
+                   organizationUrl = "https://www.harness.io/"
+               }
+               developer {
+                   id = "hannah-tang"
+                   name = "Hannah Tang"
+                   email = "hannah.tang@harness.io"
+                   organization = "Harness Inc"
+                   organizationUrl = "https://www.harness.io/"
+               }
+               developer {
+                   id = "subiradhikari"
+                   name = "Subir Adhikari"
+                   email = "subir.adhikari@harness.io"
+                   organization = "Harness Inc"
+                   organizationUrl = "https://www.harness.io/"
+               }
+           }
+       }
+    }
+}
+
+signing {
+    required { gradle.taskGraph.hasTask("publish") }
+
+    if (hasProperty("signKeyId") || hasProperty("signKey")) {
+        def signKey   = project.findProperty("signKey")
+        def signKeyId = project.findProperty("signKeyId")
+        def signPass  = project.findProperty("signPass")
+        if (signKeyId) {
+            useInMemoryPgpKeys(signKeyId, signKey, signPass)
+        } else if (signKey) {
+            useInMemoryPgpKeys(signKey, signPass)
+        }
+        sign publishing.publications.mavenJava
+    } else {
+        if (gradle.taskGraph.hasTask("publish")) {
+            println("No signing key given:\n" +
+                    "  pass in -PsignPass=secret\n" +
+                    "     WITH -PsignKey=~/.gnupg/ring.gpg\n" +
+                    "       OR -PsignKeyId=1234ABCD\n")
+        }
+    }
+}
+
+spotless {
+    java {
+        targetExclude(fileTree("$buildDir/generated"), fileTree("$buildDir/generated-version") { include("**/*.java") })
+        removeUnusedImports()
+        googleJavaFormat().formatJavadoc(false)
+    }
+}
+
+compileJava.dependsOn tasks.openApiGenerate
+compileJava.dependsOn generateVersion
+compileJava.dependsOn spotlessApply
+sourcesJar.dependsOn tasks.openApiGenerate
+sourcesJar.dependsOn generateVersion
+jacocoTestReport.dependsOn test
+spotbugsTest.enabled = false
+spotbugsMain.enabled = false
+
+sourceSets.main.java.srcDirs += [ "$buildDir/generated/src/main/java", "$buildDir/generated-version/src/main/java" ]
+
+tasks.withType(Javadoc).configureEach {
+    options.addStringOption('Xdoclint:none', '-quiet')
+}

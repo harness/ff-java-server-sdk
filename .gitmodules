@@ -1,6 +1,3 @@
-[submodule "test_wrapper/Logger"]
-	path = test_wrapper/Logger
-	url = https://github.com/milos85vasic/Logger.git
 [submodule "src/test/ff-test-cases"]
 	path = src/test/ff-test-cases
 	url = git@github.com:drone/ff-test-cases.git

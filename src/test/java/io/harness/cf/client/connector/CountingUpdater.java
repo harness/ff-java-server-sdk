@@ -43,4 +43,4 @@ class CountingUpdater implements Updater {
     log.debug("update: " + message);
     updateCount.incrementAndGet();
   }
-};
+}

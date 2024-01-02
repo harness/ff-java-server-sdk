@@ -11,6 +11,7 @@
 
 # exclude jar for gradle wrapper
 !gradle/wrapper/*.jar
+.gradle
 
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
@@ -18,19 +19,17 @@ hs_err_pid*
 # build files
 **/target
 target
-.gradle
 build
 bin/
 
 .idea
 .run/
 *.iml
-gradle
 out
 
-gradlew*
 wrapper.json
 
 local/metrics/*
 Non-Freemium
 src/main/java/io/harness/cf/client/example
+LocalConnectorTestSource/

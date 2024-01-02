@@ -163,8 +163,8 @@ public class GettingStarted {
 export FF_API_KEY=<your key here>
 cd examples
 
-mvn clean package
-mvn exec:java -Dexec.mainClass="io.harness.ff.examples.GettingStarted"
+./gradlew clean build
+./gradlew examples:GettingStarted --console=plain
 ```
 
 ### Running the example with Docker
@@ -172,11 +172,8 @@ If you don't have the right version of java installed locally, or don't want to 
 use docker to get started.
 
 ```bash
-# Clean and Package
-docker run -v $(PWD)/examples:/app -v "$HOME/.m2":/root/.m2 -w /app maven:3.3-jdk-8 mvn clean package
-
 # Run the Example
-docker run -e FF_API_KEY=$FF_API_KEY -v $(PWD)/examples:/app -v "$HOME/.m2":/root/.m2 -w /app maven:3.3-jdk-8 mvn exec:java -Dexec.mainClass="io.harness.ff.examples.GettingStarted"
+docker run -e FF_API_KEY=$FF_API_KEY -v $(PWD)/examples:/app -v "$HOME/.m2":/root/.m2 -w /app gradle:8.5-jdk11 gradle clean build -xtest examples:GettingStarted --console=plain
 ```
 
 

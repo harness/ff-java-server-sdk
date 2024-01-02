@@ -1,0 +1,20 @@
+group = 'io.harness.featureflags'
+version = libs.versions.sdk.get()
+
+dependencies {
+    implementation libs.harness.ff.sdk
+
+    compileOnly libs.lombok
+
+    implementation libs.slf4j.api
+    implementation libs.google.gson
+    implementation libs.logback.classic
+    implementation libs.bc
+
+    annotationProcessor libs.lombok
+}
+
+tasks.register('GettingStarted', JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = "io.harness.ff.examples.GettingStarted"
+}

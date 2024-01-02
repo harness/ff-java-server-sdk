@@ -17,8 +17,10 @@ public class Config extends BaseConfig {
 
   /** timeout in milliseconds to connect to CF Server */
   @Builder.Default int connectionTimeout = 10000;
+
   /** timeout in milliseconds for reading data from CF Server */
   @Builder.Default int readTimeout = 30000;
+
   /** timeout in milliseconds for writing data to CF Server */
   @Builder.Default int writeTimeout = 10000;
 }

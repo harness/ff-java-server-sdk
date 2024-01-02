@@ -25,6 +25,7 @@ public class JwtMissingFieldsAuthDispatcher extends TestWebServerDispatcher {
 
   private final String jwtEnvironmentIdentifier;
   private final String jwtAccountId;
+
   /* Set to null whatever fields you're testing in the JWT token */
   public JwtMissingFieldsAuthDispatcher(String jwtEnvironmentIdentifier, String jwtAccountId) {
     this.jwtEnvironmentIdentifier = jwtEnvironmentIdentifier;
