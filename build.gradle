@@ -139,6 +139,11 @@ testing {
 publishing {
     repositories {
         maven {
+            credentials {
+                username project.deployUsername
+                password project.deployPassword
+            }
+
             def sonatypeSnapshotRepo = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
             def sonatypeStagingRepo="https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
             url = version.endsWith('SNAPSHOT') ? sonatypeSnapshotRepo : sonatypeStagingRepo
