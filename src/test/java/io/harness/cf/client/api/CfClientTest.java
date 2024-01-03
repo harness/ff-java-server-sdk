@@ -630,7 +630,7 @@ class CfClientTest {
       System.out.println("streamCountLatch remaining=" + streamCountLatch.getCount());
       return result;
     }
-  };
+  }
 
   @ParameterizedTest
   @EnumSource(

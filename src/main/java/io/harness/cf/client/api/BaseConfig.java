@@ -35,6 +35,7 @@ public class BaseConfig {
   @Deprecated @Builder.Default private final Set<String> privateAttributes = Collections.emptySet();
 
   @Builder.Default private final boolean debug = false;
+
   /** If metrics service POST call is taking > this time, we need to know about it */
   @Builder.Default private final long metricsServiceAcceptableDuration = 10000;
 

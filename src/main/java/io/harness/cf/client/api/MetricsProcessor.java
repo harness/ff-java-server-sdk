@@ -78,6 +78,7 @@ class MetricsProcessor {
   private static final Set<Target> globalTargetSet = new HashSet<>();
   private static final Set<Target> stagingTargetSet = new HashSet<>();
   private static final String SDK_TYPE = "SDK_TYPE";
+
   /** This target identifier is used to aggregate and send data for all targets as a summary */
   private static final String GLOBAL_TARGET = "__global__cf_target";
 

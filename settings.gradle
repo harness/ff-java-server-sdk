@@ -1,0 +1,46 @@
+rootProject.name = "ff-java-server-sdk"
+
+dependencyResolutionManagement {
+    versionCatalogs {
+        libs {
+            // main sdk version
+            version('sdk', '1.5.0');
+
+            // sdk deps
+            version('okhttp3', '4.9.3')
+            library('okhttp3-core', 'com.squareup.okhttp3', 'okhttp').versionRef('okhttp3')
+            library('okhttp3-logging-interceptor', 'com.squareup.okhttp3', 'logging-interceptor').versionRef('okhttp3')
+            library('apache-maven-model', 'org.apache.maven:maven-model:3.5.0')
+            library('threetenbp', 'org.threeten:threetenbp:1.4.3')
+            library('gson-fire', 'io.gsonfire:gson-fire:1.7.1')
+            library('google-gson', 'com.google.code.gson:gson:2.10')
+            library('caffeine-cache', 'com.github.ben-manes.caffeine:caffeine:2.8.5')
+            library('murmur3', 'com.sangupta:murmur:1.0.0')
+            library('swagger-annotations', 'io.swagger:swagger-annotations:1.6.2')
+            library('apache-commons-collections4', 'org.apache.commons:commons-collections4:4.4')
+            library('javax-annotation-api', 'javax.annotation:javax.annotation-api:1.2')
+            library('slf4j-api', 'org.slf4j:slf4j-api:1.7.36')
+            library('lombok', 'org.projectlombok:lombok:1.18.30')
+            library('google-findbugs', 'com.google.code.findbugs:jsr305:3.0.2')
+
+            // test libs
+            library('logback-classic', 'ch.qos.logback:logback-classic:1.3.12')
+            library('junit-platform-launcher', 'org.junit.platform:junit-platform-launcher:1.10.1')
+            library('junit-bom', 'org.junit:junit-bom:5.10.1')
+            library('mockito-junit5', 'org.mockito:mockito-junit-jupiter:4.8.1')
+            library('okhttp3-mockwebserver', 'com.squareup.okhttp3', 'mockwebserver').versionRef('okhttp3')
+
+            // examples
+            library('bc', 'org.bouncycastle:bcpkix-jdk18on:1.77')
+            library('harness.ff.sdk', 'io.harness', 'ff-java-server-sdk').versionRef('sdk')
+
+            // plugins
+            version('openapi.generator', '5.4.0')
+            version('spotless', '6.23.3')
+            version('depsize', '0.2.0')
+            version('spotbugs', '6.0.4')
+        }
+    }
+}
+
+include 'examples'

@@ -20,8 +20,8 @@ public class ConnectorException extends Exception {
     this.httpReason = httpMsg;
     this.shouldRetry = true;
   }
-  
-    public ConnectorException(String message, boolean shouldRetry, Exception e) {
+
+  public ConnectorException(String message, boolean shouldRetry, Exception e) {
     super(message, e);
     this.shouldRetry = shouldRetry;
     this.httpCode = 0;

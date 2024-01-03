@@ -198,7 +198,6 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/Pagination'
                   - $ref: '#/components/schemas/Evaluations'
   '/client/env/{environmentUUID}/target/{target}/evaluations/{feature}':
     get:
