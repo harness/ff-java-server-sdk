@@ -1,7 +1,10 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
 buildscript {
-    repositories { maven { url "https://repo1.maven.org/maven2" } }
+    repositories {
+        maven { url "https://repo1.maven.org/maven2" }
+        gradlePluginPortal()
+    }
 }
 
 plugins {
