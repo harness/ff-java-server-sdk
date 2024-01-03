@@ -2,7 +2,7 @@ group = 'io.harness.featureflags'
 version = libs.versions.sdk.get()
 
 dependencies {
-    implementation libs.harness.ff.sdk
+    implementation project(":") // libs.harness.ff.sdk
 
     compileOnly libs.lombok
 
