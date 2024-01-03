@@ -173,7 +173,7 @@ use docker to get started.
 
 ```bash
 # Run the Example
-docker run -e FF_API_KEY=$FF_API_KEY -v $(PWD)/examples:/app -v "$HOME/.m2":/root/.m2 -w /app gradle:8.5-jdk11 gradle clean build -xtest examples:GettingStarted --console=plain
+docker run -e FF_API_KEY=$FF_API_KEY -v $(PWD):/app -v "$HOME/.m2":/root/.m2 -w /app gradle:8.5-jdk11 gradle clean build -xtest examples:GettingStarted --console=plain
 ```
 
 
