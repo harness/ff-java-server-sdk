@@ -140,8 +140,8 @@ publishing {
     repositories {
         maven {
             credentials {
-                username project.deployUsername
-                password project.deployPassword
+                username project.hasProperty("deployUsername") ? project.deployUsername : ""
+                password project.hasProperty("deployPassword") ? project.deployPassword : ""
             }
 
             def sonatypeSnapshotRepo = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
