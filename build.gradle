@@ -44,7 +44,6 @@ dependencies {
     api libs.okhttp3.logging.interceptor
     api libs.apache.maven.model
     api libs.apache.commons.collections4
-    api libs.threetenbp
     api libs.gson.fire
     api libs.google.gson
     api libs.google.findbugs
