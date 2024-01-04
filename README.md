@@ -182,6 +182,7 @@ docker run -e FF_API_KEY=$FF_API_KEY -v $(PWD):/app -v "$HOME/.m2":/root/.m2 -w 
 Further examples and config options are in the further reading section:
 
 [Further Reading](docs/further_reading.md)
+
 [GraalVM](examples-graalvm-native/README.md)
 
 -------------------------
