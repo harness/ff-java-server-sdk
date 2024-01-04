@@ -2,6 +2,7 @@ package io.harness.cf.client.api;
 
 import io.harness.cf.client.common.Cache;
 import io.harness.cf.client.common.Storage;
+import io.harness.cf.client.common.Utils;
 import io.harness.cf.model.Clause;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Segment;
@@ -11,7 +12,6 @@ import java.util.List;
 import java.util.Optional;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
 
 @Slf4j
 class StorageRepository implements Repository {
@@ -88,7 +88,7 @@ class StorageRepository implements Repository {
         continue;
       }
       final FeatureConfig flag = optionalFeatureConfig.get();
-      if (CollectionUtils.isEmpty(flag.getRules())) {
+      if (Utils.isEmpty(flag.getRules())) {
         log.debug("Flag {} doesn't contain any rule, continue...", key);
         continue;
       }
