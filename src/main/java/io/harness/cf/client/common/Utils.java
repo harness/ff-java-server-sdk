@@ -2,6 +2,7 @@ package io.harness.cf.client.common;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -41,5 +42,9 @@ public class Utils {
     map.computeIfPresent("Authorization", (k, v) -> "*");
     map.computeIfPresent("API-Key", (k, v) -> "*");
     return map;
+  }
+
+  public static boolean isEmpty(Collection<?> collection) {
+    return collection == null || collection.isEmpty();
   }
 }
