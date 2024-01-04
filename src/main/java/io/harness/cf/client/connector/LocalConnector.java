@@ -19,7 +19,20 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.tuple.ImmutablePair;
+
+final class Pair<L, R> {
+  final L left;
+  final R right;
+
+  Pair(L left, R right) {
+    this.left = left;
+    this.right = right;
+  }
+
+  static <L, R> Pair<L, R> of(L left, R right) {
+    return new Pair<>(left, right);
+  }
+}
 
 @Slf4j
 public class LocalConnector implements Connector, AutoCloseable {
@@ -72,21 +85,20 @@ public class LocalConnector implements Connector, AutoCloseable {
     }
   }
 
-  protected <T> ImmutablePair<T, Exception> loadFile(
-      @NonNull final File file, @NonNull final Class<T> classOfT) {
+  <T> Pair<T, Exception> loadFile(@NonNull final File file, @NonNull final Class<T> classOfT) {
     log.debug("Loading file {}", file);
     try {
       final String content = new String(Files.readAllBytes(file.toPath()));
       log.debug("File was successfully loaded {}", file);
-      return ImmutablePair.of(gson.fromJson(content, classOfT), null);
+      return Pair.of(gson.fromJson(content, classOfT), null);
     } catch (Exception e) {
       log.error("Exception was raised while loading file {}", file, e);
-      return ImmutablePair.of(null, e);
+      return Pair.of(null, e);
     }
   }
 
   protected <T> T load(@NonNull final File file, @NonNull final Class<T> classOfT) {
-    final ImmutablePair<T, Exception> pair = loadFile(file, classOfT);
+    final Pair<T, Exception> pair = loadFile(file, classOfT);
     if (pair.right != null) {
       log.error(
           "Exception was raised while loading file {} with error {}",
@@ -113,8 +125,7 @@ public class LocalConnector implements Connector, AutoCloseable {
   public FeatureConfig getFlag(@NonNull final String identifier) throws ConnectorException {
     final Path path = Paths.get(source, FLAGS, identifier + JSON_EXTENSION);
     log.debug("Load flag {} from path {}/{}", identifier, source, FLAGS);
-    final ImmutablePair<FeatureConfig, Exception> pair =
-        loadFile(path.toFile(), FeatureConfig.class);
+    final Pair<FeatureConfig, Exception> pair = loadFile(path.toFile(), FeatureConfig.class);
     if (pair.right != null) {
       throw new ConnectorException(pair.right.getMessage());
     }
@@ -139,7 +150,7 @@ public class LocalConnector implements Connector, AutoCloseable {
   public Segment getSegment(@NonNull final String identifier) throws ConnectorException {
     final Path path = Paths.get(source, SEGMENTS, identifier + JSON_EXTENSION);
     log.debug("Load target group {} from path {}/{}", identifier, source, SEGMENTS);
-    final ImmutablePair<Segment, Exception> pair = loadFile(path.toFile(), Segment.class);
+    final Pair<Segment, Exception> pair = loadFile(path.toFile(), Segment.class);
     if (pair.right != null) {
       throw new ConnectorException(pair.right.getMessage());
     }
