@@ -7,12 +7,12 @@ import com.google.gson.JsonObject;
 import com.sangupta.murmur.Murmur3;
 import io.harness.cf.client.common.SdkCodes;
 import io.harness.cf.client.common.StringUtils;
+import io.harness.cf.client.common.Utils;
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.*;
 import java.util.*;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
 import org.slf4j.MDC;
 
 @Slf4j
@@ -54,7 +54,7 @@ public class Evaluator implements Evaluation {
 
   protected Optional<Variation> findVariation(
       @NonNull List<Variation> variations, String identifier) {
-    if (identifier == null || CollectionUtils.isEmpty(variations)) {
+    if (identifier == null || Utils.isEmpty(variations)) {
       log.debug("Empty identifier {} or variations {} occurred", identifier, variations);
       return Optional.empty();
     }
@@ -314,7 +314,7 @@ public class Evaluator implements Evaluation {
 
   protected boolean checkPreRequisite(FeatureConfig parentFeatureConfig, Target target) {
     List<Prerequisite> prerequisites = parentFeatureConfig.getPrerequisites();
-    if (!CollectionUtils.isEmpty(prerequisites)) {
+    if (!Utils.isEmpty(prerequisites)) {
       log.debug(
           "Checking pre requisites {} of parent feature {}",
           prerequisites,
@@ -381,7 +381,7 @@ public class Evaluator implements Evaluation {
         return Optional.empty();
       }
 
-      if (!CollectionUtils.isEmpty(flag.get().getPrerequisites())) {
+      if (!Utils.isEmpty(flag.get().getPrerequisites())) {
         boolean prereq = checkPreRequisite(flag.get(), target);
         if (!prereq) {
           return findVariation(flag.get().getVariations(), flag.get().getOffVariation());

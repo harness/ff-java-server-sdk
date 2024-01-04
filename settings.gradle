@@ -17,7 +17,6 @@ dependencyResolutionManagement {
             library('caffeine-cache', 'com.github.ben-manes.caffeine:caffeine:2.8.5')
             library('murmur3', 'com.sangupta:murmur:1.0.0')
             library('swagger-annotations', 'io.swagger:swagger-annotations:1.6.2')
-            library('apache-commons-collections4', 'org.apache.commons:commons-collections4:4.4')
             library('javax-annotation-api', 'javax.annotation:javax.annotation-api:1.2')
             library('slf4j-api', 'org.slf4j:slf4j-api:1.7.36')
             library('lombok', 'org.projectlombok:lombok:1.18.30')
