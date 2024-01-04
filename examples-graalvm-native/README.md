@@ -8,6 +8,10 @@
 gu install native-image
 ```
 
+## Goto example
+```bash
+cd examples-graalvm-native
+```
 
 ## Build reflection metadata for the SDK and its dependencies
 ```bash
