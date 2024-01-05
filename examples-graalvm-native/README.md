@@ -1,4 +1,9 @@
 
+## GraalVM
+
+For Java SDK 1.5.0 experimental GraalVM support has been added. The steps below show you how to run the agent `-Pagent` to collection metadata on
+codepaths within the SDK that are using reflection. You can then use the `metadataCopy` and merge the SDK metadata into the metadata for your application.
+
 ## Install GraalVM
 
 [See www.graalvm.org/jdk21/docs/getting-started](https://www.graalvm.org/jdk21/docs/getting-started/)
@@ -14,6 +19,7 @@ cd examples-graalvm-native
 ```
 
 ## Build reflection metadata for the SDK and its dependencies
+Let this run to completion
 ```bash
 ./gradlew run -Pagent
 ```
@@ -28,7 +34,7 @@ cd examples-graalvm-native
 ```bash
 ./gradlew nativeRun
 ```
-or directly run the executable
+Then you can directly run the executable
 ```
 build/native/nativeCompile/ffsdk-native
 ```
