@@ -1,7 +1,7 @@
 
 ## GraalVM
 
-For Java SDK 1.5.0 experimental GraalVM support has been added. The steps below show you how to run the agent `-Pagent` to collection metadata on
+For Java SDK 1.5.0 experimental GraalVM support has been added. The steps below show you how to run the agent `-Pagent` to collect metadata on
 codepaths within the SDK that are using reflection. You can then use the `metadataCopy` and merge the SDK metadata into the metadata for your application.
 
 ## Install GraalVM
