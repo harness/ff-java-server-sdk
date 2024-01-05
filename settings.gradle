@@ -7,7 +7,7 @@ dependencyResolutionManagement {
             version('sdk', '1.5.0');
 
             // sdk deps
-            version('okhttp3', '4.9.3')
+            version('okhttp3', '4.12.0')
             library('okhttp3-core', 'com.squareup.okhttp3', 'okhttp').versionRef('okhttp3')
             library('okhttp3-logging-interceptor', 'com.squareup.okhttp3', 'logging-interceptor').versionRef('okhttp3')
             library('gson-fire', 'io.gsonfire:gson-fire:1.7.1')
