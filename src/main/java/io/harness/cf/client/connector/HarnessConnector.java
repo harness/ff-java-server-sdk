@@ -255,7 +255,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
           this.environmentUuid,
           this.cluster,
           e);
-      throw new ConnectorException(e.getMessage(), e.getCode(), e.getMessage());
+      throw new ConnectorException(e.getMessage(), e.getCode(), e.getMessage(), e);
     } finally {
       MDC.remove(REQUEST_ID_KEY);
     }
@@ -283,7 +283,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
           this.environmentUuid,
           this.cluster,
           e);
-      throw new ConnectorException(e.getMessage(), e.getCode(), e.getMessage());
+      throw new ConnectorException(e.getMessage(), e.getCode(), e.getMessage(), e);
     } finally {
       MDC.remove(REQUEST_ID_KEY);
     }
@@ -314,7 +314,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
           e.getCode(),
           e.getMessage(),
           e);
-      throw new ConnectorException(e.getMessage(), e.getCode(), e.getMessage());
+      throw new ConnectorException(e.getMessage(), e.getCode(), e.getMessage(), e);
     } finally {
       MDC.remove(REQUEST_ID_KEY);
     }
@@ -345,7 +345,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
           this.environmentUuid,
           this.cluster,
           e);
-      throw new ConnectorException(e.getMessage(), e.getCode(), e.getMessage());
+      throw new ConnectorException(e.getMessage(), e.getCode(), e.getMessage(), e);
     } finally {
       MDC.remove(REQUEST_ID_KEY);
     }
@@ -369,7 +369,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
           this.environmentUuid,
           this.cluster,
           e);
-      throw new ConnectorException(e.getMessage(), e.getCode(), e.getMessage());
+      throw new ConnectorException(e.getMessage(), e.getCode(), e.getMessage(), e);
     } finally {
       MDC.remove(REQUEST_ID_KEY);
     }

@@ -99,15 +99,15 @@ class UpdateProcessor implements AutoCloseable {
 
     return () -> {
       try {
-        final FeatureConfig config = connector.getFlag(message.getIdentifier());
-        if (config != null) {
-          if (message.getEvent().equals("create") || message.getEvent().equals("patch")) {
+        if (message.getEvent().equals("create") || message.getEvent().equals("patch")) {
+          final FeatureConfig config = connector.getFlag(message.getIdentifier());
+          if (config != null) {
             repository.setFlag(message.getIdentifier(), config);
             log.debug("Set new segment with key {} and value {}", message.getIdentifier(), config);
-          } else if (message.getEvent().equals("delete")) {
-            log.debug("Delete flag with key {}", message.getIdentifier());
-            repository.deleteFlag(message.getIdentifier());
           }
+        } else if (message.getEvent().equals("delete")) {
+          log.debug("Delete flag with key {}", message.getIdentifier());
+          repository.deleteFlag(message.getIdentifier());
         }
       } catch (ConnectorException e) {
         log.error(
@@ -121,15 +121,15 @@ class UpdateProcessor implements AutoCloseable {
   protected Runnable processSegment(@NonNull final Message message) {
     return () -> {
       try {
-        final Segment segment = connector.getSegment(message.getIdentifier());
-        if (segment != null) {
-          if (message.getEvent().equals("create") || message.getEvent().equals("patch")) {
+        if (message.getEvent().equals("create") || message.getEvent().equals("patch")) {
+          final Segment segment = connector.getSegment(message.getIdentifier());
+          if (segment != null) {
             log.debug("Set new segment with key {} and value {}", message.getIdentifier(), segment);
             repository.setSegment(message.getIdentifier(), segment);
-          } else if (message.getEvent().equals("delete")) {
-            log.debug("Delete segment with key {}", message.getIdentifier());
-            repository.deleteSegment(message.getIdentifier());
           }
+        } else if (message.getEvent().equals("delete")) {
+          log.debug("Delete segment with key {}", message.getIdentifier());
+          repository.deleteSegment(message.getIdentifier());
         }
       } catch (ConnectorException e) {
         log.error(
