@@ -63,7 +63,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
     this.api = new ClientApi(makeApiClient(ThreadLocalRandom.current().nextInt(5000, 10000)));
     this.metricsApi =
         new MetricsApi(makeMetricsApiClient(ThreadLocalRandom.current().nextInt(5000, 10000)));
-    log.info("Connector initialized, with options " + options);
+    log.debug("Connector initialized, with options " + options);
   }
 
   @SneakyThrows
@@ -91,7 +91,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
             .addInterceptor(this::reauthInterceptor)
             .addInterceptor(new NewRetryInterceptor(3, retryBackOfDelay))
             .build());
-    log.info("apiClient definition complete");
+
     return apiClient;
   }
 
@@ -129,14 +129,14 @@ public class HarnessConnector implements Connector, AutoCloseable {
             .addInterceptor(this::metricsInterceptor)
             .addInterceptor(new NewRetryInterceptor(3, retryBackoffDelay))
             .build());
-    log.info("metricsApiClient definition complete");
+
     return apiClient;
   }
 
   private Response metricsInterceptor(Interceptor.Chain chain) throws IOException {
     final Request request =
         chain.request().newBuilder().addHeader("X-Request-ID", getRequestID()).build();
-    log.info("metrics interceptor: requesting url {}", request.url().url());
+    log.debug("metrics interceptor: requesting url {}", request.url().url());
 
     return chain.proceed(request);
   }
@@ -215,7 +215,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
       metricsApi.getApiClient().addDefaultHeader("Harness-AccountID", accountID);
     }
 
-    log.info(
+    log.debug(
         "Token successfully processed, environment {}, cluster {}, account {}, environmentIdentifier {}",
         environmentUuid,
         cluster,
@@ -236,11 +236,11 @@ public class HarnessConnector implements Connector, AutoCloseable {
   public List<FeatureConfig> getFlags() throws ConnectorException {
     final String requestId = UUID.randomUUID().toString();
     MDC.put(REQUEST_ID_KEY, requestId);
-    log.info("Fetching flags on env {} and cluster {}", this.environmentUuid, this.cluster);
+    log.debug("Fetching flags on env {} and cluster {}", this.environmentUuid, this.cluster);
     List<FeatureConfig> featureConfig = new ArrayList<>();
     try {
       featureConfig = api.getFeatureConfig(environmentUuid, cluster);
-      log.info(
+      log.debug(
           "Total configurations fetched: {} on env {} and cluster {}",
           featureConfig.size(),
           this.environmentUuid,
@@ -397,7 +397,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
       map.put("Harness-AccountID", accountID);
     }
 
-    log.info("Initialize new EventSource instance");
+    log.debug("Initialize new EventSource instance");
     eventSource =
         new EventSource(
             sseUrl,
@@ -454,7 +454,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
     this.options = options;
     this.api = new ClientApi(makeApiClient(retryBackOffDelay));
     this.metricsApi = new MetricsApi(makeMetricsApiClient(retryBackOffDelay));
-    log.info(
+    log.debug(
         "Connector initialized, with options {} and retry backoff delay {}",
         options,
         retryBackOffDelay);

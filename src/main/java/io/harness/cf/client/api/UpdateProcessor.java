@@ -31,13 +31,13 @@ class UpdateProcessor implements AutoCloseable {
     this.connector = connector;
     this.repository = repository;
     this.updater = callback;
-    log.info("Update processor initialized");
+    log.debug("Update processor initialized");
   }
 
   public void start() {
-    log.info("Starting updater (EventSource)");
+    log.debug("Starting updater (EventSource)");
     if (running) {
-      log.info("updater already started");
+      log.debug("updater already started");
       return;
     }
 
@@ -58,10 +58,10 @@ class UpdateProcessor implements AutoCloseable {
     try {
       if (stream != null) {
         if (!running) {
-          log.info("updater cannot be stopped because it is not in running state");
+          log.debug("updater cannot be stopped because it is not in running state");
           return;
         }
-        log.info("Stopping updater (EventSource)");
+        log.debug("Stopping updater (EventSource)");
         stream.stop();
         running = false;
       }
@@ -142,7 +142,7 @@ class UpdateProcessor implements AutoCloseable {
 
   @Override
   public void close() {
-    log.info("Closing UpdateProcessor");
+    log.debug("Closing UpdateProcessor");
     stop();
     if (stream != null) {
       try {
@@ -152,11 +152,11 @@ class UpdateProcessor implements AutoCloseable {
         Thread.currentThread().interrupt();
       }
     }
-    log.info("UpdateProcessor closed");
+    log.debug("UpdateProcessor closed");
   }
 
   public void restart() {
-    log.info("Restart SSE stream");
+    log.debug("Restart SSE stream");
     stop();
     start();
   }

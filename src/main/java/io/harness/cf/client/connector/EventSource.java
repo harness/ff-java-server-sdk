@@ -139,7 +139,7 @@ public class EventSource implements Callback, AutoCloseable, Service {
 
   @Override
   public void stop() {
-    log.info("Stopping EventSource service.");
+    log.debug("Stopping EventSource service.");
 
     if (call != null) {
       call.cancel();
@@ -151,7 +151,7 @@ public class EventSource implements Callback, AutoCloseable, Service {
     if (this.streamClient != null) {
       this.streamClient.connectionPool().evictAll();
     }
-    log.info("EventSource closed");
+    log.debug("EventSource closed");
   }
 
   @Override // Callback
