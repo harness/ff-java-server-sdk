@@ -1,0 +1,42 @@
+plugins {
+  id 'application'
+  id 'org.graalvm.buildtools.native' version '0.9.28'
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+dependencies {
+    implementation "io.harness:ff-java-server-sdk:1.5.0"
+    implementation "ch.qos.logback:logback-classic:1.3.12"
+}
+
+application {
+    mainClass = 'io.harness.ff.examples.graalvm.Main'
+}
+
+
+graalvmNative {
+    agent {
+        defaultMode = "standard"
+    }
+
+    binaries {
+        main {
+            imageName = "ffsdk-native"
+            mainClass = "io.harness.ff.examples.graalvm.Main"
+            sharedLibrary = false
+            buildArgs.add("-O4")
+            buildArgs.add("--enable-url-protocols=https")
+            buildArgs.add("-H:+ReportExceptionStackTraces")
+        }
+    }
+    binaries.all {
+        buildArgs.add("--verbose")
+    }
+
+    toolchainDetection = false
+}
+

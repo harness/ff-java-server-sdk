@@ -183,6 +183,7 @@ Further examples and config options are in the further reading section:
 
 [Further Reading](docs/further_reading.md)
 
+[GraalVM](examples-graalvm-native/README.md)
 
 -------------------------
 [Harness](https://www.harness.io/) is a feature management platform that helps teams to build better software and to

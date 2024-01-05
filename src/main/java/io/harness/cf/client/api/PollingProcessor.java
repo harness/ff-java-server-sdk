@@ -91,7 +91,7 @@ class PollingProcessor {
       retrieveAll();
       if (!initialized) {
         initialized = true;
-        log.info("PollingProcessor initialized");
+        log.debug("PollingProcessor initialized");
         callback.onPollerReady();
       }
     } catch (Exception exc) {
@@ -114,7 +114,7 @@ class PollingProcessor {
   }
 
   public void stop() {
-    log.info("Stopping PollingProcessor");
+    log.debug("Stopping PollingProcessor");
 
     if (scheduler.isShutdown()) {
       return;
@@ -136,7 +136,7 @@ class PollingProcessor {
         SdkCodes::infoPollingStopped,
         errMsg -> log.warn("failed to stop polling scheduler: {}", errMsg));
 
-    log.info("Closing PollingProcessor");
+    log.debug("Closing PollingProcessor");
   }
 
   public boolean isRunning() {

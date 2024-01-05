@@ -164,7 +164,7 @@ class MetricsProcessor {
           if ((endTime - startTime) > config.getMetricsServiceAcceptableDuration()) {
             log.warn("Metrics service API duration=[{}]", (endTime - startTime));
           }
-          log.info("Successfully sent analytics data to the server");
+          log.debug("Successfully sent analytics data to the server");
         } catch (ConnectorException e) {
           SdkCodes.warnPostMetricsFailed(e.getMessage());
         }
@@ -302,7 +302,7 @@ class MetricsProcessor {
         SdkCodes::infoMetricsThreadExited,
         errMsg -> log.warn("failed to stop metrics scheduler: {}", errMsg));
 
-    log.info("Closing MetricsProcessor");
+    log.debug("Closing MetricsProcessor");
   }
 
   public boolean isRunning() {

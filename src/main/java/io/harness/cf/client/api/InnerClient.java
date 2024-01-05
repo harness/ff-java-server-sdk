@@ -206,7 +206,7 @@ class InnerClient
     SdkCodes.warnStreamDisconnected(reason);
 
     if (!closing && !pollProcessor.isRunning()) {
-      log.info("onDisconnected triggered, starting poller to get latest flags");
+      log.debug("onDisconnected triggered, starting poller to get latest flags");
 
       pollProcessor.close();
       pollProcessor =
@@ -218,11 +218,11 @@ class InnerClient
       }
 
     } else {
-      log.info(
+      log.debug(
           "Poller already running [closing={} interval={}]",
           closing,
           options.getPollIntervalInSeconds());
-      log.info("SSE disconnect detected - asking poller to refresh flags");
+      log.debug("SSE disconnect detected - asking poller to refresh flags");
       pollProcessor.retrieveAll();
     }
   }
@@ -246,7 +246,7 @@ class InnerClient
   }
 
   public void update(@NonNull final Message message, final boolean manual) {
-    log.info("update triggered [event={} manual={}] ", message.getEvent(), manual);
+    log.debug("update triggered [event={} manual={}] ", message.getEvent(), manual);
     if (options.isStreamEnabled() && manual) {
       log.warn(
           "You have run update method manually with the stream enabled. Please turn off the stream in this case.");

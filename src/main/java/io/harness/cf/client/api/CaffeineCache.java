@@ -20,7 +20,7 @@ public class CaffeineCache implements Cache {
 
   public CaffeineCache(int size) {
     cache = Caffeine.newBuilder().maximumSize(size).build();
-    log.info("CaffeineCache initialized with size {}", size);
+    log.debug("CaffeineCache initialized with size {}", size);
   }
 
   @Override

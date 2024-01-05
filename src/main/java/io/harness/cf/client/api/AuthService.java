@@ -29,7 +29,7 @@ class AuthService {
     this.connector = connector;
     this.pollIntervalInSec = pollIntervalInSec;
     this.callback = callback;
-    log.info("Authentication service initialized");
+    log.debug("Authentication service initialized");
   }
 
   private void runOneIteration() {
@@ -38,7 +38,7 @@ class AuthService {
       connector.authenticate();
       SdkCodes.infoSdkAuthOk();
       callback.onAuthSuccess();
-      log.info("Stopping Auth service");
+      log.debug("Stopping Auth service");
     } catch (ConnectorException e) {
       log.error("Exception while authenticating", e);
       callback.onFailure(e.getMessage());
@@ -49,10 +49,10 @@ class AuthService {
 
   public void start() {
     if (isRunning()) {
-      log.info("authentication already in progress, skipping");
+      log.debug("authentication already in progress, skipping");
       return;
     }
-    log.info("authentication started");
+    log.debug("authentication started");
     this.runningTask =
         scheduler.scheduleAtFixedRate(this::runOneIteration, 0, pollIntervalInSec, SECONDS);
   }
@@ -79,7 +79,7 @@ class AuthService {
         SdkCodes::infoPollingStopped,
         errMsg -> log.warn("failed to shutdown auth scheduler: {}", errMsg));
 
-    log.info("Authentication service closed");
+    log.debug("Authentication service closed");
   }
 
   public boolean isRunning() {
