@@ -250,6 +250,10 @@ spotless {
     }
 }
 
+dependencyCheck {
+    formats = [ "HTML", "JSON" ]
+}
+
 compileJava.dependsOn tasks.openApiGenerate
 compileJava.dependsOn generateVersion
 compileJava.dependsOn spotlessApply
