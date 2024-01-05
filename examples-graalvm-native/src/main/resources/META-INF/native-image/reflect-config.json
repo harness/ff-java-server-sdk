@@ -156,6 +156,11 @@
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
+  "name":"io.harness.cf.client.dto.Message",
+  "allDeclaredFields":true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
   "name":"io.harness.cf.model.AuthenticationRequest",
   "allDeclaredFields":true,
   "methods":[{"name":"<init>","parameterTypes":[] }]
@@ -194,6 +199,25 @@
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
+  "name":"io.harness.cf.model.KeyValue",
+  "allDeclaredFields":true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"io.harness.cf.model.Metrics",
+  "allDeclaredFields":true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"io.harness.cf.model.MetricsData",
+  "allDeclaredFields":true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"io.harness.cf.model.MetricsData$MetricsTypeEnum$Adapter",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
   "name":"io.harness.cf.model.Prerequisite",
   "allDeclaredFields":true,
   "methods":[{"name":"<init>","parameterTypes":[] }]
@@ -220,6 +244,11 @@
 },
 {
   "name":"io.harness.cf.model.Target",
+  "allDeclaredFields":true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"io.harness.cf.model.TargetData",
   "allDeclaredFields":true,
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },

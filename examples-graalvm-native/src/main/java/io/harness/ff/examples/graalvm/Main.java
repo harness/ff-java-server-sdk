@@ -21,9 +21,11 @@ public class Main {
                     .identifier("javasdk-GraalVM")
                     .name("JavaSDK native")
                     .build();
-
-            boolean result = cfClient.boolVariation(flagName, target, false);
-            System.out.println("Flag '" + flagName + "' is " + result);
+            for (int i = 0; i < 10; i++) {
+                boolean result = cfClient.boolVariation(flagName, target, false);
+                System.out.println("Flag '" + flagName + "' is " + result);
+                TimeUnit.SECONDS.sleep(10);
+            }
 
         } catch (Exception e) {
             e.printStackTrace();
