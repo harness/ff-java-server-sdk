@@ -17,6 +17,7 @@ plugins {
     id "com.github.evestera.depsize" version libs.versions.depsize
     id 'jacoco-report-aggregation'
     id "com.github.spotbugs" version libs.versions.spotbugs
+    id "org.owasp.dependencycheck" version libs.versions.depcheck
 }
 
 
@@ -37,6 +38,7 @@ allprojects {
     }
 
     apply plugin: 'java-library'
+    apply plugin: 'org.owasp.dependencycheck'
 }
 
 dependencies {

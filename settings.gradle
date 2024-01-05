@@ -36,6 +36,7 @@ dependencyResolutionManagement {
             version('spotless', '6.23.3')
             version('depsize', '0.2.0')
             version('spotbugs', '6.0.4')
+            version('depcheck', '9.0.7')
         }
     }
 }
