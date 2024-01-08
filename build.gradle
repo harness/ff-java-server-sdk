@@ -232,24 +232,7 @@ publishing {
 signing {
     required { gradle.taskGraph.hasTask("publish") }
 
-    if (project.hasProperty("signKeyId") || project.hasProperty("signKey")) {
-        def signKey   = project.findProperty("signKey")
-        def signKeyId = project.findProperty("signKeyId")
-        def signPass  = project.findProperty("signPass")
-        if (signKeyId) {
-            useInMemoryPgpKeys(signKeyId, signKey, signPass)
-        } else if (signKey) {
-            useInMemoryPgpKeys(signKey, signPass)
-        }
-        sign publishing.publications.mavenJava
-    } else {
-        if (gradle.taskGraph.hasTask("publish")) {
-            println("No signing key given:\n" +
-                    "  pass in -PsignPass=secret\n" +
-                    "     WITH -PsignKey=~/.gnupg/ring.gpg\n" +
-                    "       OR -PsignKeyId=1234ABCD\n")
-        }
-    }
+    sign publishing.publications.mavenJava
 }
 
 spotless {
