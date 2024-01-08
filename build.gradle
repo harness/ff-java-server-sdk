@@ -232,7 +232,7 @@ publishing {
 signing {
     required { gradle.taskGraph.hasTask("publish") }
 
-    if (hasProperty("signKeyId") || hasProperty("signKey")) {
+    if (project.hasProperty("signKeyId") || project.hasProperty("signKey")) {
         def signKey   = project.findProperty("signKey")
         def signKeyId = project.findProperty("signKeyId")
         def signPass  = project.findProperty("signPass")

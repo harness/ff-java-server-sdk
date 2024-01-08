@@ -44,7 +44,7 @@ jobs:
     - name: Publish to GitHub Packages
       uses: gradle/gradle-build-action@bd5760595778326ba7f1441bcf7e88b49de61a25 # v2.6.0
       with:
-        arguments: publish -Psigning.secretKeyRingFile=${{ secrets.OSSRH_GPG_SECRET_KEY }} -Psigning.password=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -Psigning.keyId=${{ secrets.OSSRH_GPG_KEYID }}
+        arguments: publish -PsignKey=${{ secrets.OSSRH_GPG_SECRET_KEY }} -PsignPass=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }}
       env:
         USERNAME: ${{ github.actor }}
         TOKEN: ${{ secrets.GITHUB_TOKEN }}
