@@ -149,10 +149,10 @@ publishing {
     repositories {
         maven {
             credentials {
-                username project.hasProperty("deployUsername") ? project.deployUsername : ""
-                password project.hasProperty("deployPassword") ? project.deployPassword : ""
+                username System.getenv("MAVEN_USERNAME") != null ? System.getenv("MAVEN_USERNAME") : ""
+                password System.getenv("MAVEN_PASSWORD") != null ? System.getenv("MAVEN_PASSWORD") : ""
             }
-
+            println "publish user: " + credentials.username
             def sonatypeSnapshotRepo = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
             def sonatypeStagingRepo="https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
             url = version.endsWith('SNAPSHOT') ? sonatypeSnapshotRepo : sonatypeStagingRepo
