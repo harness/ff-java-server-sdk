@@ -91,6 +91,16 @@ tasks.register('generateVersion', Copy) {
     expand tokens
 }
 
+// From https://stackoverflow.com/a/74205283
+tasks.register("copyPomToRoot") {
+    def publication = publishing.publications.mavenJava
+    def generatePom = tasks.named("generatePomFileFor${publication.name.capitalize()}Publication")
+    dependsOn(generatePom)
+    def output = rootProject.file("${publication.artifactId}-${publication.version}.pom")
+    outputs.file(output)
+    doLast { output.bytes = generatePom.get().destination.bytes }
+}
+
 testing {
     suites {
         test {
