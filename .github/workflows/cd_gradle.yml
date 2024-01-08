@@ -34,8 +34,6 @@ jobs:
         gpg-private-key: ${{ secrets.OSSRH_GPG_SECRET_KEY }}
         gpg-passphrase: MAVEN_GPG_PASSPHRASE
         settings-path: ${{ github.workspace }} # location for the settings.xml file
-    - name: List key ids
-      run: gpg --list-secret-keys --keyid-format LONG
     - name: Build with Gradle
       uses: gradle/gradle-build-action@bd5760595778326ba7f1441bcf7e88b49de61a25 # v2.6.0
       with:
@@ -46,7 +44,7 @@ jobs:
     - name: Publish to GitHub Packages
       uses: gradle/gradle-build-action@bd5760595778326ba7f1441bcf7e88b49de61a25 # v2.6.0
       with:
-        arguments: publish
+        arguments: publish -Psigning.secretKeyRingFile=${{ OSSRH_GPG_SECRET_KEY }} -Psigning.password=${{ OSSRH_GPG_SECRET_KEY_PASSWORD }} -Psigning.keyId=${{ OSSRH_GPG_KEYID }}
       env:
         USERNAME: ${{ github.actor }}
         TOKEN: ${{ secrets.GITHUB_TOKEN }}
