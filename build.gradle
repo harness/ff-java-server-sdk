@@ -152,7 +152,7 @@ publishing {
                 username System.getenv("MAVEN_USERNAME") != null ? System.getenv("MAVEN_USERNAME") : ""
                 password System.getenv("MAVEN_PASSWORD") != null ? System.getenv("MAVEN_PASSWORD") : ""
             }
-            println "publish user: " + credentials.username
+
             def sonatypeSnapshotRepo = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
             def sonatypeStagingRepo="https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
             url = version.endsWith('SNAPSHOT') ? sonatypeSnapshotRepo : sonatypeStagingRepo
@@ -245,6 +245,10 @@ spotless {
 
 dependencyCheck {
     formats = [ "HTML", "JSON" ]
+    nvd {
+        apiKey = System.getenv("FF_NVD_API_KEY")
+        validForHours = 144
+    }
 }
 
 compileJava.dependsOn tasks.openApiGenerate
