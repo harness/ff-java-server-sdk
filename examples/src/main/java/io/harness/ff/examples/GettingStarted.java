@@ -9,19 +9,18 @@ import java.util.concurrent.TimeUnit;
 
 public class GettingStarted {
     // API Key - set this as an env variable
-    private static String apiKey = getEnvOrDefault("FF_API_KEY", "");
+    private static final String apiKey = getEnvOrDefault("FF_API_KEY", "");
 
     // Flag Identifier
-    private static String flagName = getEnvOrDefault("FF_FLAG_NAME", "harnessappdemodarkmode");
+    private static final String flagName = getEnvOrDefault("FF_FLAG_NAME", "harnessappdemodarkmode");
 
     private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     public static void main(String[] args) {
         System.out.println("Harness SDK Getting Started");
 
-        try {
-            //Create a Feature Flag Client
-            CfClient cfClient = new CfClient(apiKey, BaseConfig.builder().build());
+        //Create a Feature Flag Client
+        try (CfClient cfClient = new CfClient(apiKey, BaseConfig.builder().build())) {
             cfClient.waitForInitialization();
 
             // Create a target (different targets can get different results based on rules.  This includes a custom attribute 'location')
@@ -46,7 +45,6 @@ public class GettingStarted {
             // Close the SDK
             System.out.println("Cleaning up...");
             scheduler.shutdownNow();
-            cfClient.close();
 
         } catch (Exception e) {
             e.printStackTrace();
