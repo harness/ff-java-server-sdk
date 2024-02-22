@@ -9,7 +9,6 @@ import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Segment;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -18,7 +17,7 @@ class UpdateProcessor implements AutoCloseable {
   private final Connector connector;
   private final Repository repository;
   private final Updater updater;
-  private final ExecutorService executor = Executors.newFixedThreadPool(100);
+  private final ExecutorService executor = Executors.newFixedThreadPool(10);
 
   private Service stream;
 
@@ -42,6 +41,9 @@ class UpdateProcessor implements AutoCloseable {
     }
 
     try {
+      if (stream != null) {
+        stream.close();
+      }
       stream = connector.stream(this.updater);
       stream.start();
       running = true;
@@ -65,13 +67,7 @@ class UpdateProcessor implements AutoCloseable {
         stream.stop();
         running = false;
       }
-      executor.shutdown();
-      boolean result = executor.awaitTermination(3, TimeUnit.SECONDS);
-      if (result) {
-        log.debug("All tasks done");
-      } else {
-        log.warn("UpdateProcessor: timeout while wait threads to finish!");
-      }
+
     } catch (InterruptedException e) {
       log.error("Exception was raised when stopping update tasks", e);
       Thread.currentThread().interrupt();
@@ -79,10 +75,6 @@ class UpdateProcessor implements AutoCloseable {
   }
 
   public void update(@NonNull final Message message) {
-    if (executor.isShutdown() || executor.isTerminated()) {
-      log.warn("Update processor is terminating/restarting. Update skipped: {}", message);
-      return;
-    }
 
     if (message.getDomain().equals("flag")) {
       log.debug("execute processFlag with message {}", message);
@@ -103,13 +95,13 @@ class UpdateProcessor implements AutoCloseable {
           final FeatureConfig config = connector.getFlag(message.getIdentifier());
           if (config != null) {
             repository.setFlag(message.getIdentifier(), config);
-            log.debug("Set new segment with key {} and value {}", message.getIdentifier(), config);
+            log.trace("Set new segment with key {} and value {}", message.getIdentifier(), config);
           }
         } else if (message.getEvent().equals("delete")) {
           log.debug("Delete flag with key {}", message.getIdentifier());
           repository.deleteFlag(message.getIdentifier());
         }
-      } catch (ConnectorException e) {
+      } catch (Throwable e) {
         log.error(
             "Exception was raised when fetching flag '{}' with the message {}",
             message.getIdentifier(),
@@ -124,14 +116,14 @@ class UpdateProcessor implements AutoCloseable {
         if (message.getEvent().equals("create") || message.getEvent().equals("patch")) {
           final Segment segment = connector.getSegment(message.getIdentifier());
           if (segment != null) {
-            log.debug("Set new segment with key {} and value {}", message.getIdentifier(), segment);
+            log.trace("Set new segment with key {} and value {}", message.getIdentifier(), segment);
             repository.setSegment(message.getIdentifier(), segment);
           }
         } else if (message.getEvent().equals("delete")) {
           log.debug("Delete segment with key {}", message.getIdentifier());
           repository.deleteSegment(message.getIdentifier());
         }
-      } catch (ConnectorException e) {
+      } catch (Throwable e) {
         log.error(
             "Exception was raised when fetching segment '{}' with the message {}",
             message.getIdentifier(),
@@ -152,6 +144,8 @@ class UpdateProcessor implements AutoCloseable {
         Thread.currentThread().interrupt();
       }
     }
+
+    executor.shutdownNow();
     log.debug("UpdateProcessor closed");
   }
 

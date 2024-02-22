@@ -20,13 +20,13 @@ public class CaffeineCache implements Cache {
 
   public CaffeineCache(int size) {
     cache = Caffeine.newBuilder().maximumSize(size).build();
-    log.debug("CaffeineCache initialized with size {}", size);
+    log.trace("CaffeineCache initialized with size {}", size);
   }
 
   @Override
   public void set(@NonNull String key, @NonNull Object value) {
     cache.put(key, value);
-    log.debug("New value in the cache with key {} and value {}", key, value);
+    log.trace("New value in the cache with key '{}' and value '{}'", key, value);
   }
 
   @Override
@@ -34,9 +34,9 @@ public class CaffeineCache implements Cache {
   public Object get(@NonNull String key) {
     Object value = cache.getIfPresent(key);
     if (value != null) {
-      log.debug("Key {} found in cache with value {}", key, value);
+      log.trace("Key '{}' found in cache with value '{}'", key, value);
     } else {
-      log.debug("Key {} not found in cache", key);
+      log.trace("Key '{}' not found in cache", key);
     }
     return value;
   }
@@ -44,13 +44,13 @@ public class CaffeineCache implements Cache {
   @Override
   public void delete(@NonNull String key) {
     cache.invalidate(key);
-    log.debug("Key {} removed from cache", key);
+    log.trace("Key {} removed from cache", key);
   }
 
   @Override
   public List<String> keys() {
     List<String> keys = new ArrayList<>(cache.asMap().keySet());
-    log.debug("Keys in cache {}", keys);
+    log.trace("Keys in cache {}", keys);
     return keys;
   }
 }

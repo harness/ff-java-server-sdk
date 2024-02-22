@@ -60,7 +60,7 @@ public class Evaluator implements Evaluation {
     }
     Optional<Variation> variation =
         variations.stream().filter(v -> v.getIdentifier().equals(identifier)).findFirst();
-    log.debug("Variation {} found in variations {}", identifier, variations);
+    log.trace("Variation {} found in variations {}", identifier, variations);
     return variation;
   }
 
