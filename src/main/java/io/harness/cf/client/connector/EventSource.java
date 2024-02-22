@@ -190,10 +190,16 @@ public class EventSource implements Callback, AutoCloseable, Service {
       log.warn("End of SSE stream");
       updater.onDisconnected("End of SSE stream");
     } catch (Throwable ex) {
-      log.warn("SSE Stream aborted: " + ex.getMessage());
+      log.warn("SSE Stream aborted: " + getExceptionMsg(ex));
       log.trace("SSE Stream aborted trace", ex);
-      updater.onDisconnected(ex.getMessage());
+      updater.onDisconnected(getExceptionMsg(ex));
     }
+  }
+
+  private String getExceptionMsg(Throwable ex) {
+    return (ex.getMessage() == null || "null".equals(ex.getMessage()))
+        ? ex.getClass().getSimpleName()
+        : ex.getMessage();
   }
 
   private static class SSEStreamException extends RuntimeException {

@@ -404,7 +404,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
             map,
             updater,
             Math.max(options.getSseReadTimeout(), 1),
-            2_000,
+            ThreadLocalRandom.current().nextInt(5000, 10000),
             options.getTlsTrustedCAs());
     return eventSource;
   }
