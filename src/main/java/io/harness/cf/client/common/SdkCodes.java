@@ -65,6 +65,14 @@ public class SdkCodes {
     log.warn(sdkErrMsg(7002, Optional.ofNullable(reason)));
   }
 
+  public static void warnMetricsBufferFull(long droppedEvals, long droppedTargets) {
+    log.warn(
+        sdkErrMsg(
+            7008,
+            Optional.of(
+                "- evals dropped: " + droppedEvals + " targets dropped: " + droppedTargets)));
+  }
+
   public static void warnDefaultVariationServed(String identifier, Target target, String def) {
     String targetId = (target == null) ? "null" : target.getIdentifier();
     String msg = String.format("identifier=%s, target=%s, default=%s", identifier, targetId, def);
@@ -111,7 +119,8 @@ public class SdkCodes {
                 // SDK_METRICS_7xxx
                 {"7000", "Metrics thread started, intervalMs:"},
                 {"7001", "Metrics thread exited"},
-                {"7002", "Posting metrics failed, reason:"}
+                {"7002", "Posting metrics failed, reason:"},
+                {"7008", "Metrics buffer is full and metrics will be discarded"}
               })
           .collect(Collectors.toMap(entry -> Integer.parseInt(entry[0]), entry -> entry[1]));
 

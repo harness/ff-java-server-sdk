@@ -1,5 +1,6 @@
 package io.harness.cf.client.api;
 
+import static io.harness.cf.client.common.SdkCodes.warnMetricsBufferFull;
 import static io.harness.cf.client.common.Utils.shutdownExecutorService;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -70,6 +71,10 @@ class MetricsProcessor {
             return newValue;
           });
     }
+
+    public boolean containsKey(K key) {
+      return freqMap.containsKey(key);
+    }
   }
 
   private static final String FEATURE_NAME_ATTRIBUTE = "featureName";
@@ -91,23 +96,35 @@ class MetricsProcessor {
   private static final Target globalTarget =
       Target.builder().name(GLOBAL_TARGET_NAME).identifier(GLOBAL_TARGET).build();
 
+  private static final int MAX_SENT_TARGETS_TO_RETAIN = 100_000;
+  private static final int MAX_FREQ_MAP_TO_RETAIN = 10_000;
+
+  private static final LongAdder evalCounter = new LongAdder();
+  private static final LongAdder metricsEvalsDropped = new LongAdder();
+  private static final LongAdder targetsSeenDropped = new LongAdder();
   private final Connector connector;
   private final BaseConfig config;
   private final FrequencyMap<MetricEvent> frequencyMap;
-  private final Set<Target> uniqueTargetSet;
+  private final Set<Target> targetsSeen;
 
   private ScheduledFuture<?> runningTask = null;
   private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
   private final LongAdder metricsSent = new LongAdder();
+  private final int maxFreqMapSize;
 
   public MetricsProcessor(
       @NonNull Connector connector, @NonNull BaseConfig config, @NonNull MetricsCallback callback) {
     this.connector = connector;
     this.config = config;
     this.frequencyMap = new FrequencyMap<>();
-    this.uniqueTargetSet = ConcurrentHashMap.newKeySet();
+    this.targetsSeen = ConcurrentHashMap.newKeySet();
+    this.maxFreqMapSize = clamp(config.getBufferSize(), 2048, MAX_FREQ_MAP_TO_RETAIN);
     callback.onMetricsReady();
+  }
+
+  private int clamp(int value, int lower, int higher) {
+    return Math.max(lower, Math.min(higher, value));
   }
 
   @Deprecated /* The name of this method no longer makes sense since we moved to a map, kept for source compatibility */
@@ -117,29 +134,28 @@ class MetricsProcessor {
 
   void registerEvaluation(Target target, String featureName, Variation variation) {
 
-    final int freqMapSize = frequencyMap.size();
-
-    if (freqMapSize > config.getBufferSize()) {
-      if (log.isWarnEnabled()) {
-        log.warn(
-            "Metric frequency map exceeded buffer size ({} > {}), force flushing",
-            freqMapSize,
-            config.getBufferSize());
-      }
-      // If the map is starting to grow too much then push the events now and reset the counters
-      scheduler.schedule(this::runOneIteration, 0, SECONDS);
-    }
-
     Target metricTarget = globalTarget;
 
     if (target != null) {
-      uniqueTargetSet.add(target);
-      if (!config.isGlobalTargetEnabled()) {
-        metricTarget = target;
+      if (!targetsSeen.contains(target) && targetsSeen.size() + 1 > MAX_SENT_TARGETS_TO_RETAIN) {
+        targetsSeenDropped.increment();
+      } else {
+        targetsSeen.add(target);
+        if (!config.isGlobalTargetEnabled()) {
+          metricTarget = target;
+        }
       }
     }
 
-    frequencyMap.increment(new MetricEvent(featureName, metricTarget, variation));
+    final MetricEvent metricsEvent = new MetricEvent(featureName, metricTarget, variation);
+
+    if (!frequencyMap.containsKey(metricsEvent) && frequencyMap.size() + 1 > maxFreqMapSize) {
+      metricsEvalsDropped.increment();
+    } else {
+      frequencyMap.increment(metricsEvent);
+    }
+
+    evalCounter.increment();
   }
 
   /** This method sends the metrics data to the analytics server and resets the cache */
@@ -259,15 +275,23 @@ class MetricsProcessor {
 
   void runOneIteration() {
     Thread.currentThread().setName("MetricsThread");
+
+    final long droppedEvals = metricsEvalsDropped.sumThenReset();
+    final long droppedTargets = targetsSeenDropped.sumThenReset();
+
+    if (droppedEvals > 0 || droppedTargets > 0) {
+      warnMetricsBufferFull(droppedEvals, droppedTargets);
+    }
+
     if (log.isDebugEnabled()) {
       log.debug(
           "Drain metrics queue : frequencyMap size={} uniqueTargetSet size={}",
           frequencyMap.size(),
-          uniqueTargetSet.size());
+          targetsSeen.size());
     }
-    sendDataAndResetCache(frequencyMap.drainToMap(), new HashSet<>(uniqueTargetSet));
+    sendDataAndResetCache(frequencyMap.drainToMap(), new HashSet<>(targetsSeen));
 
-    uniqueTargetSet.clear();
+    targetsSeen.clear();
   }
 
   public void start() {
@@ -328,7 +352,15 @@ class MetricsProcessor {
   }
 
   long getTargetSetSize() {
-    return uniqueTargetSet.size();
+    return targetsSeen.size();
+  }
+
+  long getMetricsEvalsDropped() {
+    return metricsEvalsDropped.sum();
+  }
+
+  long getTargetsSeenDropped() {
+    return targetsSeenDropped.sum();
   }
 
   void reset() {
