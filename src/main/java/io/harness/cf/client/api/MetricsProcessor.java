@@ -19,6 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -98,6 +99,9 @@ class MetricsProcessor {
 
   private static final int MAX_SENT_TARGETS_TO_RETAIN = 100_000;
   private static final int MAX_FREQ_MAP_TO_RETAIN = 10_000;
+
+  private static final LongAdder evalCounter = new LongAdder();
+
   private final Connector connector;
   private final BaseConfig config;
   private final FrequencyMap<MetricEvent> frequencyMap;
@@ -134,7 +138,9 @@ class MetricsProcessor {
     if (target != null) {
 
       if (!targetsSeen.contains(target) && targetsSeen.size() + 1 > MAX_SENT_TARGETS_TO_RETAIN) {
-        log.warn("Target count has exceeded {}", MAX_SENT_TARGETS_TO_RETAIN);
+        if (evalCounter.sum() % MAX_SENT_TARGETS_TO_RETAIN == 0) {
+          log.warn("Target count has exceeded {}", MAX_SENT_TARGETS_TO_RETAIN);
+        }
       } else {
         targetsSeen.add(target);
         if (!config.isGlobalTargetEnabled()) {
@@ -146,10 +152,14 @@ class MetricsProcessor {
     final MetricEvent metricsEvent = new MetricEvent(featureName, metricTarget, variation);
 
     if (!frequencyMap.containsKey(metricsEvent) && frequencyMap.size() + 1 > maxFreqMapSize) {
-      warnMetricsBufferFull();
+      if (evalCounter.sum() % maxFreqMapSize == 0) {
+        warnMetricsBufferFull();
+      }
     } else {
       frequencyMap.increment(metricsEvent);
     }
+
+    evalCounter.increment();
   }
 
   /** This method sends the metrics data to the analytics server and resets the cache */
