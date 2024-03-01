@@ -78,7 +78,7 @@ public class MetricsProcessorTest implements MetricsCallback {
           Variation variation =
               Variation.builder().identifier("true" + v).name("name" + v).value("true").build();
 
-          metricsProcessor.pushToQueue(target, feature.getFeature(), variation);
+          metricsProcessor.registerEvaluation(target, feature.getFeature(), variation);
 
           maxQueueMapSize = Math.max(maxQueueMapSize, metricsProcessor.getQueueSize());
           maxUniqueTargetSetSize =
@@ -88,13 +88,14 @@ public class MetricsProcessorTest implements MetricsCallback {
 
       if (t % 10 == 0) {
         log.info(
-            "Metrics frequency map (cur: {} max: {}) Unique targets (cur: {} max: {}) Events sent ({}) Events pending ({})",
+            "Metrics frequency map (cur: {} max: {}) Unique targets (cur: {} max: {}) Events sent ({}) Events pending ({}) Dropped ({})",
             metricsProcessor.getQueueSize(),
             maxQueueMapSize,
             metricsProcessor.getTargetSetSize(),
             maxUniqueTargetSetSize,
             metricsProcessor.getMetricsSent(),
-            metricsProcessor.getPendingMetricsToBeSent());
+            metricsProcessor.getPendingMetricsToBeSent(),
+            metricsProcessor.getMetricsEvalsDropped());
 
         metricsProcessor.flushQueue(); // mimic scheduled job
       }

@@ -65,8 +65,12 @@ public class SdkCodes {
     log.warn(sdkErrMsg(7002, Optional.ofNullable(reason)));
   }
 
-  public static void warnMetricsBufferFull() {
-    log.warn(sdkErrMsg(7008, Optional.empty()));
+  public static void warnMetricsBufferFull(long droppedEvals, long droppedTargets) {
+    log.warn(
+        sdkErrMsg(
+            7008,
+            Optional.of(
+                "- evals dropped: " + droppedEvals + " targets dropped: " + droppedTargets)));
   }
 
   public static void warnDefaultVariationServed(String identifier, Target target, String def) {
