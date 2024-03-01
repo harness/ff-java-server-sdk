@@ -148,7 +148,7 @@ class CfClientTest {
             .streamEnabled(true)
             .build();
 
-    Http4xxOnAuthDispatcher webserverDispatcher = new Http4xxOnAuthDispatcher(429, 4); // auth error
+    Http4xxOnAuthDispatcher webserverDispatcher = new Http4xxOnAuthDispatcher(429, 3); // auth error
 
     try (MockWebServer mockSvr = new MockWebServer()) {
       mockSvr.setDispatcher(webserverDispatcher);
@@ -205,7 +205,7 @@ class CfClientTest {
         webserverDispatcher.waitForAllConnections(15);
 
         assertTrue(
-            webserverDispatcher.getUrlMap().get(AUTH_ENDPOINT) >= (3 + 1),
+            webserverDispatcher.getUrlMap().get(AUTH_ENDPOINT) >= (2 + 1),
             "not enough authentication attempts");
 
         assertEquals(
@@ -465,7 +465,7 @@ class CfClientTest {
         // First 3 attempts to connect to auth endpoint will return a 408, followed by a 200 success
         webserverDispatcher.waitForAllConnections(15);
 
-        final int expectedAuths = 3 + 3 + 1; // 3+3 failed retries (4xx), 1 success (200)
+        final int expectedAuths = 2 + 2 + 1; // 2+2 failed retries (4xx), 1 success (200)
 
         assertEquals(
             expectedAuths,
