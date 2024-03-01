@@ -96,8 +96,8 @@ class MetricsProcessor {
   private static final Target globalTarget =
       Target.builder().name(GLOBAL_TARGET_NAME).identifier(GLOBAL_TARGET).build();
 
-  private final static int MAX_SENT_TARGETS_TO_RETAIN = 100_000;
-  private final static int MAX_FREQ_MAP_TO_RETAIN = 10_000;
+  private static final int MAX_SENT_TARGETS_TO_RETAIN = 100_000;
+  private static final int MAX_FREQ_MAP_TO_RETAIN = 10_000;
   private final Connector connector;
   private final BaseConfig config;
   private final FrequencyMap<MetricEvent> frequencyMap;
@@ -115,7 +115,10 @@ class MetricsProcessor {
     this.config = config;
     this.frequencyMap = new FrequencyMap<>();
     this.targetsSeen = ConcurrentHashMap.newKeySet();
-    this.maxFreqMapSize = (config.getBufferSize() > MAX_FREQ_MAP_TO_RETAIN) ? MAX_FREQ_MAP_TO_RETAIN : config.getBufferSize();
+    this.maxFreqMapSize =
+        (config.getBufferSize() > MAX_FREQ_MAP_TO_RETAIN)
+            ? MAX_FREQ_MAP_TO_RETAIN
+            : config.getBufferSize();
     callback.onMetricsReady();
   }
 

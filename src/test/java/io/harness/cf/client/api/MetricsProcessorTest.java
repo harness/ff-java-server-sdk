@@ -34,8 +34,7 @@ public class MetricsProcessorTest implements MetricsCallback {
     MockitoAnnotations.openMocks(this);
     metricsProcessor =
         Mockito.spy(
-            new MetricsProcessor(
-                connector, BaseConfig.builder().bufferSize(BUFFER_SIZE).build(), this));
+            new MetricsProcessor(connector, BaseConfig.builder().bufferSize(10_001).build(), this));
 
     metricsProcessor.reset();
   }

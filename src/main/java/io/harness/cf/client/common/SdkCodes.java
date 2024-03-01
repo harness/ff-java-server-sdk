@@ -65,11 +65,9 @@ public class SdkCodes {
     log.warn(sdkErrMsg(7002, Optional.ofNullable(reason)));
   }
 
-
   public static void warnMetricsBufferFull() {
     log.warn(sdkErrMsg(7008, Optional.empty()));
   }
-
 
   public static void warnDefaultVariationServed(String identifier, Target target, String def) {
     String targetId = (target == null) ? "null" : target.getIdentifier();
@@ -119,7 +117,6 @@ public class SdkCodes {
                 {"7001", "Metrics thread exited"},
                 {"7002", "Posting metrics failed, reason:"},
                 {"7008", "Metrics buffer is full and metrics will be discarded"}
-
               })
           .collect(Collectors.toMap(entry -> Integer.parseInt(entry[0]), entry -> entry[1]));
 
