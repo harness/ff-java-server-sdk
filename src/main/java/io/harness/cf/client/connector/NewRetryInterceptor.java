@@ -1,14 +1,23 @@
 package io.harness.cf.client.connector;
 
 import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Date;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
-import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-@Slf4j
 public class NewRetryInterceptor implements Interceptor {
 
+  private static final Logger log = LoggerFactory.getLogger(NewRetryInterceptor.class);
+  private static final SimpleDateFormat imfDateFormat =
+      new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.US);
   private final long retryBackoffDelay;
   private final long maxTryCount;
 
@@ -27,6 +36,7 @@ public class NewRetryInterceptor implements Interceptor {
   public Response intercept(@NotNull Chain chain) throws IOException {
     int tryCount = 1;
     boolean successful;
+    boolean limitReached = false;
     Response response = null;
     String msg = "";
     do {
@@ -36,7 +46,9 @@ public class NewRetryInterceptor implements Interceptor {
         response = chain.proceed(chain.request());
         successful = response.isSuccessful();
         if (!successful) {
-          msg = String.format("httpCode=%d %s", response.code(), response.message());
+          msg =
+              String.format(
+                  Locale.getDefault(), "httpCode=%d %s", response.code(), response.message());
           if (!shouldRetryHttpErrorCode(response.code())) {
             return response;
           }
@@ -47,7 +59,7 @@ public class NewRetryInterceptor implements Interceptor {
 
       } catch (Exception ex) {
         log.trace("Error while attempting to make request", ex);
-        msg = ex.getMessage();
+        msg = ex.getClass().getSimpleName() + ": " + ex.getMessage();
         response = makeErrorResp(chain, msg);
         successful = false;
         if (!shouldRetryException(ex)) {
@@ -55,7 +67,18 @@ public class NewRetryInterceptor implements Interceptor {
         }
       }
       if (!successful) {
-        final boolean limitReached = tryCount > maxTryCount;
+        int retryAfterHeaderValue = getRetryAfterHeaderInSeconds(response);
+        long backOffDelayMs;
+        if (retryAfterHeaderValue > 0) {
+          // Use Retry-After header if detected first
+          log.trace("Retry-After header detected: {} seconds", retryAfterHeaderValue);
+          backOffDelayMs = retryAfterHeaderValue * 1000L;
+        } else {
+          // Else fallback to a randomized exponential backoff
+          backOffDelayMs = retryBackoffDelay * tryCount;
+        }
+
+        limitReached = tryCount >= maxTryCount;
         log.warn(
             "Request attempt {} to {} was not successful, [{}]{}",
             tryCount,
@@ -63,18 +86,54 @@ public class NewRetryInterceptor implements Interceptor {
             msg,
             limitReached
                 ? ", retry limited reached"
-                : String.format(", retrying in %dms", retryBackoffDelay * tryCount));
+                : String.format(
+                    Locale.getDefault(),
+                    ", retrying in %dms  (retry-after hdr: %b)",
+                    backOffDelayMs,
+                    retryAfterHeaderValue > 0));
 
         if (!limitReached) {
-          sleep(retryBackoffDelay * tryCount);
+          sleep(backOffDelayMs);
         }
       }
-    } while (!successful && tryCount++ <= maxTryCount);
+      tryCount++;
+    } while (!successful && !limitReached);
 
     return response;
   }
 
+  int getRetryAfterHeaderInSeconds(Response response) {
+    final String retryAfterValue = response.header("Retry-After");
+    if (retryAfterValue == null) {
+      return 0;
+    }
+
+    int seconds = 0;
+    try {
+      seconds = Integer.parseInt(retryAfterValue);
+    } catch (NumberFormatException ignored) {
+    }
+
+    if (seconds <= 0) {
+      try {
+        final Date then = imfDateFormat.parse(retryAfterValue);
+        if (then != null) {
+          seconds = (int) Duration.between(Instant.now(), then.toInstant()).getSeconds();
+        }
+      } catch (ParseException ignored) {
+      }
+    }
+
+    if (seconds < 0) {
+      seconds = 0;
+    }
+
+    return Math.min(seconds, 3600);
+  }
+
   private boolean shouldRetryException(Exception ex) {
+    log.debug(
+        "should retry exception check: {} - {}", ex.getClass().getSimpleName(), ex.getMessage());
     return true;
   }
 
@@ -87,7 +146,7 @@ public class NewRetryInterceptor implements Interceptor {
 
   private Response makeErrorResp(Chain chain, String msg) {
     return new Response.Builder()
-        .code(404) /* dummy response: real reason is in the message */
+        .code(400) /* dummy response: real reason is in the message */
         .request(chain.request())
         .protocol(Protocol.HTTP_2)
         .message(msg)

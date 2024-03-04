@@ -1,6 +1,8 @@
 package io.harness.ff.examples;
 
 import io.harness.cf.client.api.*;
+import io.harness.cf.client.connector.HarnessConfig;
+import io.harness.cf.client.connector.HarnessConnector;
 import io.harness.cf.client.dto.Target;
 
 import java.util.concurrent.Executors;
@@ -19,8 +21,13 @@ public class GettingStarted {
     public static void main(String[] args) {
         System.out.println("Harness SDK Getting Started");
 
+        final HarnessConnector connector = new HarnessConnector(apiKey, HarnessConfig.builder()
+                //.configUrl("http://localhost:8000/api/1.0")
+                //.eventUrl("http://localhost:8001/api/1.0")
+                .build());
+
         //Create a Feature Flag Client
-        try (CfClient cfClient = new CfClient(apiKey, BaseConfig.builder().build())) {
+        try (CfClient cfClient = new CfClient(connector)) {
             cfClient.waitForInitialization();
 
             // Create a target (different targets can get different results based on rules.  This includes a custom attribute 'location')

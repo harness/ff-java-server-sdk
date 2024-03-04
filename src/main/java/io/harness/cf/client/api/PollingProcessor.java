@@ -8,10 +8,7 @@ import io.harness.cf.client.connector.Connector;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Segment;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.*;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -81,7 +78,12 @@ class PollingProcessor {
   }
 
   public void retrieveAll() {
-    CompletableFuture.allOf(retrieveFlags(), retrieveSegments()).join();
+    try {
+      CompletableFuture.allOf(retrieveFlags(), retrieveSegments()).join();
+    } catch (CompletionException | CancellationException ex) {
+      log.warn("retrieveAll failed: {} - {}", ex.getClass().getSimpleName(), ex.getMessage());
+      log.trace("retrieveAll failed", ex);
+    }
   }
 
   private void runOneIteration() {
