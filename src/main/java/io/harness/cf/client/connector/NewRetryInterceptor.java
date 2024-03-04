@@ -103,12 +103,6 @@ public class NewRetryInterceptor implements Interceptor {
   }
 
   int getRetryAfterHeaderInSeconds(Response response) {
-    if (response.code() != 503
-        && response.code() != 429
-        && !(response.code() >= 300 && response.code() <= 399)) {
-      return 0;
-    }
-
     final String retryAfterValue = response.header("Retry-After");
     if (retryAfterValue == null) {
       return 0;
@@ -138,7 +132,8 @@ public class NewRetryInterceptor implements Interceptor {
   }
 
   private boolean shouldRetryException(Exception ex) {
-    log.info("should retry exception check: {}", ex.getMessage());
+    log.debug(
+        "should retry exception check: {} - {}", ex.getClass().getSimpleName(), ex.getMessage());
     return true;
   }
 
