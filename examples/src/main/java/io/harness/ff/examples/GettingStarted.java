@@ -26,7 +26,8 @@ public class GettingStarted {
                 //.eventUrl("http://localhost:8001/api/1.0")
                 .build());
 
-        //Create a Feature Flag Client
+        // Create a Feature Flag Client
+        // try-with-resources is used here to automatically close the client when this block is exited
         try (CfClient cfClient = new CfClient(connector)) {
             cfClient.waitForInitialization();
 
@@ -46,7 +47,7 @@ public class GettingStarted {
                     10,
                     TimeUnit.SECONDS);
 
-
+            // SDK will exit after 15 minutes, this gives the example time to stream events
             TimeUnit.MINUTES.sleep(15);
 
             // Close the SDK
