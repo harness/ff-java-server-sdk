@@ -78,14 +78,14 @@ Add the following Maven dependency in your project's pom.xml file:
 <dependency>
     <groupId>io.harness</groupId>
     <artifactId>ff-java-server-sdk</artifactId>
-    <version>1.5.0</version>
+    <version>1.5.2</version>
 </dependency>
 ```
 
 #### Gradle
 
 ```
-implementation 'io.harness:ff-java-server-sdk:1.5.0'
+implementation 'io.harness:ff-java-server-sdk:1.5.2'
 ```
 
 ### Code Sample
@@ -116,7 +116,8 @@ public class GettingStarted {
     public static void main(String[] args) {
         System.out.println("Harness SDK Getting Started");
 
-        //Create a Feature Flag Client
+        // Create a Feature Flag Client
+        // try-with-resources is used here to automatically close the client when this block is exited
         try (CfClient cfClient = new CfClient(apiKey)) {
             cfClient.waitForInitialization();
 
@@ -136,6 +137,9 @@ public class GettingStarted {
                     0,
                     10,
                     TimeUnit.SECONDS);
+
+            // SDK will exit after 15 minutes, this gives the example time to stream events
+            TimeUnit.MINUTES.sleep(15);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -157,7 +161,6 @@ public class GettingStarted {
 
 ```bash
 export FF_API_KEY=<your key here>
-cd examples
 
 ./gradlew clean build
 ./gradlew examples:GettingStarted --console=plain
