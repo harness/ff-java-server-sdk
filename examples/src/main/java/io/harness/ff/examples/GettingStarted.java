@@ -11,25 +11,32 @@ import java.util.concurrent.TimeUnit;
 
 public class GettingStarted {
     // API Key - set this as an env variable
-    private static final String apiKey = getEnvOrDefault("FF_API_KEY", "");
+    private static final String apiKey = getEnvOrDefault("FF_API_KEY", "xxx-xxx-xxx");
 
     // Flag Identifier
-    private static final String flagName = getEnvOrDefault("FF_FLAG_NAME", "harnessappdemodarkmode");
+    private static final String flagName1 = getEnvOrDefault("FF_FLAG_NAME", "harnessappdemodarkmode");
+    private static final String flagName2 = getEnvOrDefault("FF_FLAG_NAME", "harnessappdemoenableglobalhelp");
 
     private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     public static void main(String[] args) {
         System.out.println("Harness SDK Getting Started");
 
-        final HarnessConnector connector = new HarnessConnector(apiKey, HarnessConfig.builder()
-                //.configUrl("http://localhost:8000/api/1.0")
-                //.eventUrl("http://localhost:8001/api/1.0")
-                .build());
+        BaseConfig options = BaseConfig.builder()
+                .pollIntervalInSeconds(60)
+                .streamEnabled(true)
+                .analyticsEnabled(true)
+                .build();
 
-        // Create a Feature Flag Client
-        // try-with-resources is used here to automatically close the client when this block is exited
-        try (CfClient cfClient = new CfClient(connector)) {
-            cfClient.waitForInitialization();
+        HarnessConfig connectorConfig =    HarnessConfig.builder()
+                .build();
+
+        CfClient cfClient1 = new CfClient(new HarnessConnector(apiKey, connectorConfig), options);
+        CfClient cfClient2 = new CfClient(new HarnessConnector(apiKey, connectorConfig), options);
+
+        try {
+            cfClient1.waitForInitialization();
+            cfClient2.waitForInitialization();
 
             // Create a target (different targets can get different results based on rules.  This includes a custom attribute 'location')
             final Target target = Target.builder()
@@ -40,8 +47,10 @@ public class GettingStarted {
             // Loop forever reporting the state of the flag
             scheduler.scheduleAtFixedRate(
                     () -> {
-                        boolean result = cfClient.boolVariation(flagName, target, false);
-                        System.out.println("Flag '" + flagName + "' Boolean variation is " + result);
+                        boolean result = cfClient1.boolVariation(flagName1, target, false);
+                        System.out.println("Flag '" + flagName1 + "' Client1 Boolean variation is " + result);
+                        boolean result2 = cfClient2.boolVariation(flagName2, target, false);
+                        System.out.println("Flag '" + flagName2 + "' Client2 Boolean variation is " + result2);
                     },
                     0,
                     10,
