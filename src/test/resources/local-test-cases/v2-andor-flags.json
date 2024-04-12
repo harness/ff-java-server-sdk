@@ -1,0 +1,73 @@
+[
+  {
+    "defaultServe": {
+      "variation": "false"
+    },
+    "environment": "TEST",
+    "feature": "boolflag_or",
+    "kind": "boolean",
+    "offVariation": "false",
+    "prerequisites": [],
+    "project": "test",
+    "rules": [],
+    "state": "on",
+    "variationToTargetMap": [
+      {
+        "variation": "true",
+        "targets": [
+          {
+          "identifier": "dummy",
+          "name": "dummy"
+          }
+        ],
+        "targetSegments": ["or-segment"]
+      }
+    ],
+    "variations": [
+      {
+        "identifier": "true",
+        "name": "True",
+        "value": "true"
+      },
+      {
+        "identifier": "false",
+        "name": "False",
+        "value": "false"
+      }
+    ],
+    "version": 1
+  },
+  {
+    "defaultServe": {
+      "variation": "false"
+    },
+    "environment": "TEST",
+    "feature": "boolflag_and",
+    "kind": "boolean",
+    "offVariation": "false",
+    "prerequisites": [],
+    "project": "test",
+    "rules": [],
+    "state": "on",
+    "variationToTargetMap": [
+      {
+        "variation": "true",
+        "targets": [],
+        "targetSegments": ["and-segment"]
+      }
+    ],
+    "variations": [
+      {
+        "identifier": "true",
+        "name": "True",
+        "value": "true"
+      },
+      {
+        "identifier": "false",
+        "name": "False",
+        "value": "false"
+      }
+    ],
+    "version": 1
+  }
+]

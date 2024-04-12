@@ -62,6 +62,7 @@ version = libs.versions.sdk.get()
 description = 'Harness Feature Flag Java Server SDK'
 
 openApiGenerate {
+    // https://github.com/OpenAPITools/openapi-generator/tree/master/modules/openapi-generator-gradle-plugin
     generatorName = "java"
     inputSpec = "$rootDir/src/main/resources/client-v1.yaml".toString()
     outputDir = "$buildDir/generated".toString()
@@ -75,6 +76,7 @@ openApiGenerate {
     generateApiTests = false
     typeMappings = [ "OffsetDateTime" : "Date" ]
     importMappings = [ "java.time.OffsetDateTime" : "java.util.Date" ]
+    // https://github.com/OpenAPITools/openapi-generator/blob/master/docs/generators/java.md
     configOptions  = [
             java8: "true",
             dateLibrary : "java8",
