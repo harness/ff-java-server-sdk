@@ -91,28 +91,6 @@ public class EvaluatorTest {
   @ParameterizedTest
   @EnumSource(ORTest.class)
   public void testTargetV2OrOperator(ORTest test) throws Exception {
-
-    /*   final StorageRepository repository = new StorageRepository(new CaffeineCache(100), null, null);
-    final Evaluator evaluator = new Evaluator(repository);
-
-    loadFlags(repository, "local-test-cases/v2-andor-flags.json");
-    loadSegments(repository, "local-test-cases/v2-andor-segments.json");
-
-    final Target target =
-        Target.builder()
-            .identifier("mytarget")
-            .attributes(
-                new HashMap<String, String>() {
-                  {
-                    put("email", test.email);
-                  }
-                })
-            .build();
-
-    final Optional<Variation> result = evaluator.evaluate("boolflag_or", target, BOOLEAN, null);
-
-    assertTrue(result.isPresent());
-    assertEquals(String.valueOf(test.expected), result.get().getValue());*/
     testTargetV2Operator(test.email, null, "boolflag_or", String.valueOf(test.expected));
   }
 

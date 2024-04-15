@@ -20,6 +20,19 @@
 
     "servingRules": [
       {
+        "ruleId": "this_rule_with_lower_priority_should_be_ignored",
+        "priority": 7,
+        "clauses": [
+          {
+            "attribute": "email",
+            "op": "ends_with",
+            "values": [
+              "@harness.io"
+            ]
+          }
+        ]
+      },
+      {
         "ruleId": "rule1",
         "priority": 1,
         "clauses": [
