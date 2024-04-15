@@ -169,6 +169,17 @@ public class Evaluator implements Evaluation {
     }
   }
 
+  protected boolean evaluateClausesV2(List<Clause> clauses, Target target) {
+    // New style rules require that all clauses are true
+    for (Clause clause : clauses) {
+      if (!evaluateClause(clause, target)) {
+        return false;
+      }
+    }
+    log.debug("All clauses {} passed", clauses);
+    return true;
+  }
+
   protected boolean evaluateClauses(List<Clause> clauses, Target target) {
     for (Clause clause : clauses) {
       if (evaluateClause(clause, target)) {
@@ -206,11 +217,24 @@ public class Evaluator implements Evaluation {
           return true;
         }
 
-        // Should Target be included via segment rules
-        List<Clause> rules = segment.getRules();
-        if ((rules != null) && !rules.isEmpty() && evaluateClauses(rules, target)) {
-          log.debug("Target included in segment {} via rules", segment.getName());
-          return true;
+        // New style rules, if sent by BE prefer those first
+        List<GroupServingRule> newServingRules = segment.getServingRules();
+        if (newServingRules != null && !newServingRules.isEmpty()) {
+          newServingRules.sort(Comparator.comparing(GroupServingRule::getPriority));
+
+          for (GroupServingRule servingRule : newServingRules) {
+            if (evaluateClausesV2(servingRule.getClauses(), target)) {
+              return true;
+            }
+          }
+        } else {
+          // Legacy rules
+          // Should Target be included via segment rules
+          List<Clause> rules = segment.getRules();
+          if ((rules != null) && !rules.isEmpty() && evaluateClauses(rules, target)) {
+            log.debug("Target included in segment {} via rules", segment.getName());
+            return true;
+          }
         }
       }
     }

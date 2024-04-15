@@ -14,6 +14,8 @@ servers:
 tags:
   - name: client
   - name: metrics
+  - name: Proxy
+    description: APIs used by the ff-proxy
 paths:
   '/client/env/{environmentUUID}/feature-configs':
     get:
@@ -198,6 +200,7 @@ paths:
             application/json:
               schema:
                 allOf:
+                  - $ref: '#/components/schemas/Pagination'
                   - $ref: '#/components/schemas/Evaluations'
   '/client/env/{environmentUUID}/target/{target}/evaluations/{feature}':
     get:
@@ -234,7 +237,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Evaluation'
-  '/metrics/{environment}':
+  '/metrics/{environmentUUID}':
     post:
       tags:
         - metrics
@@ -250,6 +253,7 @@ paths:
             schema:
               $ref: '#/components/schemas/Metrics'
       security:
+        - ApiKeyAuth: []
         - BearerAuth: []
       responses:
         '200':
@@ -297,65 +301,175 @@ paths:
                 default: '*'
         '503':
           description: Service Unavailable
+  /proxy/config:
+    get:
+      summary: Gets Proxy config for multiple environments
+      description: >-
+        Gets Proxy config for multiple environments if the Key query param is
+        provided or gets config for a single environment if an environment query
+        param is provided
+      operationId: GetProxyConfig
+      tags:
+        - Proxy
+      parameters:
+        - $ref: '#/components/parameters/pageNumber'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/clusterQueryOptionalParam'
+        - in: query
+          name: environment
+          description: >-
+            Accepts an EnvironmentID. If this is provided then the endpoint will
+            only return config for this environment. If this is left empty then
+            the Proxy will return config for all environments associated with
+            the Proxy Key.
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: key
+          description: Accpets a Proxy Key.
+          required: true
+          schema:
+            type: string
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/ProxyConfigResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /proxy/auth:
+    post:
+      summary: Endpoint that the Proxy can use to authenticate with the client server
+      description: Endpoint that the Proxy can use to authenticate with the client server
+      operationId: AuthenticateProxyKey
+      tags:
+        - Proxy
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                proxyKey:
+                  type: string
+                  example: 896045f3-42ee-4e73-9154-086644768b96
+              required:
+                - proxyKey
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticationResponse'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 components:
   schemas:
     FeatureState:
       type: string
+      description: The state of a flag either off or on
       enum:
         - 'on'
         - 'off'
     Variation:
       type: object
+      description: A variation of a flag that can be returned to a target
       properties:
         identifier:
           type: string
+          description: The unique identifier for the variation
+          example: off-variation
         value:
           type: string
+          description: >-
+            The variation value to serve such as true or false for a boolean
+            flag
+          example: 'true'
         name:
           type: string
+          description: The user friendly name of the variation
+          example: Off VAriation
         description:
           type: string
+          description: A description of the variation
       required:
         - identifier
         - value
     Clause:
       type: object
+      description: A clause describes what conditions are used to evaluate a flag
       properties:
         id:
           type: string
+          description: The unique ID for the clause
+          example: 32434243
         attribute:
           type: string
+          description: >-
+            The attribute to use in the clause.  This can be any target
+            attribute
+          example: identifier
         op:
           type: string
+          description: 'The type of operation such as equals, starts_with, contains'
+          example: starts_with
         values:
           type: array
+          description: The values that are compared against the operator
           items:
             type: string
         negate:
           type: boolean
+          description: Is the operation negated?
+          example: false
       required:
-        - id
         - attribute
         - op
         - negate
         - values
     WeightedVariation:
       type: object
+      description: >-
+        A variation and the weighting it should receive as part of a percentage
+        rollout
       properties:
         variation:
           type: string
+          description: The variation identifier
+          example: off-variation
         weight:
           type: integer
+          description: The weight to be given to the variation in percent
+          example: 50
       required:
         - variation
         - weight
     Distribution:
       type: object
+      description: Describes a distribution rule
       properties:
         bucketBy:
           type: string
+          description: The attribute to use when distributing targets across buckets
         variations:
           type: array
+          description: A list of variations and the weight that should be given to each
           items:
             $ref: '#/components/schemas/WeightedVariation'
       required:
@@ -363,6 +477,9 @@ components:
         - variations
     Serve:
       type: object
+      description: >-
+        Describe the distribution rule and the variation that should be served
+        to the target
       properties:
         distribution:
           $ref: '#/components/schemas/Distribution'
@@ -370,13 +487,20 @@ components:
           type: string
     ServingRule:
       type: object
+      description: The rule used to determine what variation to serve to a target
       properties:
         ruleId:
           type: string
+          description: The unique identifier for this rule
         priority:
           type: integer
+          description: >-
+            The rules priority relative to other rules.  The rules are evaluated
+            in order with 1 being the highest
+          example: 1
         clauses:
           type: array
+          description: A list of clauses to use in the rule
           items:
             $ref: '#/components/schemas/Clause'
         serve:
@@ -385,14 +509,16 @@ components:
         - priority
         - clauses
         - serve
-        - ruleId
     Prerequisite:
       type: object
+      description: Feature Flag pre-requisites
       properties:
         feature:
           type: string
+          description: The feature identifier that is the prerequisite
         variations:
           type: array
+          description: A list of variations that must be met
           items:
             type: string
       required:
@@ -400,25 +526,35 @@ components:
         - variations
     TargetMap:
       type: object
+      description: Target map provides the details of a target that belongs to a flag
       properties:
         identifier:
           type: string
+          description: The identifier for the target
         name:
           type: string
+          description: The name of the target
       required:
-        - idenfifier
+        - identifier
         - name
     VariationMap:
       type: object
+      description: >-
+        A mapping of variations to targets and target groups (segments).  The
+        targets listed here should receive this variation.
       properties:
         variation:
           type: string
+          description: The variation identifier
+          example: off-variation
         targets:
           type: array
+          description: A list of target mappings
           items:
             $ref: '#/components/schemas/TargetMap'
         targetSegments:
           type: array
+          description: A list of target groups (segments)
           items:
             type: string
       required:
@@ -472,86 +608,123 @@ components:
         - state
         - kind
         - variations
-        - defaultTarget
         - offVariation
         - defaultServe
     Tag:
       type: object
-      description: A name and value pair.
+      description: A Tag object used to tag feature flags - consists of name and identifier
       properties:
         name:
           type: string
-        value:
+          description: The name of the tag
+          example: feature-flag-tag-1
+        identifier:
           type: string
+          description: The identifier of the tag
+          example: feature-flag-tag-1
       required:
         - name
+        - identifier
     Segment:
       type: object
+      description: A Target Group (Segment) response
       properties:
         identifier:
           type: string
-          description: Unique identifier for the segment.
+          description: Unique identifier for the target group.
         name:
           type: string
-          description: Name of the segment.
+          description: Name of the target group.
           example: Beta Testers
         environment:
           type: string
+          description: The environment this target group belongs to
+          example: Production
         tags:
           type: array
+          description: Tags for this target group
           items:
             $ref: '#/components/schemas/Tag'
         included:
           type: array
+          description: A list of Targets who belong to this target group
           items:
             $ref: '#/components/schemas/Target'
         excluded:
           type: array
+          description: A list of Targets who are excluded from this target group
           items:
             $ref: '#/components/schemas/Target'
         rules:
           type: array
           items:
             $ref: '#/components/schemas/Clause'
+        servingRules:
+          type: array
+          items:
+            $ref: '#/components/schemas/GroupServingRule'
           description: >-
             An array of rules that can cause a user to be included in this
             segment.
         createdAt:
           type: integer
+          description: The data and time in milliseconds when the group was created
           format: int64
         modifiedAt:
           type: integer
+          description: The data and time in milliseconds when the group was last modified
           format: int64
         version:
           type: integer
+          description: >-
+            The version of this group.  Each time it is modified the version is
+            incremented
+          example: 1
           format: int64
       required:
         - identifier
         - name
     Target:
       type: object
+      description: A Target object
       properties:
         identifier:
           type: string
+          description: The unique identifier for this target
+          example: john-doe
         account:
           type: string
+          description: The account ID that the target belongs to
+          example: abcXDdffdaffd
         org:
           type: string
+          description: The identifier for the organization that the target belongs to
         environment:
           type: string
+          description: The identifier for the environment that the target belongs to
         project:
           type: string
+          description: The identifier for the project that this target belongs to
         name:
           type: string
+          description: The name of this Target
+          example: John Doe
         anonymous:
           type: boolean
+          description: Indicates if this target is anonymous
         attributes:
           type: object
+          description: a JSON representation of the attributes for this target
+          example:
+            age: 20
+            location: Belfast
         createdAt:
           type: integer
+          description: The date and time in milliseconds when this Target was created
           format: int64
         segments:
           type: array
+          description: A list of Target Groups (Segments) that this Target belongs to
           items:
             $ref: '#/components/schemas/Segment'
       required:
@@ -561,13 +734,42 @@ components:
         - project
         - account
         - org
+    GroupServingRule:
+      type: object
+      description: The rule used to determine what variation to serve to a target
+      properties:
+        ruleId:
+          type: string
+          description: The unique identifier for this rule
+        priority:
+          type: integer
+          description: >-
+            The rules priority relative to other rules.  The rules are evaluated
+            in order with 1 being the highest
+          example: 1
+        clauses:
+          type: array
+          description: A list of clauses to use in the rule
+          items:
+            $ref: '#/components/schemas/Clause'
+      required:
+        - ruleId
+        - clauses
+        - priority
     Error:
       type: object
       properties:
         code:
           type: string
+          description: The http error code
+          example: 404
         message:
           type: string
+          description: The reason the request failed
+          example: 'Error retrieving projects, organization ''default_org'' does not exist'
+        details:
+          type: object
+          description: Additional details about the error
       required:
         - code
         - message
@@ -604,16 +806,25 @@ components:
       properties:
         version:
           type: integer
+          description: >-
+            The version of this object.  The version will be incremented each
+            time the object is modified
+          example: 5
         pageCount:
           type: integer
+          description: The total number of pages
+          example: 100
         itemCount:
           type: integer
+          description: The total number of items
           example: 1
         pageSize:
           type: integer
+          description: The number of items per page
           example: 1
         pageIndex:
           type: integer
+          description: The current page
           example: 0
       required:
         - pageCount
@@ -699,7 +910,36 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/MetricsData'
+    ProxyConfig:
+      type: object
+      description: TBD
+      allOf:
+        - $ref: '#/components/schemas/Pagination'
+        - properties:
+            environments:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  apiKeys:
+                    type: array
+                    items:
+                      type: string
+                  featureConfigs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FeatureConfig'
+                  segments:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Segment'
   securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: api-key
     BearerAuth:
       type: http
       scheme: bearer
@@ -713,12 +953,26 @@ components:
       schema:
         type: string
     environmentPathParam:
-      name: environment
+      name: environmentUUID
       in: path
       required: true
       description: environment parameter in query.
       schema:
         type: string
+    pageNumber:
+      name: pageNumber
+      in: query
+      required: false
+      description: PageNumber
+      schema:
+        type: integer
+    pageSize:
+      name: pageSize
+      in: query
+      required: false
+      description: PageSize
+      schema:
+        type: integer
   responses:
     Unauthenticated:
       description: Unauthenticated
@@ -740,6 +994,18 @@ components:
             $ref: '#/components/schemas/Error'
     InternalServerError:
       description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ProxyConfigResponse:
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProxyConfig'
+    BadRequest:
+      description: Bad request
       content:
         application/json:
           schema:

@@ -1,0 +1,101 @@
+[
+  {
+    "comment": "---------- OR ----------",
+    "environment": "Production",
+    "excluded": [],
+    "identifier": "or-segment",
+    "included": [],
+    "name": "is_harness_or_somethingelse_email_OR",
+    "rules": [
+      {
+        "attribute": "identifier",
+        "id": "7ccfe4f4-b5b4-4d45-9eae-ce2666210487",
+        "negate": false,
+        "op": "ends_with",
+        "values": [
+          "@harness.io"
+        ]
+      }
+    ],
+
+    "servingRules": [
+      {
+        "ruleId": "this_rule_with_lower_priority_should_be_ignored",
+        "priority": 7,
+        "clauses": [
+          {
+            "attribute": "email",
+            "op": "ends_with",
+            "values": [
+              "@harness.io"
+            ]
+          }
+        ]
+      },
+      {
+        "ruleId": "rule1",
+        "priority": 1,
+        "clauses": [
+          {
+            "attribute": "email",
+            "op": "ends_with",
+            "values": [
+              "@harness.io"
+            ]
+          }
+        ]
+      },
+      {
+        "ruleId": "rule2",
+        "priority": 2,
+        "clauses": [
+          {
+            "attribute": "email",
+            "op": "ends_with",
+            "values": [
+              "@somethingelse.com"
+            ]
+          }
+        ]
+      }
+    ],
+
+
+    "version": 2
+  },
+  {
+    "comment": "---------- AND ----------",
+    "environment": "Production",
+    "excluded": [],
+    "identifier": "and-segment",
+    "included": [],
+    "name": "is_a_harness_developer_test_AND",
+    "rules": [],
+
+    "servingRules": [
+      {
+        "ruleId": "rule1",
+        "priority": 1,
+        "clauses": [
+          {
+            "attribute": "email",
+            "op": "ends_with",
+            "values": [
+              "@harness.io"
+            ]
+          },
+          {
+            "attribute": "role",
+            "op": "equal",
+            "values": [
+              "developer"
+            ]
+          }
+        ]
+      }
+    ],
+
+
+    "version": 2
+  }
+]

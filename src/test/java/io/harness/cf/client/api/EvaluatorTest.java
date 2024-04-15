@@ -21,6 +21,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 @Slf4j
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -41,6 +43,82 @@ public class EvaluatorTest {
     features =
         new JSON().deserialize(featuresJson, new TypeToken<List<FeatureConfig>>() {}.getType());
     assertFalse(features.isEmpty());
+  }
+
+  enum ANDTest {
+    // if (target.attr.email endswith '@harness.io' && target.attr.role = 'developer')
+
+    EMAIL_IS_DEVELOPER("user@harness.io", "developer", true),
+    EMAIL_IS_MANAGER("user@harness.io", "manager", false),
+    EXTERNAL_EMAIL_IS_DEVELOPER("user@somewhereelse.com", "manager", false),
+    EXTERNAL_EMAIL_IS_MANAGER("user@somewhereelse.com", "manager", false);
+
+    final String attrEmail;
+    final String attrRole;
+    final boolean expected;
+
+    ANDTest(String attrEmail, String attrRole, boolean expected) {
+      this.attrEmail = attrEmail;
+      this.attrRole = attrRole;
+      this.expected = expected;
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(ANDTest.class)
+  public void testTargetV2AndOperator(ANDTest test) throws Exception {
+    testTargetV2Operator(
+        test.attrEmail, test.attrRole, "boolflag_and", String.valueOf(test.expected));
+  }
+
+  enum ORTest {
+    // if (target.attr.email endswith '@harness.io' || target.attr.email endswith
+    // '@somethingelse.com')
+
+    EMAIL_ENDS_WITH_HARNESS("user@harness.io", true),
+    EMAIL_ENDS_WITH_SOMETHING_ELSE("user@somethingelse.com", true),
+    EMAIL_ENDS_WITH_GMAIL("user@gmail.com", false);
+
+    final String email;
+    final boolean expected;
+
+    ORTest(String email, boolean expected) {
+      this.email = email;
+      this.expected = expected;
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(ORTest.class)
+  public void testTargetV2OrOperator(ORTest test) throws Exception {
+    testTargetV2Operator(test.email, null, "boolflag_or", String.valueOf(test.expected));
+  }
+
+  private void testTargetV2Operator(String email, String role, String flagName, String expected)
+      throws Exception {
+
+    final StorageRepository repository = new StorageRepository(new CaffeineCache(100), null, null);
+    final Evaluator evaluator = new Evaluator(repository);
+
+    loadFlags(repository, "local-test-cases/v2-andor-flags.json");
+    loadSegments(repository, "local-test-cases/v2-andor-segments.json");
+
+    final Target target =
+        Target.builder()
+            .identifier("mytarget")
+            .attributes(
+                new HashMap<String, String>() {
+                  {
+                    put("email", String.valueOf(email));
+                    put("role", String.valueOf(role));
+                  }
+                })
+            .build();
+
+    final Optional<Variation> result = evaluator.evaluate(flagName, target, BOOLEAN, null);
+
+    assertTrue(result.isPresent());
+    assertEquals(expected, result.get().getValue());
   }
 
   @Test
