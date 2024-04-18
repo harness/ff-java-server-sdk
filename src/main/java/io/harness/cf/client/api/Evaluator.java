@@ -170,6 +170,10 @@ public class Evaluator implements Evaluation {
   }
 
   protected boolean evaluateClausesV2(List<Clause> clauses, Target target) {
+    if (clauses == null || clauses.isEmpty()) {
+      return false;
+    }
+
     // New style rules require that all clauses are true
     for (Clause clause : clauses) {
       if (!evaluateClause(clause, target)) {
