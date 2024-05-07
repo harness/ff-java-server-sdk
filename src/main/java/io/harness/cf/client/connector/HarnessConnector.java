@@ -299,7 +299,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
         this.cluster);
     List<Segment> allSegments = new ArrayList<>();
     try {
-      allSegments = api.getAllSegments(environmentUuid, cluster);
+      allSegments = api.getAllSegments(environmentUuid, cluster, "v2");
       log.debug(
           "Total target groups fetched: {} on env {} and cluster {}",
           allSegments.size(),
@@ -331,7 +331,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
         this.cluster);
     try {
       Segment segmentByIdentifier =
-          api.getSegmentByIdentifier(identifier, environmentUuid, cluster);
+          api.getSegmentByIdentifier(identifier, environmentUuid, cluster, "v2");
       log.debug(
           "Segment {} successfully fetched from env {} and cluster {}",
           identifier,
