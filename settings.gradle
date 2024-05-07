@@ -4,10 +4,10 @@ dependencyResolutionManagement {
     versionCatalogs {
         libs {
             // main sdk version
-            version('sdk', '1.5.2');
+            version('sdk', '1.5.2-okhttp3x');
 
             // sdk deps
-            version('okhttp3', '4.12.0')
+            version('okhttp3', '3.14.9')
             library('okhttp3-core', 'com.squareup.okhttp3', 'okhttp').versionRef('okhttp3')
             library('okhttp3-logging-interceptor', 'com.squareup.okhttp3', 'logging-interceptor').versionRef('okhttp3')
             library('gson-fire', 'io.gsonfire:gson-fire:1.7.1')
@@ -32,7 +32,7 @@ dependencyResolutionManagement {
             library('harness.ff.sdk', 'io.harness', 'ff-java-server-sdk').versionRef('sdk')
 
             // plugins
-            version('openapi.generator', '5.4.0')
+            version('openapi.generator', '4.3.1')
             version('spotless', '6.23.3')
             version('depsize', '0.2.0')
             version('spotbugs', '6.0.4')

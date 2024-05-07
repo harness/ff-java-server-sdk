@@ -16,7 +16,6 @@ import okhttp3.Headers;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.RecordedRequest;
 import okhttp3.mockwebserver.SocketPolicy;
-import org.jetbrains.annotations.NotNull;
 
 public class JwtMissingFieldsAuthDispatcher extends TestWebServerDispatcher {
   private final AtomicInteger version = new AtomicInteger(2);
@@ -35,8 +34,7 @@ public class JwtMissingFieldsAuthDispatcher extends TestWebServerDispatcher {
 
   @Override
   @SneakyThrows
-  @NotNull
-  public MockResponse dispatch(@NotNull RecordedRequest recordedRequest) {
+  public MockResponse dispatch(RecordedRequest recordedRequest) {
     System.out.printf(
         "DISPATCH GOT ------> %s  jwtEnvironmentIdentifier='%s' jwtAccountId='%s'\n",
         recordedRequest.getPath(), jwtEnvironmentIdentifier, jwtAccountId);

@@ -9,7 +9,6 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import okhttp3.*;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,9 +30,8 @@ public class NewRetryInterceptor implements Interceptor {
     this.maxTryCount = maxTryCount;
   }
 
-  @NotNull
   @Override
-  public Response intercept(@NotNull Chain chain) throws IOException {
+  public Response intercept(Chain chain) throws IOException {
     int tryCount = 1;
     boolean successful;
     boolean limitReached = false;
@@ -150,7 +148,7 @@ public class NewRetryInterceptor implements Interceptor {
         .request(chain.request())
         .protocol(Protocol.HTTP_2)
         .message(msg)
-        .body(ResponseBody.create("", MediaType.parse("text/plain")))
+        .body(ResponseBody.create(MediaType.parse("text/plain"), ""))
         .build();
   }
 

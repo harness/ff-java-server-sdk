@@ -21,7 +21,6 @@ import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
 import okhttp3.logging.HttpLoggingInterceptor;
 import okio.BufferedSource;
-import org.jetbrains.annotations.NotNull;
 
 @Slf4j
 public class EventSource implements Callback, AutoCloseable, Service {
@@ -155,13 +154,13 @@ public class EventSource implements Callback, AutoCloseable, Service {
   }
 
   @Override // Callback
-  public void onFailure(@NotNull Call call, @NotNull IOException e) {
+  public void onFailure(Call call, IOException e) {
     log.warn("SSE stream error", e);
     updater.onDisconnected(e.getMessage());
   }
 
   @Override // Callback
-  public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+  public void onResponse(Call call, Response response) throws IOException {
     log.debug("SSE stream data: {}", response.message());
 
     try {

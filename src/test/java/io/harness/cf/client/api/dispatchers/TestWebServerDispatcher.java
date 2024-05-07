@@ -10,16 +10,13 @@ import lombok.SneakyThrows;
 import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.RecordedRequest;
-import org.jetbrains.annotations.NotNull;
 
 public class TestWebServerDispatcher extends Dispatcher {
   private final AtomicInteger version = new AtomicInteger(2);
 
   @Override
   @SneakyThrows
-  @NotNull
-  public MockResponse dispatch(@NotNull RecordedRequest recordedRequest)
-      throws InterruptedException {
+  public MockResponse dispatch(RecordedRequest recordedRequest) throws InterruptedException {
     System.out.println("DISPATCH GOT ------> " + recordedRequest.getPath());
 
     switch (Objects.requireNonNull(recordedRequest.getPath())) {

@@ -13,7 +13,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.mockwebserver.*;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
@@ -44,7 +43,6 @@ class EventSourceTest {
 
     @Override
     @SneakyThrows
-    @NotNull
     public MockResponse dispatch(RecordedRequest recordedRequest) {
       out.println("DISPATCH GOT ------> " + recordedRequest.getPath());
 

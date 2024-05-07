@@ -8,7 +8,6 @@ import lombok.Getter;
 import lombok.SneakyThrows;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.RecordedRequest;
-import org.jetbrains.annotations.NotNull;
 
 public class UnimplementedStreamDispatcher extends TestWebServerDispatcher {
 
@@ -22,8 +21,7 @@ public class UnimplementedStreamDispatcher extends TestWebServerDispatcher {
 
   @Override
   @SneakyThrows
-  @NotNull
-  public MockResponse dispatch(@NotNull RecordedRequest recordedRequest) {
+  public MockResponse dispatch(RecordedRequest recordedRequest) {
     if (STREAM_ENDPOINT.equals(recordedRequest.getPath())) {
       System.out.println("Returning 501 for stream endpoint");
       streamEndpointCount.incrementAndGet();

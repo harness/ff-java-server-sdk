@@ -29,7 +29,6 @@ import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
 import okhttp3.mockwebserver.SocketPolicy;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -606,8 +605,7 @@ class CfClientTest {
 
     @Override
     @SneakyThrows
-    @NotNull
-    public MockResponse dispatch(@NotNull RecordedRequest recordedRequest) {
+    public MockResponse dispatch(RecordedRequest recordedRequest) {
       if (STREAM_ENDPOINT.equals(recordedRequest.getPath())) {
         streamCountLatch.countDown();
 

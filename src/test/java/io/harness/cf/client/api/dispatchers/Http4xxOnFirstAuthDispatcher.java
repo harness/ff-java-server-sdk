@@ -12,7 +12,6 @@ import lombok.Getter;
 import lombok.SneakyThrows;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.RecordedRequest;
-import org.jetbrains.annotations.NotNull;
 
 public class Http4xxOnFirstAuthDispatcher extends TestWebServerDispatcher {
   private final AtomicInteger version = new AtomicInteger(2);
@@ -35,8 +34,7 @@ public class Http4xxOnFirstAuthDispatcher extends TestWebServerDispatcher {
 
   @Override
   @SneakyThrows
-  @NotNull
-  public MockResponse dispatch(@NotNull RecordedRequest recordedRequest) {
+  public MockResponse dispatch(RecordedRequest recordedRequest) {
     System.out.println("DISPATCH GOT ------> " + recordedRequest.getPath());
 
     switch (Objects.requireNonNull(recordedRequest.getPath())) {
