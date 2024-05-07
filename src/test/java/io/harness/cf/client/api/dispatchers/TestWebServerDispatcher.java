@@ -27,7 +27,7 @@ public class TestWebServerDispatcher extends Dispatcher {
         return makeAuthResponse();
       case "/api/1.0/client/env/00000000-0000-0000-0000-000000000000/feature-configs?cluster=1":
         return makeMockJsonResponse(200, makeBasicFeatureJson());
-      case "/api/1.0/client/env/00000000-0000-0000-0000-000000000000/target-segments?cluster=1":
+      case "/api/1.0/client/env/00000000-0000-0000-0000-000000000000/target-segments?cluster=1&rules=v2":
         return makeMockJsonResponse(200, makeSegmentsJson());
       case "/api/1.0/stream?cluster=1":
         return makeMockStreamResponse(
