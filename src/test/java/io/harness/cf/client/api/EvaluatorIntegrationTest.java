@@ -20,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
+import org.mockito.Mockito;
 
 @Slf4j
 public class EvaluatorIntegrationTest {
@@ -82,7 +83,8 @@ public class EvaluatorIntegrationTest {
 
                   final Repository repository =
                       new StorageRepository(new CaffeineCache(10000), null);
-                  final Evaluator evaluator = new Evaluator(repository);
+                  final Evaluator evaluator =
+                      new Evaluator(repository, Mockito.mock(BaseConfig.class));
 
                   loadSegments(repository, fileData.getSegments());
                   loadFlags(repository, fileData.getFlags());

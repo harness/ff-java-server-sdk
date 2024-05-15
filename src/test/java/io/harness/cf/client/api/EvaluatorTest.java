@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.mockito.Mockito;
 
 @Slf4j
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -34,7 +35,7 @@ public class EvaluatorTest {
   @BeforeAll
   public void setupUp() throws IOException, URISyntaxException {
     final StorageRepository repository = new StorageRepository(new CaffeineCache(100), null, null);
-    evaluator = new Evaluator(repository);
+    evaluator = new Evaluator(repository, Mockito.mock(BaseConfig.class));
 
     loadSegments(repository, "local-test-cases/segments.json");
 
@@ -98,7 +99,7 @@ public class EvaluatorTest {
       throws Exception {
 
     final StorageRepository repository = new StorageRepository(new CaffeineCache(100), null, null);
-    final Evaluator evaluator = new Evaluator(repository);
+    final Evaluator evaluator = new Evaluator(repository, Mockito.mock(BaseConfig.class));
 
     loadFlags(repository, "local-test-cases/v2-andor-flags.json");
     loadSegments(repository, "local-test-cases/v2-andor-segments.json");
@@ -259,7 +260,7 @@ public class EvaluatorTest {
   @Test
   public void shouldCorrectlyEvaluatePrereqsIfIdAndValueDiffer() throws Exception {
     final StorageRepository repo = new StorageRepository(new CaffeineCache(100), null, null);
-    final Evaluator eval = new Evaluator(repo);
+    final Evaluator eval = new Evaluator(repo, Mockito.mock(BaseConfig.class));
 
     loadSegments(repo, "local-test-cases/segments.json");
     loadFlags(repo, "local-test-cases/pre-req-id-and-value-differ.json");
@@ -298,7 +299,7 @@ public class EvaluatorTest {
     final ExecutorService executor = Executors.newFixedThreadPool(threadCount);
     final CopyOnWriteArrayList<Exception> failures = new CopyOnWriteArrayList<>();
     final Query repository = new StorageRepository(new CaffeineCache(100), null, null);
-    final Evaluator evaluator = new Evaluator(repository);
+    final Evaluator evaluator = new Evaluator(repository, Mockito.mock(BaseConfig.class));
 
     final List<String> values = new ArrayList<>();
     final List<Clause> clauses = new ArrayList<>();
