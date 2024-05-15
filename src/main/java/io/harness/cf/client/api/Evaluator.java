@@ -21,9 +21,11 @@ public class Evaluator implements Evaluation {
   public static final int ONE_HUNDRED = 100;
 
   private final Query query;
+  private final BaseConfig config;
 
-  public Evaluator(Query query) {
+  public Evaluator(Query query, BaseConfig config) {
     this.query = query;
+    this.config = config;
   }
 
   protected Optional<Object> getAttrValue(Target target, @NonNull String attribute) {
@@ -457,7 +459,7 @@ public class Evaluator implements Evaluation {
       return Boolean.parseBoolean(variation.get().getValue());
     }
 
-    SdkCodes.warnDefaultVariationServed(identifier, target, String.valueOf(defaultValue));
+    SdkCodes.warnDefaultVariationServed(identifier, target, String.valueOf(defaultValue), config);
     return defaultValue;
   }
 
@@ -470,7 +472,7 @@ public class Evaluator implements Evaluation {
       return variation.get().getValue();
     }
 
-    SdkCodes.warnDefaultVariationServed(identifier, target, defaultValue);
+    SdkCodes.warnDefaultVariationServed(identifier, target, defaultValue, config);
     return defaultValue;
   }
 
@@ -483,7 +485,7 @@ public class Evaluator implements Evaluation {
       return Double.parseDouble(variation.get().getValue());
     }
 
-    SdkCodes.warnDefaultVariationServed(identifier, target, String.valueOf(defaultValue));
+    SdkCodes.warnDefaultVariationServed(identifier, target, String.valueOf(defaultValue), config);
     return defaultValue;
   }
 
@@ -496,7 +498,7 @@ public class Evaluator implements Evaluation {
       return new Gson().fromJson(variation.get().getValue(), JsonObject.class);
     }
 
-    SdkCodes.warnDefaultVariationServed(identifier, target, defaultValue.toString());
+    SdkCodes.warnDefaultVariationServed(identifier, target, defaultValue.toString(), config);
     return defaultValue;
   }
 }

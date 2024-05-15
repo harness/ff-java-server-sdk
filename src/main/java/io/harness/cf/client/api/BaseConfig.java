@@ -23,6 +23,9 @@ public class BaseConfig {
 
   @Builder.Default private final boolean globalTargetEnabled = true;
 
+  /** If you do not need to be warned about every variation that returned a default value, set this to true */
+  @Builder.Default private final boolean sdkCode6001Suppressed = false;
+
   @Builder.Default
   @Getter(AccessLevel.NONE)
   private final int frequency = 60; // unit: second

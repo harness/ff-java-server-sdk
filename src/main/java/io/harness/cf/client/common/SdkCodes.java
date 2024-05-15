@@ -3,6 +3,7 @@ package io.harness.cf.client.common;
 import static java.lang.String.valueOf;
 import static java.util.Optional.*;
 
+import io.harness.cf.client.api.BaseConfig;
 import io.harness.cf.client.dto.Target;
 import java.util.Arrays;
 import java.util.Map;
@@ -73,7 +74,10 @@ public class SdkCodes {
                 "- evals dropped: " + droppedEvals + " targets dropped: " + droppedTargets)));
   }
 
-  public static void warnDefaultVariationServed(String identifier, Target target, String def) {
+  public static void warnDefaultVariationServed(
+      String identifier, Target target, String def, BaseConfig config) {
+    if (config.isSdkCode6001Suppressed()) return;
+
     String targetId = (target == null) ? "null" : target.getIdentifier();
     String msg = String.format("identifier=%s, target=%s, default=%s", identifier, targetId, def);
     log.warn(sdkErrMsg(6001, of(msg)));

@@ -87,7 +87,7 @@ class InnerClient
 
     // initialization
     repository = new StorageRepository(options.getCache(), options.getStore(), this);
-    evaluator = new Evaluator(repository);
+    evaluator = new Evaluator(repository, options);
     authService = new AuthService(this.connector, options.getPollIntervalInSeconds(), this);
     pollProcessor =
         new PollingProcessor(this.connector, repository, options.getPollIntervalInSeconds(), this);
