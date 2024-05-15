@@ -28,7 +28,7 @@ dependencyResolutionManagement {
             library('okhttp3-mockwebserver', 'com.squareup.okhttp3', 'mockwebserver').versionRef('okhttp3')
 
             // examples
-            library('bc', 'org.bouncycastle:bcpkix-jdk18on:1.77')
+            library('bc', 'org.bouncycastle:bcpkix-jdk18on:1.78.1')
             library('harness.ff.sdk', 'io.harness', 'ff-java-server-sdk').versionRef('sdk')
 
             // plugins
