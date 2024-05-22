@@ -98,7 +98,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
   private Response reauthInterceptor(Interceptor.Chain chain) throws IOException {
     final Request request =
         chain.request().newBuilder().addHeader("X-Request-ID", getRequestID()).build();
-    log.debug("403 interceptor check: requesting url {}", request.url().url());
+    log.debug("Checking for 403 in interceptor: requesting url {}", request.url().url());
 
     Response response = chain.proceed(request);
 
