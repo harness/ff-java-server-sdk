@@ -78,14 +78,14 @@ Add the following Maven dependency in your project's pom.xml file:
 <dependency>
     <groupId>io.harness</groupId>
     <artifactId>ff-java-server-sdk</artifactId>
-    <version>1.5.2</version>
+    <version>1.6.0</version>
 </dependency>
 ```
 
 #### Gradle
 
 ```
-implementation 'io.harness:ff-java-server-sdk:1.5.2'
+implementation 'io.harness:ff-java-server-sdk:1.6.0'
 ```
 
 ### Code Sample
