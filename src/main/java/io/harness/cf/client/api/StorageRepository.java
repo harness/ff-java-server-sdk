@@ -3,11 +3,9 @@ package io.harness.cf.client.api;
 import io.harness.cf.client.common.Cache;
 import io.harness.cf.client.common.Storage;
 import io.harness.cf.client.common.Utils;
-import io.harness.cf.model.Clause;
-import io.harness.cf.model.FeatureConfig;
-import io.harness.cf.model.Segment;
-import io.harness.cf.model.ServingRule;
+import io.harness.cf.model.*;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import lombok.NonNull;
@@ -131,6 +129,10 @@ class StorageRepository implements Repository {
       log.debug("Segment {} already exists", identifier);
       return;
     }
+
+    // Sort the serving rules before storing the segment
+    sortSegmentServingRules(segment);
+
     final String segmentKey = formatSegmentKey(identifier);
     if (store != null) {
       store.set(segmentKey, segment);
@@ -194,6 +196,12 @@ class StorageRepository implements Repository {
     }
     log.debug("Segment is outdated {}", identifier);
     return false;
+  }
+
+  private void sortSegmentServingRules(Segment segment) {
+    if (segment.getServingRules() != null && segment.getServingRules().size() > 1) {
+      segment.getServingRules().sort(Comparator.comparing(GroupServingRule::getPriority));
+    }
   }
 
   @NonNull

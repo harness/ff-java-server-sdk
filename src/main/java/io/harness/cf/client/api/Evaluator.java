@@ -226,7 +226,6 @@ public class Evaluator implements Evaluation {
         // New style rules, if sent by BE prefer those first
         List<GroupServingRule> newServingRules = segment.getServingRules();
         if (newServingRules != null && !newServingRules.isEmpty()) {
-          newServingRules.sort(Comparator.comparing(GroupServingRule::getPriority));
 
           for (GroupServingRule servingRule : newServingRules) {
             if (evaluateClausesV2(servingRule.getClauses(), target)) {
