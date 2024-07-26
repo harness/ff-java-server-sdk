@@ -7,6 +7,7 @@ import io.harness.cf.client.dto.Message;
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Variation;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
@@ -60,6 +61,7 @@ class InnerClient
             .connectionTimeout(options.getConnectionTimeout())
             .readTimeout(options.readTimeout)
             .writeTimeout(options.getWriteTimeout())
+            .cachePreviousFeatureConfigVersion(options.isCachePreviousFeatureConfigVersion())
             .build();
     HarnessConnector harnessConnector = new HarnessConnector(sdkKey, config);
     setUp(harnessConnector, options);
@@ -86,7 +88,12 @@ class InnerClient
     this.connector.setOnUnauthorized(this::onUnauthorized);
 
     // initialization
-    repository = new StorageRepository(options.getCache(), options.getStore(), this);
+    repository =
+        new StorageRepository(
+            options.getCache(),
+            options.getStore(),
+            this,
+            options.isCachePreviousFeatureConfigVersion());
     evaluator = new Evaluator(repository, options);
     authService = new AuthService(this.connector, options.getPollIntervalInSeconds(), this);
     pollProcessor =
@@ -305,6 +312,22 @@ class InnerClient
         throw new FeatureFlagInitializeException();
       }
     }
+  }
+
+  // ASZ
+  public String[] getFeatureConfigs(@NonNull String identifier) {
+    Optional<FeatureConfig[]> ofc = repository.getCurrentAndPreviousFeatureConfig(identifier);
+    String[] res = {"", ""};
+
+    if (ofc.isPresent()) {
+      FeatureConfig[] fc = ofc.get();
+      res[0] = String.valueOf(fc[0]);
+      ;
+      res[1] = String.valueOf(fc[1]);
+      ;
+      return res;
+    }
+    return res;
   }
 
   public void on(@NonNull final Event event, @NonNull final Consumer<String> consumer) {

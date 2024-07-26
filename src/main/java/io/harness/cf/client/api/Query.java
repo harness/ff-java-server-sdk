@@ -13,4 +13,6 @@ public interface Query {
   Optional<Segment> getSegment(@NonNull String identifier);
 
   List<String> findFlagsBySegment(@NonNull String identifier);
+
+  Optional<FeatureConfig[]> getCurrentAndPreviousFeatureConfig(@NonNull String identifier);
 }

@@ -1,9 +1,6 @@
 package io.harness.cf.client.api;
 
-import io.harness.cf.client.connector.Connector;
-import io.harness.cf.client.connector.ConnectorException;
-import io.harness.cf.client.connector.Service;
-import io.harness.cf.client.connector.Updater;
+import io.harness.cf.client.connector.*;
 import io.harness.cf.client.dto.Message;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Segment;
@@ -92,11 +89,14 @@ class UpdateProcessor implements AutoCloseable {
     return () -> {
       try {
         if (message.getEvent().equals("create") || message.getEvent().equals("patch")) {
+          // ASZ we are there extracting the
           final FeatureConfig config = connector.getFlag(message.getIdentifier());
           if (config != null) {
             repository.setFlag(message.getIdentifier(), config);
             log.trace("Set new segment with key {} and value {}", message.getIdentifier(), config);
           }
+          // ASZ call it here.
+
         } else if (message.getEvent().equals("delete")) {
           log.debug("Delete flag with key {}", message.getIdentifier());
           repository.deleteFlag(message.getIdentifier());

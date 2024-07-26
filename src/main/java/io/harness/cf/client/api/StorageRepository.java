@@ -18,13 +18,23 @@ class StorageRepository implements Repository {
   private Storage store;
   private final RepositoryCallback callback;
 
-  public StorageRepository(@NonNull Cache cache, RepositoryCallback callback) {
+  private final boolean cachePreviousFeatureConfigVersion;
+
+  public StorageRepository(
+      @NonNull Cache cache,
+      RepositoryCallback callback,
+      boolean cachePreviousFeatureConfigVersion) {
     this.cache = cache;
     this.callback = callback;
+    this.cachePreviousFeatureConfigVersion = cachePreviousFeatureConfigVersion;
   }
 
-  public StorageRepository(@NonNull Cache cache, Storage store, RepositoryCallback callback) {
-    this(cache, callback);
+  public StorageRepository(
+      @NonNull Cache cache,
+      Storage store,
+      RepositoryCallback callback,
+      boolean cachePreviousFeatureConfigVersion) {
+    this(cache, callback, cachePreviousFeatureConfigVersion);
     this.store = store;
   }
 
@@ -47,6 +57,19 @@ class StorageRepository implements Repository {
   @Override
   public Optional<FeatureConfig> getFlag(@NonNull String identifier) {
     return getFlag(identifier, true);
+  }
+
+  public Optional<FeatureConfig[]> getCurrentAndPreviousFeatureConfig(@NonNull String identifier) {
+    final String flagKey = formatFlagKey(identifier);
+    final String pFlagKey = formatPrevFlagKey(identifier);
+
+    FeatureConfig pFlag = (FeatureConfig) cache.get(pFlagKey);
+    FeatureConfig cFlag = (FeatureConfig) cache.get(flagKey);
+    // we should have at least current flag there to return.
+    if (cFlag != null) {
+      return Optional.of(new FeatureConfig[] {pFlag, cFlag});
+    }
+    return Optional.empty();
   }
 
   public Optional<Segment> getSegment(@NonNull String identifier, boolean cacheable) {
@@ -105,6 +128,8 @@ class StorageRepository implements Repository {
 
   @Override
   public void setFlag(@NonNull String identifier, @NonNull FeatureConfig featureConfig) {
+
+    // ASZ this is where we are setting the key
     if (isFlagOutdated(identifier, featureConfig)) {
       log.debug("Flag {} already exists", identifier);
       return;
@@ -115,8 +140,21 @@ class StorageRepository implements Repository {
       cache.delete(flagKey);
       log.debug("Flag {} successfully stored and cache invalidated", identifier);
     } else {
+      // ASZ extract and set the current featureConfig to the previous
+      if (cachePreviousFeatureConfigVersion) {
+        Object pFeatureConfig = cache.get(flagKey);
+        if (pFeatureConfig != null) {
+          final String pFlagKey = formatPrevFlagKey(flagKey);
+          cache.set(pFlagKey, pFeatureConfig);
+          log.info("Flag {} successfully cached", pFlagKey);
+        }
+      }
+      // save a new config to the cache
       cache.set(flagKey, featureConfig);
-      log.debug("Flag {} successfully cached", identifier);
+      log.info("Flag {} successfully cached", identifier);
+
+      //      // ASZ
+      //      log.info("Previous {} Current {} cached",);
     }
     if (callback != null) {
       callback.onFlagStored(identifier);
@@ -207,6 +245,14 @@ class StorageRepository implements Repository {
   @NonNull
   protected String formatFlagKey(@NonNull String identifier) {
     return String.format("flags/%s", identifier);
+  }
+
+  protected String formatPrevFlagKey(@NonNull String identifier) {
+    return String.format("%s_previous", identifier);
+  }
+
+  protected String formatCurrFlagKey(@NonNull String identifier) {
+    return String.format("flags/%s_current", identifier);
   }
 
   @NonNull

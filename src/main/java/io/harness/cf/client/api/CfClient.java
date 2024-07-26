@@ -83,6 +83,10 @@ public class CfClient implements AutoCloseable {
     client.on(event, consumer);
   }
 
+  public String[] getFeatureConfig(@NonNull String identifier) {
+    return client.getFeatureConfigs(identifier);
+  }
+
   public void off() {
     client.off();
   }
