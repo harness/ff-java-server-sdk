@@ -7,7 +7,7 @@ import io.harness.cf.client.api.XmlFileMapStore;
 import io.harness.cf.client.connector.HarnessConfig;
 import io.harness.cf.client.connector.HarnessConnector;
 import io.harness.cf.client.dto.Target;
-import io.harness.cf.model.FeatureConfig;
+import io.harness.cf.model.FeatureSnapshot;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.Executors;
@@ -33,32 +33,28 @@ public class EventExamplePoC {
         final XmlFileMapStore fileStore = new XmlFileMapStore("Non-Freemium");
         // this is one way of initialising config.
         final HarnessConnector hc =
-                new HarnessConnector(
-                        SDK_KEY,
-                        HarnessConfig.builder()
-                                .build());
+                new HarnessConnector( SDK_KEY,
+                        HarnessConfig.builder().build());
 
-        // TODO we are passing this here where really we should in the harnessConfigBuilder.
         BaseConfig bc = BaseConfig.builder().
-                cachePreviousFeatureConfigVersion(true).
+                enableFeatureSnapshot(true).
                 build();
+
+        // initialise the client.
         client = new CfClient(hc,bc);
 
         client.on(Event.READY, result -> log.info("READY"));
 
-
-
         // example of specified prefix we can filter on.
         final String FLAG_PREFIX="FFM_";
-
         // given flag change event - get both previous and current feature if prefix is matched.
         client.on(Event.CHANGED, identifier ->{
                 if (identifier.startsWith(FLAG_PREFIX)){
                     log.info("We had a chang event and prefix matched, lets inspect the diff");
-                    // so this allowing you to fetch all the flags for environment.
-                    FeatureConfig[] featureConfigs = client.getFeatureConfig(identifier);
-                    log.info("Previous flag variation: {}, {}",identifier, featureConfigs[0]);
-                    log.info("Current  flag variation: {}, {}",identifier, featureConfigs[1]);
+                    // fetch current and previous version of the feature
+                    FeatureSnapshot snapshot = client.getFeatureSnapshot(identifier);
+                    log.info("Previous flag variation: {}, {}",identifier, snapshot.getPrevious());
+                    log.info("Current flag variation: {}, {}",identifier, snapshot.getCurrent());
                 }else{
                     log.info("We had an event change but flag did not have required prefix");
                 }
