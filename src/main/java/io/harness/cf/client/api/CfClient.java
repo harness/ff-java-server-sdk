@@ -5,6 +5,7 @@ import io.harness.cf.client.connector.Connector;
 import io.harness.cf.client.dto.Message;
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.client.logger.LogUtil;
+import io.harness.cf.model.FeatureConfig;
 import java.util.function.Consumer;
 import lombok.NonNull;
 
@@ -83,7 +84,7 @@ public class CfClient implements AutoCloseable {
     client.on(event, consumer);
   }
 
-  public String[] getFeatureConfig(@NonNull String identifier) {
+  public FeatureConfig[] getFeatureConfig(@NonNull String identifier) {
     return client.getFeatureConfigs(identifier);
   }
 
