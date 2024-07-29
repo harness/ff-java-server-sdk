@@ -43,7 +43,7 @@ public class BaseConfig {
   @Builder.Default private final long metricsServiceAcceptableDuration = 10000;
 
   /** store previous and current version of the FeatureConfig */
-  @Builder.Default private final boolean cachePreviousFeatureConfigVersion = false;
+  @Builder.Default private final boolean enableFeatureSnapshot = false;
 
   /** Get metrics post frequency in seconds */
   public int getFrequency() {

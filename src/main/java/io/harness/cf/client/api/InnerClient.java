@@ -6,6 +6,7 @@ import io.harness.cf.client.connector.*;
 import io.harness.cf.client.dto.Message;
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.FeatureConfig;
+import io.harness.cf.model.FeatureSnapshot;
 import io.harness.cf.model.Variation;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -89,10 +90,7 @@ class InnerClient
     // initialization
     repository =
         new StorageRepository(
-            options.getCache(),
-            options.getStore(),
-            this,
-            options.isCachePreviousFeatureConfigVersion());
+            options.getCache(), options.getStore(), this, options.isEnableFeatureSnapshot());
     evaluator = new Evaluator(repository, options);
     authService = new AuthService(this.connector, options.getPollIntervalInSeconds(), this);
     pollProcessor =
@@ -313,17 +311,15 @@ class InnerClient
     }
   }
 
-  public FeatureConfig[] getFeatureConfigs(@NonNull String identifier) {
+  public FeatureSnapshot getFeatureSnapshot(@NonNull String identifier) {
     Optional<FeatureConfig[]> ofc = repository.getCurrentAndPreviousFeatureConfig(identifier);
-    FeatureConfig[] res = new FeatureConfig[2];
-
+    FeatureSnapshot result = new FeatureSnapshot();
     if (ofc.isPresent()) {
       FeatureConfig[] fc = ofc.get();
-      res[0] = fc[0];
-      res[1] = fc[1];
-      return res;
+      result.setCurrent(fc[0]);
+      result.setCurrent(fc[1]);
     }
-    return res;
+    return result;
   }
 
   public void on(@NonNull final Event event, @NonNull final Consumer<String> consumer) {
