@@ -142,9 +142,10 @@ class StorageRepository implements Repository {
     } else {
       // ASZ extract and set the current featureConfig to the previous
       if (cachePreviousFeatureConfigVersion) {
+        // TODO that bit does not work as expected
         Object pFeatureConfig = cache.get(flagKey);
         if (pFeatureConfig != null) {
-          final String pFlagKey = formatPrevFlagKey(flagKey);
+          final String pFlagKey = formatPrevFlagKey(identifier);
           cache.set(pFlagKey, pFeatureConfig);
           log.info("Flag {} successfully cached", pFlagKey);
         }

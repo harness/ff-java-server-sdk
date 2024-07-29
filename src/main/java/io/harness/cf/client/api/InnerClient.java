@@ -314,7 +314,7 @@ class InnerClient
     }
   }
 
-  // ASZ
+  // ASZ TODO something is n ot right here.
   public String[] getFeatureConfigs(@NonNull String identifier) {
     Optional<FeatureConfig[]> ofc = repository.getCurrentAndPreviousFeatureConfig(identifier);
     String[] res = {"", ""};
@@ -322,9 +322,7 @@ class InnerClient
     if (ofc.isPresent()) {
       FeatureConfig[] fc = ofc.get();
       res[0] = String.valueOf(fc[0]);
-      ;
       res[1] = String.valueOf(fc[1]);
-      ;
       return res;
     }
     return res;
