@@ -142,20 +142,17 @@ class StorageRepository implements Repository {
     } else {
       // ASZ extract and set the current featureConfig to the previous
       if (cachePreviousFeatureConfigVersion) {
-        // TODO that bit does not work as expected
         Object pFeatureConfig = cache.get(flagKey);
         if (pFeatureConfig != null) {
+          // set the old version of the config to the cache
           final String pFlagKey = formatPrevFlagKey(identifier);
           cache.set(pFlagKey, pFeatureConfig);
-          log.info("Flag {} successfully cached", pFlagKey);
+          log.debug("Flag {} successfully cached", pFlagKey);
         }
       }
       // save a new config to the cache
       cache.set(flagKey, featureConfig);
-      log.info("Flag {} successfully cached", identifier);
-
-      //      // ASZ
-      //      log.info("Previous {} Current {} cached",);
+      log.debug("Flag {} successfully cached", identifier);
     }
     if (callback != null) {
       callback.onFlagStored(identifier);
@@ -249,11 +246,7 @@ class StorageRepository implements Repository {
   }
 
   protected String formatPrevFlagKey(@NonNull String identifier) {
-    return String.format("%s_previous", identifier);
-  }
-
-  protected String formatCurrFlagKey(@NonNull String identifier) {
-    return String.format("flags/%s_current", identifier);
+    return String.format("flags/%s_previous", identifier);
   }
 
   @NonNull
