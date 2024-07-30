@@ -316,7 +316,7 @@ class InnerClient
     FeatureSnapshot result = new FeatureSnapshot();
     if (ofc.isPresent()) {
       FeatureConfig[] fc = ofc.get();
-      result.setCurrent(fc[0]);
+      result.setPrevious(fc[0]);
       result.setCurrent(fc[1]);
     }
     return result;
