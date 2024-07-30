@@ -128,8 +128,6 @@ class StorageRepository implements Repository {
 
   @Override
   public void setFlag(@NonNull String identifier, @NonNull FeatureConfig featureConfig) {
-
-    // ASZ this is where we are setting the key
     if (isFlagOutdated(identifier, featureConfig)) {
       log.debug("Flag {} already exists", identifier);
       return;
@@ -140,7 +138,7 @@ class StorageRepository implements Repository {
       cache.delete(flagKey);
       log.debug("Flag {} successfully stored and cache invalidated", identifier);
     } else {
-      // ASZ extract and set the current featureConfig to the previous
+      // extract and set the current featureConfig to the previous
       if (cachePreviousFeatureConfigVersion) {
         Object pFeatureConfig = cache.get(flagKey);
         if (pFeatureConfig != null) {
@@ -186,9 +184,16 @@ class StorageRepository implements Repository {
   @Override
   public void deleteFlag(@NonNull String identifier) {
     final String flagKey = this.formatFlagKey(identifier);
+    final String pflgKey = this.formatPrevFlagKey(identifier);
     if (store != null) {
+      if (cachePreviousFeatureConfigVersion) {
+        store.delete(pflgKey);
+      }
       store.delete(flagKey);
       log.debug("Flag {} successfully deleted from store", identifier);
+    }
+    if (cachePreviousFeatureConfigVersion) {
+      this.cache.delete(pflgKey);
     }
     this.cache.delete(flagKey);
     log.debug("Flag {} successfully deleted from cache", identifier);
