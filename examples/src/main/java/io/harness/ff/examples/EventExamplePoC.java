@@ -53,8 +53,8 @@ public class EventExamplePoC {
                     log.info("We had a chang event and prefix matched, lets inspect the diff");
                     // fetch current and previous version of the feature
                     FeatureSnapshot snapshot = client.getFeatureSnapshot(identifier);
-                    log.info("Previous flag variation: {}, {}",identifier, snapshot.getPrevious());
-                    log.info("Current flag variation: {}, {}",identifier, snapshot.getCurrent());
+                    log.info("Previous flag config: {}, {}",identifier, snapshot.getPrevious());
+                    log.info("Current flag config: {}, {}",identifier, snapshot.getCurrent());
                 }else{
                     log.info("We had an event change but flag did not have required prefix");
                 }
