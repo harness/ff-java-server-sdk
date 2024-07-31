@@ -315,13 +315,18 @@ class InnerClient
   }
 
   public List<FeatureSnapshot> getFeatureSnapshots() {
-    List<String> identifiers = repository.getAllFeatureIdentifiers();
+    return getFeatureSnapshots("");
+  }
+
+  public List<FeatureSnapshot> getFeatureSnapshots(String prefix) {
+    List<String> identifiers = repository.getAllFeatureIdentifiers(prefix);
     List<FeatureSnapshot> snapshots = new LinkedList<>();
 
     for (String identifier : identifiers) {
       FeatureSnapshot snapshot = getFeatureSnapshot(identifier);
       snapshots.add(snapshot);
     }
+
     return snapshots;
   }
 

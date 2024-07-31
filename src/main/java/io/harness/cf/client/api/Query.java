@@ -16,5 +16,5 @@ public interface Query {
 
   Optional<FeatureConfig[]> getCurrentAndPreviousFeatureConfig(@NonNull String identifier);
 
-  List<String> getAllFeatureIdentifiers();
+  List<String> getAllFeatureIdentifiers(String prefix);
 }

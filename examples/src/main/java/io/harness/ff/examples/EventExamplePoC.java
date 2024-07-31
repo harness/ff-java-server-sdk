@@ -56,6 +56,11 @@ public class EventExamplePoC {
             getAllSnapshots();
         });
 
+        // example : given flag change event - get all snapshots with given prefix.
+        client.on(Event.CHANGED, identifier -> {
+            getAllSnapshotsWithPrefix();
+        });
+
         final Target target = Target.builder().identifier("target1").attribute("testKey", "TestValue").name("target1").build();
 
         scheduler.scheduleAtFixedRate(() -> {
@@ -79,6 +84,17 @@ public class EventExamplePoC {
     private static void getAllSnapshots() {
         // get all snapshots
         List<FeatureSnapshot> snapshots = client.getAllFeatureSnapshots();
+        int counter = 0;
+        for (FeatureSnapshot snapshot : snapshots) {
+            log.info("snapshots {} {}", ++counter, snapshot);
+        }
+    }
+
+    // example method to extract and print all the snapshots.
+    private static void getAllSnapshotsWithPrefix() {
+        // get all snapshots
+        String prefix = "FFM_";
+        List<FeatureSnapshot> snapshots = client.getAllFeatureSnapshots(prefix);
         int counter = 0;
         for (FeatureSnapshot snapshot : snapshots) {
             log.info("snapshots {} {}", ++counter, snapshot);

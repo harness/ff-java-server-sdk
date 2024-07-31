@@ -85,6 +85,10 @@ public class CfClient implements AutoCloseable {
     client.on(event, consumer);
   }
 
+  public List<FeatureSnapshot> getAllFeatureSnapshots(String prefix) {
+    return client.getFeatureSnapshots(prefix);
+  }
+
   public List<FeatureSnapshot> getAllFeatureSnapshots() {
     return client.getFeatureSnapshots();
   }

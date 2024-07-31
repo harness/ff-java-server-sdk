@@ -56,14 +56,18 @@ class StorageRepository implements Repository {
     return getFlag(identifier, true);
   }
 
-  public List<String> getAllFeatureIdentifiers() {
+  public List<String> getAllFeatureIdentifiers(String prefix) {
     List<String> identifiers = new LinkedList<>();
     List<String> keys = cache.keys();
-    String prefix = "flags/";
+    String flagPrefix = "flags/";
     for (String key : keys) {
-      if (key.startsWith("flags/")) {
-        key = key.substring(prefix.length());
-        identifiers.add(key);
+      if (key.startsWith(flagPrefix)) {
+        // Strip the flag prefix
+        String strippedKey = key.substring(flagPrefix.length());
+        // If prefix is empty, add all stripped keys, otherwise check for prefix match
+        if (prefix.isEmpty() || strippedKey.startsWith(prefix)) {
+          identifiers.add(strippedKey);
+        }
       }
     }
     return identifiers;
@@ -89,6 +93,7 @@ class StorageRepository implements Repository {
 
     FeatureConfig pFlag = (FeatureConfig) cache.get(pFlagKey);
     FeatureConfig cFlag = (FeatureConfig) cache.get(flagKey);
+
     // we should have at least current flag there to return.
     if (cFlag != null) {
       return Optional.of(new FeatureConfig[] {pFlag, cFlag});
