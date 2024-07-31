@@ -8,6 +8,9 @@ import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.FeatureSnapshot;
 import io.harness.cf.model.Variation;
+import java.awt.*;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -309,6 +312,17 @@ class InnerClient
         throw new FeatureFlagInitializeException();
       }
     }
+  }
+
+  public List<FeatureSnapshot> getFeatureSnapshots() {
+    List<String> identifiers = repository.getAllFeatureIdentifiers();
+    List<FeatureSnapshot> snapshots = new LinkedList<>();
+
+    for (String identifier : identifiers) {
+      FeatureSnapshot snapshot = getFeatureSnapshot(identifier);
+      snapshots.add(snapshot);
+    }
+    return snapshots;
   }
 
   public FeatureSnapshot getFeatureSnapshot(@NonNull String identifier) {

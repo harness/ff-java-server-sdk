@@ -4,10 +4,7 @@ import io.harness.cf.client.common.Cache;
 import io.harness.cf.client.common.Storage;
 import io.harness.cf.client.common.Utils;
 import io.harness.cf.model.*;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -57,6 +54,33 @@ class StorageRepository implements Repository {
   @Override
   public Optional<FeatureConfig> getFlag(@NonNull String identifier) {
     return getFlag(identifier, true);
+  }
+
+  public List<String> getAllFeatureIdentifiers() {
+    List<String> identifiers = new LinkedList<>();
+    List<String> keys = cache.keys();
+    String prefix = "flags/";
+    for (String key : keys) {
+      if (key.startsWith("flags/")) {
+        key = key.substring(prefix.length());
+        identifiers.add(key);
+      }
+    }
+    return identifiers;
+  }
+
+  public Optional<FeatureSnapshot[]> getAllFeatureSnapshots() {
+    // get all the keys
+    List<String> keys = cache.keys();
+    List<FeatureConfig> configs = new LinkedList<>();
+
+    for (String key : keys) {
+      if (key.startsWith("flags/")) {
+        FeatureConfig pFlag = (FeatureConfig) cache.get(key);
+      }
+    }
+
+    return Optional.empty();
   }
 
   public Optional<FeatureConfig[]> getCurrentAndPreviousFeatureConfig(@NonNull String identifier) {
@@ -251,7 +275,7 @@ class StorageRepository implements Repository {
   }
 
   protected String formatPrevFlagKey(@NonNull String identifier) {
-    return String.format("flags/%s_previous", identifier);
+    return String.format("previous/%s", identifier);
   }
 
   @NonNull
