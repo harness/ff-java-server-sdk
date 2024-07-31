@@ -1,5 +1,6 @@
 package io.harness.cf.client.api;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import io.harness.cf.client.common.SdkCodes;
 import io.harness.cf.client.connector.*;
@@ -338,7 +339,11 @@ class InnerClient
       result.setPrevious(fc[0]);
       result.setCurrent(fc[1]);
     }
-    return result;
+    // this is here to create a deep copy of the object before its returned.
+    // this way we protect the cache.
+    Gson gson = new Gson();
+    FeatureSnapshot deepCopySnapshot = gson.fromJson(gson.toJson(result), FeatureSnapshot.class);
+    return deepCopySnapshot;
   }
 
   public void on(@NonNull final Event event, @NonNull final Consumer<String> consumer) {
