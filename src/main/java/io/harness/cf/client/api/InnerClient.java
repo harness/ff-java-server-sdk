@@ -86,7 +86,7 @@ class InnerClient
     this.connector.setOnUnauthorized(this::onUnauthorized);
 
     // initialization
-    repository = new StorageRepository(options.getCache(), options.getStore(), this);
+    repository = new StorageRepository(options.getCache(), options.getStore(), this, false);
     evaluator = new Evaluator(repository, options);
     authService = new AuthService(this.connector, options.getPollIntervalInSeconds(), this);
     pollProcessor =
