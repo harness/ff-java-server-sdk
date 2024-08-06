@@ -82,7 +82,7 @@ public class EvaluatorIntegrationTest {
                           removeExtension(file.getName()));
 
                   final Repository repository =
-                      new StorageRepository(new CaffeineCache(10000), null);
+                      new StorageRepository(new CaffeineCache(10000), null, false);
                   final Evaluator evaluator =
                       new Evaluator(repository, Mockito.mock(BaseConfig.class));
 

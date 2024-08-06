@@ -561,6 +561,13 @@ components:
             type: string
       required:
         - variation
+    FeatureSnapshot:
+      type: object
+      properties:
+        current:
+          $ref: '#/components/schemas/FeatureConfig'
+        previous:
+          $ref: '#/components/schemas/FeatureConfig'
     FeatureConfig:
       type: object
       properties:

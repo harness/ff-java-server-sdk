@@ -4,10 +4,7 @@ import io.harness.cf.client.common.Cache;
 import io.harness.cf.client.common.Storage;
 import io.harness.cf.client.common.Utils;
 import io.harness.cf.model.*;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -18,13 +15,23 @@ class StorageRepository implements Repository {
   private Storage store;
   private final RepositoryCallback callback;
 
-  public StorageRepository(@NonNull Cache cache, RepositoryCallback callback) {
+  private final boolean cachePreviousFeatureConfigVersion;
+
+  public StorageRepository(
+      @NonNull Cache cache,
+      RepositoryCallback callback,
+      boolean cachePreviousFeatureConfigVersion) {
     this.cache = cache;
     this.callback = callback;
+    this.cachePreviousFeatureConfigVersion = cachePreviousFeatureConfigVersion;
   }
 
-  public StorageRepository(@NonNull Cache cache, Storage store, RepositoryCallback callback) {
-    this(cache, callback);
+  public StorageRepository(
+      @NonNull Cache cache,
+      Storage store,
+      RepositoryCallback callback,
+      boolean cachePreviousFeatureConfigVersion) {
+    this(cache, callback, cachePreviousFeatureConfigVersion);
     this.store = store;
   }
 
@@ -47,6 +54,37 @@ class StorageRepository implements Repository {
   @Override
   public Optional<FeatureConfig> getFlag(@NonNull String identifier) {
     return getFlag(identifier, true);
+  }
+
+  public List<String> getAllFeatureIdentifiers(String prefix) {
+    List<String> identifiers = new LinkedList<>();
+    List<String> keys = cache.keys();
+    String flagPrefix = "flags/";
+    for (String key : keys) {
+      if (key.startsWith(flagPrefix)) {
+        // Strip the flag prefix
+        String strippedKey = key.substring(flagPrefix.length());
+        // If prefix is empty, add all stripped keys, otherwise check for prefix match
+        if (prefix.isEmpty() || strippedKey.startsWith(prefix)) {
+          identifiers.add(strippedKey);
+        }
+      }
+    }
+    return identifiers;
+  }
+
+  public Optional<FeatureConfig[]> getCurrentAndPreviousFeatureConfig(@NonNull String identifier) {
+    final String flagKey = formatFlagKey(identifier);
+    final String pFlagKey = formatPrevFlagKey(identifier);
+
+    FeatureConfig pFlag = (FeatureConfig) cache.get(pFlagKey);
+    FeatureConfig cFlag = (FeatureConfig) cache.get(flagKey);
+
+    // we should have at least current flag there to return.
+    if (cFlag != null) {
+      return Optional.of(new FeatureConfig[] {pFlag, cFlag});
+    }
+    return Optional.empty();
   }
 
   public Optional<Segment> getSegment(@NonNull String identifier, boolean cacheable) {
@@ -115,6 +153,17 @@ class StorageRepository implements Repository {
       cache.delete(flagKey);
       log.debug("Flag {} successfully stored and cache invalidated", identifier);
     } else {
+      // extract and set the current featureConfig to the previous
+      if (cachePreviousFeatureConfigVersion) {
+        Object pFeatureConfig = cache.get(flagKey);
+        if (pFeatureConfig != null) {
+          // set the old version of the config to the cache
+          final String pFlagKey = formatPrevFlagKey(identifier);
+          cache.set(pFlagKey, pFeatureConfig);
+          log.debug("Flag {} successfully cached", pFlagKey);
+        }
+      }
+      // save a new config to the cache
       cache.set(flagKey, featureConfig);
       log.debug("Flag {} successfully cached", identifier);
     }
@@ -150,9 +199,16 @@ class StorageRepository implements Repository {
   @Override
   public void deleteFlag(@NonNull String identifier) {
     final String flagKey = this.formatFlagKey(identifier);
+    final String pflgKey = this.formatPrevFlagKey(identifier);
     if (store != null) {
+      if (cachePreviousFeatureConfigVersion) {
+        store.delete(pflgKey);
+      }
       store.delete(flagKey);
       log.debug("Flag {} successfully deleted from store", identifier);
+    }
+    if (cachePreviousFeatureConfigVersion) {
+      this.cache.delete(pflgKey);
     }
     this.cache.delete(flagKey);
     log.debug("Flag {} successfully deleted from cache", identifier);
@@ -207,6 +263,10 @@ class StorageRepository implements Repository {
   @NonNull
   protected String formatFlagKey(@NonNull String identifier) {
     return String.format("flags/%s", identifier);
+  }
+
+  protected String formatPrevFlagKey(@NonNull String identifier) {
+    return String.format("previous/%s", identifier);
   }
 
   @NonNull

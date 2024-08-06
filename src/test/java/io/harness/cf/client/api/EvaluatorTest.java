@@ -34,7 +34,7 @@ public class EvaluatorTest {
 
   @BeforeAll
   public void setupUp() throws IOException, URISyntaxException {
-    final StorageRepository repository = new StorageRepository(new CaffeineCache(100), null, null);
+    final StorageRepository repository = new StorageRepository(new CaffeineCache(100), null, false);
     evaluator = new Evaluator(repository, Mockito.mock(BaseConfig.class));
 
     loadSegments(repository, "local-test-cases/segments.json");
@@ -98,7 +98,7 @@ public class EvaluatorTest {
   private void testTargetV2Operator(String email, String role, String flagName, String expected)
       throws Exception {
 
-    final StorageRepository repository = new StorageRepository(new CaffeineCache(100), null, null);
+    final StorageRepository repository = new StorageRepository(new CaffeineCache(100), null, false);
     final Evaluator evaluator = new Evaluator(repository, Mockito.mock(BaseConfig.class));
 
     loadFlags(repository, "local-test-cases/v2-andor-flags.json");
@@ -259,7 +259,7 @@ public class EvaluatorTest {
 
   @Test
   public void shouldCorrectlyEvaluatePrereqsIfIdAndValueDiffer() throws Exception {
-    final StorageRepository repo = new StorageRepository(new CaffeineCache(100), null, null);
+    final StorageRepository repo = new StorageRepository(new CaffeineCache(100), null, false);
     final Evaluator eval = new Evaluator(repo, Mockito.mock(BaseConfig.class));
 
     loadSegments(repo, "local-test-cases/segments.json");
@@ -298,7 +298,7 @@ public class EvaluatorTest {
     final CountDownLatch latch = new CountDownLatch(threadCount);
     final ExecutorService executor = Executors.newFixedThreadPool(threadCount);
     final CopyOnWriteArrayList<Exception> failures = new CopyOnWriteArrayList<>();
-    final Query repository = new StorageRepository(new CaffeineCache(100), null, null);
+    final Query repository = new StorageRepository(new CaffeineCache(100), null, false);
     final Evaluator evaluator = new Evaluator(repository, Mockito.mock(BaseConfig.class));
 
     final List<String> values = new ArrayList<>();

@@ -1,0 +1,28 @@
+{
+    "defaultServe": {
+      "variation": "true"
+    },
+    "environment": "TEST",
+    "feature": "simplebool",
+    "kind": "boolean",
+    "offVariation": "false",
+    "prerequisites": [],
+    "project": "test",
+    "rules": [],
+    "state": "on",
+    "variationToTargetMap": null,
+    "variations": [
+      {
+        "identifier": "true",
+        "name": "True",
+        "value": "true"
+      },
+      {
+        "identifier": "false",
+        "name": "False",
+        "value": "false"
+      }
+    ],
+    "version": 1
+  }
+
