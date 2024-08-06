@@ -73,20 +73,6 @@ class StorageRepository implements Repository {
     return identifiers;
   }
 
-  public Optional<FeatureSnapshot[]> getAllFeatureSnapshots() {
-    // get all the keys
-    List<String> keys = cache.keys();
-    List<FeatureConfig> configs = new LinkedList<>();
-
-    for (String key : keys) {
-      if (key.startsWith("flags/")) {
-        FeatureConfig pFlag = (FeatureConfig) cache.get(key);
-      }
-    }
-
-    return Optional.empty();
-  }
-
   public Optional<FeatureConfig[]> getCurrentAndPreviousFeatureConfig(@NonNull String identifier) {
     final String flagKey = formatFlagKey(identifier);
     final String pFlagKey = formatPrevFlagKey(identifier);

@@ -20,6 +20,10 @@ public class TestUtils {
     return getJsonResource("local-test-cases/basic_bool_string_number_json_variations.json");
   }
 
+  public static String makeBasicFeatureJsonForRepoTest() throws IOException, URISyntaxException {
+    return getJsonResource("local-test-cases/basic_bool_string_for_repository.json");
+  }
+
   public static String getJsonResource(String location) throws IOException, URISyntaxException {
     final Path path = Paths.get(EvaluatorTest.class.getClassLoader().getResource(location).toURI());
     return new String(Files.readAllBytes(path));
