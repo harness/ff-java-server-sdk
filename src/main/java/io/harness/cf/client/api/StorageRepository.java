@@ -80,8 +80,19 @@ class StorageRepository implements Repository {
     FeatureConfig pFlag = (FeatureConfig) cache.get(pFlagKey);
     FeatureConfig cFlag = (FeatureConfig) cache.get(flagKey);
 
-    // we should have at least current flag there to return.
     if (cFlag != null) {
+      return Optional.of(new FeatureConfig[] {pFlag, cFlag});
+    }
+    // if we don't have it in cache we check the file
+    if (this.store != null) {
+      pFlag = (FeatureConfig) store.get(pFlagKey);
+      cFlag = (FeatureConfig) store.get(flagKey);
+      if (pFlag != null) {
+        cache.set(pFlagKey, pFlag);
+      }
+      if (cFlag != null) {
+        cache.set(flagKey, cFlag);
+      }
       return Optional.of(new FeatureConfig[] {pFlag, cFlag});
     }
     return Optional.empty();
@@ -147,26 +158,30 @@ class StorageRepository implements Repository {
       log.debug("Flag {} already exists", identifier);
       return;
     }
+
     final String flagKey = formatFlagKey(identifier);
+    final Object previousFeatureConfig = store != null ? store.get(flagKey) : cache.get(flagKey);
+
+    if (cachePreviousFeatureConfigVersion && previousFeatureConfig != null) {
+      final String previousFlagKey = formatPrevFlagKey(identifier);
+      if (store != null) {
+        store.set(previousFlagKey, previousFeatureConfig);
+        cache.delete(previousFlagKey);
+      } else {
+        cache.set(previousFlagKey, previousFeatureConfig);
+      }
+      log.debug("Flag {} successfully stored and cache invalidated", previousFlagKey);
+    }
+
     if (store != null) {
       store.set(flagKey, featureConfig);
       cache.delete(flagKey);
-      log.debug("Flag {} successfully stored and cache invalidated", identifier);
     } else {
-      // extract and set the current featureConfig to the previous
-      if (cachePreviousFeatureConfigVersion) {
-        Object pFeatureConfig = cache.get(flagKey);
-        if (pFeatureConfig != null) {
-          // set the old version of the config to the cache
-          final String pFlagKey = formatPrevFlagKey(identifier);
-          cache.set(pFlagKey, pFeatureConfig);
-          log.debug("Flag {} successfully cached", pFlagKey);
-        }
-      }
-      // save a new config to the cache
       cache.set(flagKey, featureConfig);
-      log.debug("Flag {} successfully cached", identifier);
     }
+
+    log.debug("Flag {} successfully stored", identifier);
+
     if (callback != null) {
       callback.onFlagStored(identifier);
     }
