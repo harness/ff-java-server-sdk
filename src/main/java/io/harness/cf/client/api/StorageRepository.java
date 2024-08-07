@@ -160,7 +160,7 @@ class StorageRepository implements Repository {
     }
 
     final String flagKey = formatFlagKey(identifier);
-    final Object q = store != null ? store.get(flagKey) : cache.get(flagKey);
+    final Object previousFeatureConfig = store != null ? store.get(flagKey) : cache.get(flagKey);
 
     if (cachePreviousFeatureConfigVersion && previousFeatureConfig != null) {
       final String previousFlagKey = formatPrevFlagKey(identifier);
