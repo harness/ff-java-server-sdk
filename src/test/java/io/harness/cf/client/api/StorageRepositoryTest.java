@@ -59,6 +59,79 @@ class StorageRepositoryTest {
   }
 
   @Test
+  void shouldStoreCurrentConfigWithFileStore() throws Exception {
+
+    File file = File.createTempFile(FileMapStoreTest.class.getSimpleName(), ".tmp");
+    file.deleteOnExit();
+
+    XmlFileMapStore store = new XmlFileMapStore(file.getAbsolutePath());
+
+    final Repository repository =
+        new StorageRepository(new CaffeineCache(10000), store, null, false);
+    assertInstanceOf(StorageRepository.class, repository);
+
+    FeatureConfig featureConfig = GetFeatureConfigFromFile();
+    FeatureConfig featureConfigUpdated = GetUpdatedFeatureConfigFromFile();
+
+    assertNotNull(featureConfig);
+    assertNotNull(featureConfigUpdated);
+
+    loadFlags(repository, makeFeatureList(featureConfig));
+    loadFlags(repository, makeFeatureList(featureConfigUpdated));
+
+    Optional<FeatureConfig[]> res =
+        repository.getCurrentAndPreviousFeatureConfig(featureConfigUpdated.getFeature());
+    FeatureConfig[] resFc = res.get();
+
+    FeatureConfig previous = resFc[0];
+    FeatureConfig current = resFc[1];
+
+    // check if previous version is null
+    assertNull(previous);
+    assertNotNull(current);
+
+    // check if the current version is correct
+    assertEquals(current.getVersion(), new Long(2));
+  }
+
+  @Test
+  void shouldStorePreviousAndCurrentConfigWithFileStore() throws Exception {
+
+    File file = File.createTempFile(FileMapStoreTest.class.getSimpleName(), ".tmp");
+    file.deleteOnExit();
+
+    XmlFileMapStore store = new XmlFileMapStore(file.getAbsolutePath());
+
+    final Repository repository =
+        new StorageRepository(new CaffeineCache(10000), store, null, true);
+    assertInstanceOf(StorageRepository.class, repository);
+
+    FeatureConfig featureConfig = GetFeatureConfigFromFile();
+    FeatureConfig featureConfigUpdated = GetUpdatedFeatureConfigFromFile();
+
+    assertNotNull(featureConfig);
+    assertNotNull(featureConfigUpdated);
+
+    loadFlags(repository, makeFeatureList(featureConfig));
+    loadFlags(repository, makeFeatureList(featureConfigUpdated));
+
+    Optional<FeatureConfig[]> res =
+        repository.getCurrentAndPreviousFeatureConfig(featureConfigUpdated.getFeature());
+    FeatureConfig[] resFc = res.get();
+
+    FeatureConfig previous = resFc[0];
+    FeatureConfig current = resFc[1];
+
+    // check if previous version is null
+    assertNotNull(previous);
+    assertNotNull(current);
+
+    // check if the current version is correct
+    assertEquals(previous.getVersion(), new Long(1));
+    assertEquals(current.getVersion(), new Long(2));
+  }
+
+  @Test
   void shouldStorePreviousAndCurrentConfig() throws Exception {
     final Repository repository = new StorageRepository(new CaffeineCache(10000), null, true);
     assertInstanceOf(StorageRepository.class, repository);
