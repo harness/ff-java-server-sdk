@@ -18,3 +18,13 @@ tasks.register('GettingStarted', JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = "io.harness.ff.examples.GettingStarted"
 }
+
+tasks.register('EventExample', JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = "io.harness.ff.examples.EventExample"
+}
+
+tasks.register('EventExampleWithFeatureSnapshot', JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = "io.harness.ff.examples.EventExampleWithFeatureSnapshot"
+}
