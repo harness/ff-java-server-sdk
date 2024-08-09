@@ -319,7 +319,7 @@ class InnerClient
   }
 
   public List<FeatureSnapshot> getFeatureSnapshots(String prefix) {
-    if (!options.isEnableFeatureSnapshot()){
+    if (!options.isEnableFeatureSnapshot()) {
       log.debug("FeatureSnapshot disabled, snapshot will contain only current version.");
     }
     List<String> identifiers = repository.getAllFeatureIdentifiers(prefix);
@@ -334,7 +334,7 @@ class InnerClient
   }
 
   public FeatureSnapshot getFeatureSnapshot(@NonNull String identifier) {
-    if (!options.isEnableFeatureSnapshot()){
+    if (!options.isEnableFeatureSnapshot()) {
       log.debug("FeatureSnapshot disabled, snapshot will contain only current version.");
     }
     Optional<FeatureConfig[]> ofc = repository.getCurrentAndPreviousFeatureConfig(identifier);

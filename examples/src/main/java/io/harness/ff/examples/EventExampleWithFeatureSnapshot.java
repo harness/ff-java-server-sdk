@@ -16,8 +16,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
-public class EventExamplePoC {
-    private static final String SDK_KEY = "";
+public class EventExampleWithFeatureSnapshot {
+    private static final String SDK_KEY = "44a8523b-ecf8-44f7-9134-91a42ba7afda";
     private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     private static CfClient client;
