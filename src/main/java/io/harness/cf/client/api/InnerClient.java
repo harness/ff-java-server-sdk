@@ -91,7 +91,9 @@ class InnerClient
     this.connector.setOnUnauthorized(this::onUnauthorized);
 
     // initialization
-    repository = new StorageRepository(options.getCache(), options.getStore(), this, false);
+    repository =
+        new StorageRepository(
+            options.getCache(), options.getStore(), this, options.isEnableFeatureSnapshot());
     evaluator = new Evaluator(repository, options);
     authService = new AuthService(this.connector, options.getPollIntervalInSeconds(), this);
     pollProcessor =
@@ -313,12 +315,13 @@ class InnerClient
   }
 
   public List<FeatureSnapshot> getFeatureSnapshots() {
-    // TODO return null/empty list if snapshot is not enabled in config.
     return getFeatureSnapshots("");
   }
 
   public List<FeatureSnapshot> getFeatureSnapshots(String prefix) {
-    // TODO return null/empty list if snapshot is not enabled in config.
+    if (!options.isEnableFeatureSnapshot()){
+      log.debug("FeatureSnapshot disabled, snapshot will contain only current version.");
+    }
     List<String> identifiers = repository.getAllFeatureIdentifiers(prefix);
     List<FeatureSnapshot> snapshots = new LinkedList<>();
 
@@ -331,7 +334,9 @@ class InnerClient
   }
 
   public FeatureSnapshot getFeatureSnapshot(@NonNull String identifier) {
-    // TODO return null/empty list if snapshot is not enabled in config.
+    if (!options.isEnableFeatureSnapshot()){
+      log.debug("FeatureSnapshot disabled, snapshot will contain only current version.");
+    }
     Optional<FeatureConfig[]> ofc = repository.getCurrentAndPreviousFeatureConfig(identifier);
     FeatureSnapshot result = new FeatureSnapshot();
     if (ofc.isPresent()) {
