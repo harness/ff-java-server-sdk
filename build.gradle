@@ -18,6 +18,7 @@ plugins {
     id 'jacoco-report-aggregation'
     id "com.github.spotbugs" version libs.versions.spotbugs
     id "org.owasp.dependencycheck" version libs.versions.depcheck
+    id 'me.champeau.jmh' version '0.6.8' // Added JMH plugin
 }
 
 
@@ -55,6 +56,10 @@ dependencies {
 
     compileOnly libs.lombok
     annotationProcessor libs.lombok
+
+    // JMH dependencies
+    implementation 'org.openjdk.jmh:jmh-core:1.37'
+    annotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
 }
 
 group = 'io.harness'

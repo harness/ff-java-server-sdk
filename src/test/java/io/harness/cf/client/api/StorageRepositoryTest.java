@@ -20,9 +20,6 @@ import org.junit.jupiter.api.Test;
 class StorageRepositoryTest {
   private final Gson gson = new Gson();
 
-  // initialize the config and load the flags.
-  // load the test
-
   @Test
   void shouldInitialiseRepo() {
     final Repository repository = new StorageRepository(new CaffeineCache(10000), null, false);
@@ -268,5 +265,18 @@ class StorageRepositoryTest {
       e.printStackTrace();
     }
     return null;
+  }
+
+  private List<FeatureConfig> createBenchmarkData(int flagNumber, int version) throws Exception {
+    FeatureConfig fg = GetFeatureConfigFromFile();
+    List<FeatureConfig> list = new LinkedList<FeatureConfig>();
+    for (int i = 1; i <= flagNumber; i++) {
+      FeatureConfig f = fg;
+      f.setFeature("simpleBool" + i);
+      f.setVersion(new Long(version));
+      list.add(f);
+    }
+    //    System.out.println(list);
+    return list;
   }
 }
