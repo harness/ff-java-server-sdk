@@ -43,7 +43,9 @@ public class TestUtils {
       FeatureConfig f = fg;
       f.setFeature("simpleBool" + i);
       f.setVersion(new Long(version));
-      list.add(f);
+      // we are copying objects
+      FeatureConfig df = gson.fromJson(gson.toJson(f), FeatureConfig.class);
+      list.add(df);
     }
     //    System.out.println(list);
     return list;

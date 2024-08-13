@@ -1,6 +1,5 @@
 package io.harness.cf.client.api;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import io.harness.cf.client.common.SdkCodes;
 import io.harness.cf.client.connector.*;
@@ -11,7 +10,6 @@ import io.harness.cf.model.FeatureSnapshot;
 import io.harness.cf.model.Variation;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
@@ -337,18 +335,7 @@ class InnerClient
     if (!options.isEnableFeatureSnapshot()) {
       log.debug("FeatureSnapshot disabled, snapshot will contain only current version.");
     }
-    Optional<FeatureConfig[]> ofc = repository.getCurrentAndPreviousFeatureConfig(identifier);
-    FeatureSnapshot result = new FeatureSnapshot();
-    if (ofc.isPresent()) {
-      FeatureConfig[] fc = ofc.get();
-      result.setPrevious(fc[0]);
-      result.setCurrent(fc[1]);
-    }
-    // this is here to create a deep copy of the object before its returned.
-    // this way we protect the cache.
-    Gson gson = new Gson();
-    FeatureSnapshot deepCopySnapshot = gson.fromJson(gson.toJson(result), FeatureSnapshot.class);
-    return deepCopySnapshot;
+    return repository.getFeatureSnapshot(identifier);
   }
 
   public void on(@NonNull final Event event, @NonNull final Consumer<String> consumer) {

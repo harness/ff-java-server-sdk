@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.google.gson.Gson;
 import io.harness.cf.model.FeatureConfig;
+import io.harness.cf.model.FeatureSnapshot;
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
@@ -12,7 +13,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Stream;
 import lombok.NonNull;
 import org.junit.jupiter.api.Test;
@@ -40,12 +40,10 @@ class StorageRepositoryTest {
     loadFlags(repository, makeFeatureList(featureConfig));
     loadFlags(repository, makeFeatureList(featureConfigUpdated));
 
-    Optional<FeatureConfig[]> res =
-        repository.getCurrentAndPreviousFeatureConfig(featureConfigUpdated.getFeature());
-    FeatureConfig[] resFc = res.get();
+    FeatureSnapshot res = repository.getFeatureSnapshot(featureConfigUpdated.getFeature());
 
-    FeatureConfig previous = resFc[0];
-    FeatureConfig current = resFc[1];
+    FeatureConfig previous = res.getPrevious();
+    FeatureConfig current = res.getCurrent();
 
     // check if previous version is null
     assertNull(previous);
@@ -76,12 +74,10 @@ class StorageRepositoryTest {
     loadFlags(repository, makeFeatureList(featureConfig));
     loadFlags(repository, makeFeatureList(featureConfigUpdated));
 
-    Optional<FeatureConfig[]> res =
-        repository.getCurrentAndPreviousFeatureConfig(featureConfigUpdated.getFeature());
-    FeatureConfig[] resFc = res.get();
+    FeatureSnapshot res = repository.getFeatureSnapshot(featureConfigUpdated.getFeature());
 
-    FeatureConfig previous = resFc[0];
-    FeatureConfig current = resFc[1];
+    FeatureConfig previous = res.getPrevious();
+    FeatureConfig current = res.getCurrent();
 
     // check if previous version is null
     assertNull(previous);
@@ -112,12 +108,10 @@ class StorageRepositoryTest {
     loadFlags(repository, makeFeatureList(featureConfig));
     loadFlags(repository, makeFeatureList(featureConfigUpdated));
 
-    Optional<FeatureConfig[]> res =
-        repository.getCurrentAndPreviousFeatureConfig(featureConfigUpdated.getFeature());
-    FeatureConfig[] resFc = res.get();
+    FeatureSnapshot res = repository.getFeatureSnapshot(featureConfigUpdated.getFeature());
 
-    FeatureConfig previous = resFc[0];
-    FeatureConfig current = resFc[1];
+    FeatureConfig previous = res.getPrevious();
+    FeatureConfig current = res.getCurrent();
 
     // check if previous version is null
     assertNotNull(previous);
@@ -142,12 +136,10 @@ class StorageRepositoryTest {
     loadFlags(repository, makeFeatureList(featureConfig));
     loadFlags(repository, makeFeatureList(featureConfigUpdated));
 
-    Optional<FeatureConfig[]> res =
-        repository.getCurrentAndPreviousFeatureConfig(featureConfigUpdated.getFeature());
-    FeatureConfig[] resFc = res.get();
+    FeatureSnapshot res = repository.getFeatureSnapshot(featureConfigUpdated.getFeature());
 
-    FeatureConfig previous = resFc[0];
-    FeatureConfig current = resFc[1];
+    FeatureConfig previous = res.getPrevious();
+    FeatureConfig current = res.getCurrent();
 
     // check if previous version is null
     assertNotNull(previous);
@@ -174,12 +166,10 @@ class StorageRepositoryTest {
 
     String featureIdentifier = featureConfig.getFeature();
 
-    Optional<FeatureConfig[]> res =
-        repository.getCurrentAndPreviousFeatureConfig(featureIdentifier);
-    FeatureConfig[] resFc = res.get();
+    FeatureSnapshot res = repository.getFeatureSnapshot(featureConfigUpdated.getFeature());
 
-    FeatureConfig previous = resFc[0];
-    FeatureConfig current = resFc[1];
+    FeatureConfig previous = res.getPrevious();
+    FeatureConfig current = res.getCurrent();
 
     // check if previous version is null
     assertNotNull(previous);
@@ -191,10 +181,9 @@ class StorageRepositoryTest {
 
     // delete config
     repository.deleteFlag(featureIdentifier);
-    Optional<FeatureConfig[]> result =
-        repository.getCurrentAndPreviousFeatureConfig(featureIdentifier);
+    FeatureSnapshot result = repository.getFeatureSnapshot(featureConfigUpdated.getFeature());
 
-    assertFalse(result.isPresent(), "The Optional should be empty");
+    assertNull(result, "The Optional should be empty");
   }
 
   @Test
