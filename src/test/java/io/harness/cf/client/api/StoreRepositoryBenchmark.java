@@ -9,11 +9,13 @@ import org.openjdk.jmh.annotations.*;
 /*
  How to run it.
  ./gradlew clean build
- ./gradlew jmh -Pjmh.include=BenchmarkClassName.BenchmarkMethodName
+ ./gradlew jmh
 
- e.g.
- ./gradlew jmh -Pjmh.include=StoreRepositoryBenchmark.BenchmarkLoadFeatureConfigCurrentOnly
- ./gradlew jmh -Pjmh.include=StoreRepositoryBenchmark.BenchmarkLoadFeatureConfigPreviousAndCurrent
+ some results:
+  Benchmark                                                              Mode  Cnt  Score   Error  Units
+  StoreRepositoryBenchmark.BenchmarkLoadFeatureConfigCurrentOnly         avgt    5  1.160 ± 0.059  ms/op
+  StoreRepositoryBenchmark.BenchmarkLoadFeatureConfigPreviousAndCurrent  avgt    5  1.224 ± 0.025  ms/op
+ 
 */
 
 @State(Scope.Thread)
