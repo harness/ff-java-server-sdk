@@ -1,5 +1,6 @@
 package io.harness.cf.client.api;
 
+import com.google.gson.Gson;
 import io.harness.cf.client.common.Cache;
 import io.harness.cf.client.common.Storage;
 import io.harness.cf.client.common.Utils;
@@ -96,6 +97,37 @@ class StorageRepository implements Repository {
       return Optional.of(new FeatureConfig[] {pFlag, cFlag});
     }
     return Optional.empty();
+  }
+
+  public FeatureSnapshot getFeatureSnapshot(@NonNull String identifier) {
+    Gson gson = new Gson();
+    final String flagKey = formatFlagKey(identifier);
+    final String pFlagKey = formatPrevFlagKey(identifier);
+
+    FeatureConfig pFlag = (FeatureConfig) cache.get(pFlagKey);
+    FeatureConfig cFlag = (FeatureConfig) cache.get(flagKey);
+
+    if (cFlag != null) {
+      FeatureSnapshot deepCopySnapshot =
+          gson.fromJson(gson.toJson(new FeatureSnapshot(cFlag, pFlag)), FeatureSnapshot.class);
+      return deepCopySnapshot;
+    }
+    // if we don't have it in cache we check the file
+    if (this.store != null) {
+      pFlag = (FeatureConfig) store.get(pFlagKey);
+      cFlag = (FeatureConfig) store.get(flagKey);
+      if (pFlag != null) {
+        cache.set(pFlagKey, pFlag);
+      }
+      if (cFlag != null) {
+        cache.set(flagKey, cFlag);
+      }
+
+      FeatureSnapshot deepCopySnapshot =
+          gson.fromJson(gson.toJson(new FeatureSnapshot(cFlag, pFlag)), FeatureSnapshot.class);
+      return deepCopySnapshot;
+    }
+    return null;
   }
 
   public Optional<Segment> getSegment(@NonNull String identifier, boolean cacheable) {
