@@ -14,9 +14,11 @@ import org.openjdk.jmh.annotations.*;
  ./gradlew jmh
 
  some results:
-  Benchmark                                                              Mode  Cnt  Score   Error  Units
-  StoreRepositoryBenchmark.BenchmarkLoadFeatureConfigCurrentOnly         avgt    5  1.160 ± 0.059  ms/op
-  StoreRepositoryBenchmark.BenchmarkLoadFeatureConfigPreviousAndCurrent  avgt    5  1.224 ± 0.025  ms/op
+  Benchmark                                                                Mode  Cnt    Score     Error  Units
+  StoreRepositoryBenchmark.BenchmarkGetFeatureSnapshotsCurrentOnly         avgt    5  805.511 ± 105.154  ms/op
+  StoreRepositoryBenchmark.BenchmarkGetFeatureSnapshotsPreviousAndCurrent  avgt    5  860.745 ±  61.876  ms/op
+  StoreRepositoryBenchmark.BenchmarkLoadFeatureConfigCurrentOnly           avgt    5    1.502 ±   0.198  ms/op
+  StoreRepositoryBenchmark.BenchmarkLoadFeatureConfigPreviousAndCurrent    avgt    5    2.071 ±   0.650  ms/op
 
 */
 
@@ -111,7 +113,7 @@ public class StoreRepositoryBenchmark {
   @Benchmark
   @BenchmarkMode(Mode.AverageTime)
   public void BenchmarkGetFeatureSnapshotsCurrentOnly() {
-    // Measures time taken to get snapshot
+    // Measures time taken to get snapshots
     List<FeatureSnapshot> snapshots = getFeatureSnapshots(getSnapshotCurrentOnlyRepository);
     if (snapshots == null) {
       throw new IllegalStateException("Snapshots are null");
@@ -136,7 +138,7 @@ public class StoreRepositoryBenchmark {
   @Benchmark
   @BenchmarkMode(Mode.AverageTime)
   public void BenchmarkGetFeatureSnapshotsPreviousAndCurrent() {
-    // Measures time taken to get snapshot
+    // Measures time taken to get snapshots
     List<FeatureSnapshot> snapshots = getFeatureSnapshots(getSnapshotCurrentAndPreviousRepository);
     if (snapshots == null) {
       throw new IllegalStateException("Snapshots are null");
