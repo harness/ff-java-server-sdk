@@ -1,9 +1,6 @@
 package io.harness.ff.examples;
 
-import io.harness.cf.client.api.BaseConfig;
-import io.harness.cf.client.api.CfClient;
-import io.harness.cf.client.api.Event;
-import io.harness.cf.client.api.XmlFileMapStore;
+import io.harness.cf.client.api.*;
 import io.harness.cf.client.connector.HarnessConfig;
 import io.harness.cf.client.connector.HarnessConnector;
 import io.harness.cf.client.dto.Target;
@@ -31,10 +28,14 @@ public class EventExampleWithFeatureSnapshot {
 
         final XmlFileMapStore fileStore = new XmlFileMapStore("Non-Freemium");
         // this is one way of initialising config.
-        final HarnessConnector hc = new HarnessConnector(SDK_KEY, HarnessConfig.builder().build());
+        final HarnessConnector hc = new HarnessConnector(SDK_KEY, HarnessConfig.builder()
+                .build());
 
-        BaseConfig bc = BaseConfig.builder().
-                enableFeatureSnapshot(true).build();
+        // enable the feature snapshot and set the cache size to 20,000 ( 2* 10,000 which is a flag limit )
+        BaseConfig bc = BaseConfig.builder()
+                .cache(new CaffeineCache(20000))
+                .enableFeatureSnapshot(true)
+                .build();
 
         // initialise the client.
         client = new CfClient(hc, bc);
