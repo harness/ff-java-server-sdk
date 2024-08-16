@@ -6,7 +6,10 @@ import io.harness.cf.client.connector.*;
 import io.harness.cf.client.dto.Message;
 import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.FeatureConfig;
+import io.harness.cf.model.FeatureSnapshot;
 import io.harness.cf.model.Variation;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
@@ -86,7 +89,9 @@ class InnerClient
     this.connector.setOnUnauthorized(this::onUnauthorized);
 
     // initialization
-    repository = new StorageRepository(options.getCache(), options.getStore(), this);
+    repository =
+        new StorageRepository(
+            options.getCache(), options.getStore(), this, options.isEnableFeatureSnapshot());
     evaluator = new Evaluator(repository, options);
     authService = new AuthService(this.connector, options.getPollIntervalInSeconds(), this);
     pollProcessor =
@@ -305,6 +310,32 @@ class InnerClient
         throw new FeatureFlagInitializeException();
       }
     }
+  }
+
+  public List<FeatureSnapshot> getFeatureSnapshots() {
+    return getFeatureSnapshots("");
+  }
+
+  public List<FeatureSnapshot> getFeatureSnapshots(String prefix) {
+    if (!options.isEnableFeatureSnapshot()) {
+      log.debug("FeatureSnapshot disabled, snapshot will contain only current version.");
+    }
+    List<String> identifiers = repository.getAllFeatureIdentifiers(prefix);
+    List<FeatureSnapshot> snapshots = new LinkedList<>();
+
+    for (String identifier : identifiers) {
+      FeatureSnapshot snapshot = getFeatureSnapshot(identifier);
+      snapshots.add(snapshot);
+    }
+
+    return snapshots;
+  }
+
+  public FeatureSnapshot getFeatureSnapshot(@NonNull String identifier) {
+    if (!options.isEnableFeatureSnapshot()) {
+      log.debug("FeatureSnapshot disabled, snapshot will contain only current version.");
+    }
+    return repository.getFeatureSnapshot(identifier);
   }
 
   public void on(@NonNull final Event event, @NonNull final Consumer<String> consumer) {

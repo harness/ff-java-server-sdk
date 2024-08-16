@@ -1,6 +1,7 @@
 package io.harness.cf.client.api;
 
 import io.harness.cf.model.FeatureConfig;
+import io.harness.cf.model.FeatureSnapshot;
 import io.harness.cf.model.Segment;
 import java.util.List;
 import java.util.Optional;
@@ -13,4 +14,8 @@ public interface Query {
   Optional<Segment> getSegment(@NonNull String identifier);
 
   List<String> findFlagsBySegment(@NonNull String identifier);
+
+  FeatureSnapshot getFeatureSnapshot(@NonNull String identifier);
+
+  List<String> getAllFeatureIdentifiers(String prefix);
 }
