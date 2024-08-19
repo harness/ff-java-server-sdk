@@ -34,6 +34,9 @@ public class EventExampleWithFeatureSnapshot {
         final HarnessConnector hc = new HarnessConnector(SDK_KEY, HarnessConfig.builder().build());
 
         BaseConfig bc = BaseConfig.builder().
+                // increase cache max size - default to 10,000
+                // it's up to a user to estimate the required size
+                //.cache(new CaffeineCache(20000)).
                 enableFeatureSnapshot(true).build();
 
         // initialise the client.
