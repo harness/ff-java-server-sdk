@@ -39,11 +39,20 @@ public class EventExampleWithFeatureSnapshot {
         // initialise the client.
         client = new CfClient(hc, bc);
 
-        client.on(Event.READY, result -> log.info("READY"));
+        // example: get all snapshots on initialization.
+        client.on(Event.READY, identifier -> {
+            log.info("READY");
+            getAllSnapshots();
+        });
 
-        // example: specified prefix we can filter on.
-        final String FLAG_PREFIX = "FFM_";
+        client.on(Event.CHANGED, identifier -> {
+              getSnapshot(identifier);
+        });
+
+        /*
+
         // example:  given flag change event - get both previous and current feature if prefix is matched.
+        final String FLAG_PREFIX = "FFM_";
         client.on(Event.CHANGED, identifier -> {
             if (identifier.startsWith(FLAG_PREFIX)) {
                 getSnapshot(identifier);
@@ -62,8 +71,9 @@ public class EventExampleWithFeatureSnapshot {
             getAllSnapshotsWithPrefix();
         });
 
-        final Target target = Target.builder().identifier("target1").attribute("testKey", "TestValue").name("target1").build();
+        */
 
+        final Target target = Target.builder().identifier("target1").attribute("testKey", "TestValue").name("target1").build();
         scheduler.scheduleAtFixedRate(() -> {
             log.info("ticking...");
         }, 0, 10, TimeUnit.SECONDS);
