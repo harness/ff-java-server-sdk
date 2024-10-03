@@ -60,12 +60,6 @@ public class NewRetryInterceptor implements Interceptor {
     Response response = null;
     String msg = "";
     do {
-
-      //      if (isShuttingDown.get()) {
-      //        log.debug("SDK is shutting down, aborting retry interceptor");
-      //        return response;
-      //      }
-
       try {
         if (response != null) response.close();
 
@@ -102,8 +96,7 @@ public class NewRetryInterceptor implements Interceptor {
           log.trace("Retry-After header detected: {} seconds", retryAfterHeaderValue);
           backOffDelayMs = retryAfterHeaderValue * 1000L;
         } else {
-          // Else fallback to a randomized exponential backoff with a max delay of 1 minute (60,000
-          // ms)
+          // Else fallback to a randomized exponential backoff with a max delay of 1 minute (60,000ms)
           backOffDelayMs = Math.min(retryBackoffDelay * tryCount, 60000L);
         }
 

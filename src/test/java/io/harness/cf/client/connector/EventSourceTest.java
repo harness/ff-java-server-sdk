@@ -120,8 +120,7 @@ class EventSourceTest {
     }
 
     // for this test, connection to the /stream endpoint will never because of an un-retryable
-    // error.
-    // we expect the disconnect handler to be called, connect handler should not be called
+    // error. We expect the disconnect handler to be called, connect handler should not be called
 
     assertEquals(0, updater.getConnectCount().get());
     assertEquals(0, updater.getFailureCount().get());
