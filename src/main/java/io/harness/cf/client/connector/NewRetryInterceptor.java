@@ -10,6 +10,7 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -23,24 +24,31 @@ public class NewRetryInterceptor implements Interceptor {
   private final long retryBackoffDelay;
   private final boolean retryForever;
 
+  private final AtomicBoolean isShuttingDown;
+
   // Use SDK default is not specified
   private long maxTryCount = DEFAULT_REQUEST_RETRIES;
 
-  public NewRetryInterceptor(long retryBackoffDelay) {
+  public NewRetryInterceptor(long retryBackoffDelay, AtomicBoolean isShuttingDown) {
     this.retryBackoffDelay = retryBackoffDelay;
     this.retryForever = false;
+    this.isShuttingDown = isShuttingDown;
   }
 
-  public NewRetryInterceptor(long maxTryCount, long retryBackoffDelay) {
+  public NewRetryInterceptor(
+      long maxTryCount, long retryBackoffDelay, AtomicBoolean isShuttingDown) {
     this.retryBackoffDelay = retryBackoffDelay;
     this.maxTryCount = maxTryCount;
     this.retryForever = false;
+    this.isShuttingDown = isShuttingDown;
   }
 
   // New constructor with retryForever flag
-  public NewRetryInterceptor(long retryBackoffDelay, boolean retryForever) {
+  public NewRetryInterceptor(
+      long retryBackoffDelay, boolean retryForever, AtomicBoolean isShuttingDown) {
     this.retryBackoffDelay = retryBackoffDelay;
     this.retryForever = retryForever;
+    this.isShuttingDown = isShuttingDown;
   }
 
   @NotNull
@@ -52,6 +60,12 @@ public class NewRetryInterceptor implements Interceptor {
     Response response = null;
     String msg = "";
     do {
+
+      if (isShuttingDown.get()) {
+        log.debug("SDK is shutting down, aborting retry interceptor");
+        break;
+      }
+
       try {
         if (response != null) response.close();
 
@@ -114,7 +128,7 @@ public class NewRetryInterceptor implements Interceptor {
         }
       }
       tryCount++;
-    } while (!successful && (retryForever || tryCount <= maxTryCount));
+    } while (!successful && (retryForever || tryCount <= maxTryCount) && !isShuttingDown.get());
 
     return response;
   }

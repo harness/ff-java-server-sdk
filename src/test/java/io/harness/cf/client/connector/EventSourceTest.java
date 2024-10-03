@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -84,7 +85,8 @@ class EventSourceTest {
                 updater,
                 1,
                 1,
-                null)) {
+                null,
+                new AtomicBoolean(false))) {
       eventSource.start();
 
       TimeUnit.SECONDS.sleep(15);
@@ -110,7 +112,8 @@ class EventSourceTest {
                 updater,
                 1,
                 1,
-                null)) {
+                null,
+                new AtomicBoolean(false))) {
       eventSource.start();
 
       TimeUnit.SECONDS.sleep(3);

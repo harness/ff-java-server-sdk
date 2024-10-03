@@ -15,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +33,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
   private final MetricsApi metricsApi;
   private final String apiKey;
   private final HarnessConfig options;
+  private final AtomicBoolean isShuttingDown = new AtomicBoolean(false);
 
   private String token;
   private String environmentUuid;
@@ -89,7 +91,9 @@ public class HarnessConnector implements Connector, AutoCloseable {
             .getHttpClient()
             .newBuilder()
             .addInterceptor(this::reauthInterceptor)
-            .addInterceptor(new NewRetryInterceptor(options.getMaxRequestRetry(), retryBackOfDelay))
+            .addInterceptor(
+                new NewRetryInterceptor(
+                    options.getMaxRequestRetry(), retryBackOfDelay, isShuttingDown))
             .build());
 
     return apiClient;
@@ -128,7 +132,8 @@ public class HarnessConnector implements Connector, AutoCloseable {
             .newBuilder()
             .addInterceptor(this::metricsInterceptor)
             .addInterceptor(
-                new NewRetryInterceptor(options.getMaxRequestRetry(), retryBackoffDelay))
+                new NewRetryInterceptor(
+                    options.getMaxRequestRetry(), retryBackoffDelay, isShuttingDown))
             .build());
 
     return apiClient;
@@ -406,13 +411,15 @@ public class HarnessConnector implements Connector, AutoCloseable {
             updater,
             Math.max(options.getSseReadTimeout(), 1),
             ThreadLocalRandom.current().nextInt(5000, 10000),
-            options.getTlsTrustedCAs());
+            options.getTlsTrustedCAs(),
+            isShuttingDown);
     return eventSource;
   }
 
   @Override
   public void close() {
     log.debug("closing connector");
+    isShuttingDown.set(true);
     api.getApiClient().getHttpClient().connectionPool().evictAll();
     log.debug("All apiClient connections evicted");
     metricsApi.getApiClient().getHttpClient().connectionPool().evictAll();
