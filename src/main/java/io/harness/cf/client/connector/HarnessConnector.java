@@ -134,7 +134,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
         apiClient
             .getHttpClient()
             .newBuilder()
-            //            .addInterceptor(this::metricsInterceptor)
+            .addInterceptor(this::metricsInterceptor)
             .addInterceptor(
                 new NewRetryInterceptor(
                     options.getMaxRequestRetry(), retryBackoffDelay, isShuttingDown))
@@ -144,9 +144,6 @@ public class HarnessConnector implements Connector, AutoCloseable {
   }
 
   private Response metricsInterceptor(Interceptor.Chain chain) throws IOException {
-    if (isShuttingDown.get()) {
-      return null;
-    }
     final Request request =
         chain.request().newBuilder().addHeader("X-Request-ID", getRequestID()).build();
     log.debug("metrics interceptor: requesting url {}", request.url().url());
