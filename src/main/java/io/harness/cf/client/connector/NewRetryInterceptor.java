@@ -46,7 +46,7 @@ public class NewRetryInterceptor implements Interceptor {
   public Response intercept(@NotNull Chain chain) throws IOException {
     int tryCount = 1;
     boolean successful;
-    boolean limitReached = false;
+    boolean limitReached;
     Response response = null;
     String msg = "";
     do {
@@ -89,25 +89,21 @@ public class NewRetryInterceptor implements Interceptor {
           backOffDelayMs = Math.min(retryBackoffDelay * tryCount, 60000L);
         }
 
+        String retryLimitDisplay = retryForever ? "∞" : String.valueOf(maxTryCount);
         limitReached = !retryForever && tryCount >= maxTryCount;
-        // Conditional log message based on retryForever
-        if (retryForever) {
-          log.warn(
-              "Request to {} was not successful, [{}]{}", chain.request().url(), msg, ", retrying");
-        } else {
-          log.warn(
-              "Request attempt {} to {} was not successful, [{}]{}",
-              tryCount,
-              chain.request().url(),
-              msg,
-              limitReached
-                  ? ", retry limit reached"
-                  : String.format(
-                      Locale.getDefault(),
-                      ", retrying in %dms (retry-after hdr: %b)",
-                      backOffDelayMs,
-                      retryAfterHeaderValue > 0));
-        }
+        log.warn(
+            "Request attempt {} of {} to {} was not successful, [{}]{}",
+            tryCount,
+            retryLimitDisplay,
+            chain.request().url(),
+            msg,
+            limitReached
+                ? ", retry limit reached"
+                : String.format(
+                    Locale.getDefault(),
+                    ", retrying in %dms (retry-after hdr: %b)",
+                    backOffDelayMs,
+                    retryAfterHeaderValue > 0));
 
         if (!limitReached) {
           sleep(backOffDelayMs);
