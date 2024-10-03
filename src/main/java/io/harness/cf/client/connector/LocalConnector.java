@@ -195,6 +195,9 @@ public class LocalConnector implements Connector, AutoCloseable {
     log.debug("LocalConnector closed");
   }
 
+  @Override
+  public void setIsShuttingDown() {}
+
   private class FileWatcherService implements Service, AutoCloseable {
     private final FileWatcher flagWatcher;
     private final FileWatcher segmentWatcher;

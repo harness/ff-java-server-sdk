@@ -445,6 +445,10 @@ public class HarnessConnector implements Connector, AutoCloseable {
     }
   }
 
+  public void setIsShuttingDown() {
+    this.isShuttingDown.set(true);
+  }
+
   private static boolean isNullOrEmpty(String string) {
     return string == null || string.trim().isEmpty();
   }

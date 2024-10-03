@@ -29,4 +29,6 @@ public interface Connector {
   Service stream(Updater updater) throws ConnectorException;
 
   void close();
+
+  void setIsShuttingDown();
 }

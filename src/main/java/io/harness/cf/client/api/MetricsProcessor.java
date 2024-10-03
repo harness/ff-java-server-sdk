@@ -4,6 +4,7 @@ import static io.harness.cf.client.common.SdkCodes.warnMetricsBufferFull;
 import static io.harness.cf.client.common.Utils.shutdownExecutorService;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import io.harness.cf.Version;
 import io.harness.cf.client.common.SdkCodes;
 import io.harness.cf.client.common.StringUtils;
 import io.harness.cf.client.connector.Connector;
@@ -15,10 +16,7 @@ import io.harness.cf.model.MetricsData;
 import io.harness.cf.model.TargetData;
 import io.harness.cf.model.Variation;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.LongAdder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -218,7 +216,7 @@ class MetricsProcessor {
                   new KeyValue(TARGET_ATTRIBUTE, summary.getTargetIdentifier()),
                   new KeyValue(SDK_TYPE, SERVER),
                   new KeyValue(SDK_LANGUAGE, "java"),
-                  new KeyValue(SDK_VERSION, io.harness.cf.Version.VERSION)));
+                  new KeyValue(SDK_VERSION, Version.VERSION)));
           if (metrics.getMetricsData() != null) {
             metrics.getMetricsData().add(metricsData);
           }
@@ -305,6 +303,10 @@ class MetricsProcessor {
   }
 
   public void stop() {
+    if (config.isFlushAnalyticsOnClose()) {
+      flushWithTimeout(10);
+    }
+
     log.debug("Stopping MetricsProcessor");
     if (scheduler.isShutdown()) {
       return;
@@ -333,10 +335,33 @@ class MetricsProcessor {
     return runningTask != null && !runningTask.isCancelled();
   }
 
+  public synchronized void flushWithTimeout(int timeoutInSeconds) {
+    log.debug("Flushing metrics with timeout: {} seconds", timeoutInSeconds);
+    ScheduledFuture<?> future = null;
+    try {
+      future = flushQueue();
+
+      // Wait for the task to complete or timeout
+      future.get(timeoutInSeconds, SECONDS);
+      log.debug("Metrics successfully flushed within the timeout of {} seconds", timeoutInSeconds);
+
+    } catch (TimeoutException e) {
+      log.debug(
+          "Metrics flush did not complete within the timeout of {} seconds", timeoutInSeconds);
+      // Forcefully cancel the flush if it times out
+      future.cancel(true);
+
+    } catch (InterruptedException | ExecutionException e) {
+      log.error("Error occurred during metrics flush", e);
+      Thread.currentThread().interrupt();
+    }
+  }
+
   /* package private */
 
-  synchronized void flushQueue() {
+  synchronized ScheduledFuture<?> flushQueue() {
     scheduler.schedule(this::runOneIteration, 0, SECONDS);
+    return null;
   }
 
   long getMetricsSent() {

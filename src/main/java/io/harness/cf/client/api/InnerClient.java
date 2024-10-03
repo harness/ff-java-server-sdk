@@ -387,6 +387,12 @@ class InnerClient
 
   public void close() {
     log.info("Closing the client");
+    // Mark the connector as shutting down to stop request retries from taking place. The
+    // connections will eventually
+    // be evicted when the connector is closed, but this ensures that if metrics are flushed when
+    // closed then it
+    // won't attempt to retry if the first request fails.
+    connector.setIsShuttingDown();
     closing = true;
     off();
     authService.close();
