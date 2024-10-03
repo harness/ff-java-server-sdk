@@ -19,12 +19,13 @@ public class NewRetryInterceptor implements Interceptor {
   private static final SimpleDateFormat imfDateFormat =
       new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.US);
   private final long retryBackoffDelay;
-  private final long maxTryCount;
   private final boolean retryForever;
+
+  // Default to 10 retries if not specified
+  private long maxTryCount = 10;
 
   public NewRetryInterceptor(long retryBackoffDelay) {
     this.retryBackoffDelay = retryBackoffDelay;
-    this.maxTryCount = 5;
     this.retryForever = false;
   }
 
@@ -83,7 +84,8 @@ public class NewRetryInterceptor implements Interceptor {
           log.trace("Retry-After header detected: {} seconds", retryAfterHeaderValue);
           backOffDelayMs = retryAfterHeaderValue * 1000L;
         } else {
-          // Else fallback to a randomized exponential backoff with a max delay of 1 minute (60,000 ms)
+          // Else fallback to a randomized exponential backoff with a max delay of 1 minute (60,000
+          // ms)
           backOffDelayMs = Math.min(retryBackoffDelay * tryCount, 60000L);
         }
 
@@ -91,21 +93,20 @@ public class NewRetryInterceptor implements Interceptor {
         // Conditional log message based on retryForever
         if (retryForever) {
           log.warn(
-                  "Request to {} was not successful, [{}]{}",
-                  chain.request().url(),
-                  msg,
-                  ", continuing retries indefinitely"
-          );
+              "Request to {} was not successful, [{}]{}", chain.request().url(), msg, ", retrying");
         } else {
           log.warn(
-                  "Request attempt {} to {} was not successful, [{}]{}",
-                  tryCount,
-                  chain.request().url(),
-                  msg,
-                  limitReached
-                          ? ", retry limit reached"
-                          : String.format(Locale.getDefault(), ", retrying in %dms (retry-after hdr: %b)", backOffDelayMs, retryAfterHeaderValue > 0)
-          );
+              "Request attempt {} to {} was not successful, [{}]{}",
+              tryCount,
+              chain.request().url(),
+              msg,
+              limitReached
+                  ? ", retry limit reached"
+                  : String.format(
+                      Locale.getDefault(),
+                      ", retrying in %dms (retry-after hdr: %b)",
+                      backOffDelayMs,
+                      retryAfterHeaderValue > 0));
         }
 
         if (!limitReached) {
