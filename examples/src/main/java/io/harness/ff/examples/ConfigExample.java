@@ -34,6 +34,7 @@ public class ConfigExample {
                         HarnessConfig.builder()
                                 .configUrl("http://localhost:3000/api/1.0")
                                 .eventUrl("http://localhost:3000/api/1.0")
+                                .maxRequestRetry(20)
                                 .build());
         client = new CfClient(hc);
         client.waitForInitialization();
