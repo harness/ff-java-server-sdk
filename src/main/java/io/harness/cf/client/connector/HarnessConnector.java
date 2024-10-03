@@ -100,6 +100,10 @@ public class HarnessConnector implements Connector, AutoCloseable {
   }
 
   private Response reauthInterceptor(Interceptor.Chain chain) throws IOException {
+    if (isShuttingDown.get()) {
+      return null;
+    }
+
     final Request request =
         chain.request().newBuilder().addHeader("X-Request-ID", getRequestID()).build();
     log.debug("Checking for 403 in interceptor: requesting url {}", request.url().url());
@@ -140,6 +144,9 @@ public class HarnessConnector implements Connector, AutoCloseable {
   }
 
   private Response metricsInterceptor(Interceptor.Chain chain) throws IOException {
+    if (isShuttingDown.get()) {
+      return null;
+    }
     final Request request =
         chain.request().newBuilder().addHeader("X-Request-ID", getRequestID()).build();
     log.debug("metrics interceptor: requesting url {}", request.url().url());

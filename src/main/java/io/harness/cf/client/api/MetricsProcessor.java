@@ -360,8 +360,7 @@ class MetricsProcessor {
   /* package private */
 
   synchronized ScheduledFuture<?> flushQueue() {
-    scheduler.schedule(this::runOneIteration, 0, SECONDS);
-    return null;
+    return scheduler.schedule(this::runOneIteration, 0, SECONDS);
   }
 
   long getMetricsSent() {
