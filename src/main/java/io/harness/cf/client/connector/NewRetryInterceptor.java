@@ -61,10 +61,10 @@ public class NewRetryInterceptor implements Interceptor {
     String msg = "";
     do {
 
-      if (isShuttingDown.get()) {
-        log.debug("SDK is shutting down, aborting retry interceptor");
-        break;
-      }
+      //      if (isShuttingDown.get()) {
+      //        log.debug("SDK is shutting down, aborting retry interceptor");
+      //        return response;
+      //      }
 
       try {
         if (response != null) response.close();

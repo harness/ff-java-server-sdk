@@ -228,7 +228,9 @@ class InnerClient
           closing,
           options.getPollIntervalInSeconds());
       log.debug("SSE disconnect detected - asking poller to refresh flags");
-      pollProcessor.retrieveAll();
+      if (!closing) {
+        pollProcessor.retrieveAll();
+      }
     }
   }
 
@@ -386,6 +388,7 @@ class InnerClient
   }
 
   public void close() {
+    closing = true;
     log.info("Closing the client");
     // Mark the connector as shutting down to stop request retries from taking place. The
     // connections will eventually
