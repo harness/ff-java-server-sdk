@@ -20,15 +20,24 @@ public class NewRetryInterceptor implements Interceptor {
       new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.US);
   private final long retryBackoffDelay;
   private final long maxTryCount;
+  private final boolean retryForever;
 
   public NewRetryInterceptor(long retryBackoffDelay) {
     this.retryBackoffDelay = retryBackoffDelay;
     this.maxTryCount = 5;
+    this.retryForever = false;
   }
 
   public NewRetryInterceptor(long maxTryCount, long retryBackoffDelay) {
     this.retryBackoffDelay = retryBackoffDelay;
     this.maxTryCount = maxTryCount;
+    this.retryForever = false;
+  }
+
+  // New constructor with retryForever flag
+  public NewRetryInterceptor(long retryBackoffDelay, boolean retryForever) {
+    this.retryBackoffDelay = retryBackoffDelay;
+    this.retryForever = retryForever;
   }
 
   @NotNull
@@ -74,30 +83,37 @@ public class NewRetryInterceptor implements Interceptor {
           log.trace("Retry-After header detected: {} seconds", retryAfterHeaderValue);
           backOffDelayMs = retryAfterHeaderValue * 1000L;
         } else {
-          // Else fallback to a randomized exponential backoff
-          backOffDelayMs = retryBackoffDelay * tryCount;
+          // Else fallback to a randomized exponential backoff with a max delay of 1 minute (60,000 ms)
+          backOffDelayMs = Math.min(retryBackoffDelay * tryCount, 60000L);
         }
 
-        limitReached = tryCount >= maxTryCount;
-        log.warn(
-            "Request attempt {} to {} was not successful, [{}]{}",
-            tryCount,
-            chain.request().url(),
-            msg,
-            limitReached
-                ? ", retry limited reached"
-                : String.format(
-                    Locale.getDefault(),
-                    ", retrying in %dms  (retry-after hdr: %b)",
-                    backOffDelayMs,
-                    retryAfterHeaderValue > 0));
+        limitReached = !retryForever && tryCount >= maxTryCount;
+        // Conditional log message based on retryForever
+        if (retryForever) {
+          log.warn(
+                  "Request to {} was not successful, [{}]{}",
+                  chain.request().url(),
+                  msg,
+                  ", continuing retries indefinitely"
+          );
+        } else {
+          log.warn(
+                  "Request attempt {} to {} was not successful, [{}]{}",
+                  tryCount,
+                  chain.request().url(),
+                  msg,
+                  limitReached
+                          ? ", retry limit reached"
+                          : String.format(Locale.getDefault(), ", retrying in %dms (retry-after hdr: %b)", backOffDelayMs, retryAfterHeaderValue > 0)
+          );
+        }
 
         if (!limitReached) {
           sleep(backOffDelayMs);
         }
       }
       tryCount++;
-    } while (!successful && !limitReached);
+    } while (!successful && (retryForever || tryCount <= maxTryCount));
 
     return response;
   }

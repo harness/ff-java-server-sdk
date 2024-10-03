@@ -83,7 +83,7 @@ public class EventSource implements Callback, AutoCloseable, Service {
       httpClientBuilder.interceptors().remove(loggingInterceptor);
     }
 
-    httpClientBuilder.addInterceptor(new NewRetryInterceptor(retryBackoffDelay));
+    httpClientBuilder.addInterceptor(new NewRetryInterceptor(retryBackoffDelay, true));
     return httpClientBuilder.build();
   }
 
