@@ -89,7 +89,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
             .getHttpClient()
             .newBuilder()
             .addInterceptor(this::reauthInterceptor)
-            .addInterceptor(new NewRetryInterceptor(3, retryBackOfDelay))
+            .addInterceptor(new NewRetryInterceptor(options.getMaxRequestRetry(), retryBackOfDelay))
             .build());
 
     return apiClient;
@@ -127,7 +127,8 @@ public class HarnessConnector implements Connector, AutoCloseable {
             .getHttpClient()
             .newBuilder()
             .addInterceptor(this::metricsInterceptor)
-            .addInterceptor(new NewRetryInterceptor(3, retryBackoffDelay))
+            .addInterceptor(
+                new NewRetryInterceptor(options.getMaxRequestRetry(), retryBackoffDelay))
             .build());
 
     return apiClient;

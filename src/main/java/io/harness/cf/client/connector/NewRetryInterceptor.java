@@ -1,5 +1,7 @@
 package io.harness.cf.client.connector;
 
+import static io.harness.cf.client.api.BaseConfig.DEFAULT_REQUEST_RETRIES;
+
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -21,8 +23,8 @@ public class NewRetryInterceptor implements Interceptor {
   private final long retryBackoffDelay;
   private final boolean retryForever;
 
-  // Default to 10 retries if not specified
-  private long maxTryCount = 10;
+  // Use SDK default is not specified
+  private long maxTryCount = DEFAULT_REQUEST_RETRIES;
 
   public NewRetryInterceptor(long retryBackoffDelay) {
     this.retryBackoffDelay = retryBackoffDelay;
@@ -76,9 +78,11 @@ public class NewRetryInterceptor implements Interceptor {
           return response;
         }
       }
+
       if (!successful) {
         int retryAfterHeaderValue = getRetryAfterHeaderInSeconds(response);
         long backOffDelayMs;
+
         if (retryAfterHeaderValue > 0) {
           // Use Retry-After header if detected first
           log.trace("Retry-After header detected: {} seconds", retryAfterHeaderValue);

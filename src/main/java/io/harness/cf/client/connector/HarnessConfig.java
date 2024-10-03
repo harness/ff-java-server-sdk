@@ -35,4 +35,21 @@ public class HarnessConfig {
    * should include intermediate CAs too to allow the HTTP client to build a full trust chain.
    */
   @Builder.Default List<X509Certificate> tlsTrustedCAs = null;
+
+  /**
+   * Defines the maximum number of retry attempts for certain types of requests:
+   * authentication, polling, metrics, and reacting to stream events. If a request fails,
+   * the SDK will retry up to this number of times before giving up.
+   * <p>
+   * - Authentication: Used for retrying authentication requests when the server is unreachable.
+   * - Polling: Applies to requests that fetch feature flags and target groups periodically.
+   * - Metrics: Applies to analytics requests for sending metrics data to the server.
+   * - Reacting to Stream Events: Applies to requests triggered by streamed flag or group changes,
+   *   where the SDK needs to fetch updated flag or group data.
+   * <p>
+   * Note: This setting does not apply to streaming requests (either the initial connection or
+   * reconnecting after a disconnection). Streaming requests will always retry indefinitely
+   * (infinite retries).
+   */
+  @Builder.Default private long maxRequestRetry = 10;
 }

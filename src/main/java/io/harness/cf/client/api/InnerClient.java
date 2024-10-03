@@ -63,6 +63,7 @@ class InnerClient
             .connectionTimeout(options.getConnectionTimeout())
             .readTimeout(options.readTimeout)
             .writeTimeout(options.getWriteTimeout())
+            .maxRequestRetry(options.getMaxRequestRetry())
             .build();
     HarnessConnector harnessConnector = new HarnessConnector(sdkKey, config);
     setUp(harnessConnector, options);
