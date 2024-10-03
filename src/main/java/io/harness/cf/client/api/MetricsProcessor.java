@@ -304,7 +304,7 @@ class MetricsProcessor {
 
   public void stop() {
     if (config.isFlushAnalyticsOnClose()) {
-      flushWithTimeout(config.getFlushAnalyticsOnCloseTimeout());
+      flushQueue();
     }
 
     log.debug("Stopping MetricsProcessor");
@@ -326,7 +326,13 @@ class MetricsProcessor {
     shutdownExecutorService(
         scheduler,
         SdkCodes::infoMetricsThreadExited,
-        errMsg -> log.warn("failed to stop metrics scheduler: {}", errMsg));
+        errMsg -> {
+          if (config.isFlushAnalyticsOnClose()) {
+            log.warn("Waited for flush to finish {}", errMsg);
+          } else {
+            log.warn("Failed to stop metrics scheduler: {}", errMsg);
+          }
+        });
 
     log.debug("Closing MetricsProcessor");
   }
@@ -335,32 +341,10 @@ class MetricsProcessor {
     return runningTask != null && !runningTask.isCancelled();
   }
 
-  public synchronized void flushWithTimeout(long timeoutInSeconds) {
-    log.debug("Flushing metrics with timeout: {} seconds", timeoutInSeconds);
-    ScheduledFuture<?> future = null;
-    try {
-      future = flushQueue();
-
-      // Wait for the task to complete or timeout
-      future.get(1, SECONDS);
-      log.debug("Metrics successfully flushed within the timeout of {} seconds", timeoutInSeconds);
-
-    } catch (TimeoutException e) {
-      log.debug(
-          "Metrics flush did not complete within the timeout of {} seconds", timeoutInSeconds);
-      // Forcefully cancel the flush if it times out
-      future.cancel(true);
-
-    } catch (InterruptedException | ExecutionException e) {
-      log.error("Error occurred during metrics flush", e);
-      Thread.currentThread().interrupt();
-    }
-  }
-
   /* package private */
 
-  synchronized ScheduledFuture<?> flushQueue() {
-    return scheduler.schedule(this::runOneIteration, 0, SECONDS);
+  synchronized void flushQueue() {
+    scheduler.schedule(this::runOneIteration, 0, SECONDS);
   }
 
   long getMetricsSent() {

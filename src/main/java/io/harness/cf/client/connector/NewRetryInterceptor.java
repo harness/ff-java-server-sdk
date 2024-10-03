@@ -109,6 +109,16 @@ public class NewRetryInterceptor implements Interceptor {
 
         String retryLimitDisplay = retryForever ? "∞" : String.valueOf(maxTryCount);
         limitReached = !retryForever && tryCount >= maxTryCount;
+
+        if (isShuttingDown.get()) {
+          log.warn(
+              "Request attempt {} to {} was not successful, [{}], SDK is shutting down, no retries will be attempted",
+              tryCount,
+              chain.request().url(),
+              msg);
+          return response; // Exit without further retries
+        }
+
         log.warn(
             "Request attempt {} of {} to {} was not successful, [{}]{}",
             tryCount,

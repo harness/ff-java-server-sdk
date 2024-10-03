@@ -58,7 +58,7 @@ public class HarnessConfig {
    * }
    * </pre>
    */
-  @Builder.Default private final long flushAnalyticsOnCloseTimeout = 30000;
+  @Builder.Default private final int flushAnalyticsOnCloseTimeout = 30000;
 
   /**
    * list of trusted CAs - for when the given config/event URLs are signed with a private CA. You

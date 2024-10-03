@@ -158,9 +158,9 @@ public class HarnessConnector implements Connector, AutoCloseable {
 
       // Apply custom timeouts (e.g., 5 seconds for each timeout type)
       return chain
-          .withConnectTimeout(5, TimeUnit.SECONDS) // Custom connect timeout
-          .withReadTimeout(5, TimeUnit.SECONDS) // Custom read timeout
-          .withWriteTimeout(5, TimeUnit.SECONDS) // Custom write timeout
+          .withConnectTimeout(options.getFlushAnalyticsOnCloseTimeout(), TimeUnit.MILLISECONDS)
+          .withReadTimeout(options.getFlushAnalyticsOnCloseTimeout(), TimeUnit.MILLISECONDS)
+          .withWriteTimeout(options.getFlushAnalyticsOnCloseTimeout(), TimeUnit.MILLISECONDS)
           .proceed(shutdownRequest);
     } else {
       final Request request =
