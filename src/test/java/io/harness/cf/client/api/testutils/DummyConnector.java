@@ -79,4 +79,7 @@ public class DummyConnector implements Connector {
 
   @Override
   public void close() {}
+
+  @Override
+  public void setIsShuttingDown() {}
 }
