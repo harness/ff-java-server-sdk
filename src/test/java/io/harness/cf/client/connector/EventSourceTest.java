@@ -27,8 +27,11 @@ class EventSourceTest {
 
     protected MockResponse makeStreamResponse() {
       int reqNo = request.getAndIncrement();
-      if (reqNo <= 3) {
-        // Force a disconnect on the first few attempts
+
+      if (reqNo <= 12) {
+        // Force a disconnect after the default SDK request retry limit of 10, which does not apply
+        // to stream requests which have
+        // no limit on retryable errors
         out.printf("ReqNo %d will be disconnected on purpose\n", reqNo);
         return new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST);
       } else {
@@ -61,7 +64,10 @@ class EventSourceTest {
       int reqNo = request.getAndIncrement();
       // Force a disconnect on all requests
       out.printf("ReqNo %d will be disconnected on purpose\n", reqNo);
-      return new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST);
+      // Set a 400 response so that the stream does not retry.  This is because since 1.8.0 the
+      // stream
+      // retries forever on retryable errors.
+      return new MockResponse().setResponseCode(400).setBody("{\"status\":\"failed\"}");
     }
   }
 
@@ -107,10 +113,11 @@ class EventSourceTest {
                 null)) {
       eventSource.start();
 
-      TimeUnit.SECONDS.sleep(15);
+      TimeUnit.SECONDS.sleep(3);
     }
 
-    // for this test, connection to the /stream endpoint will never succeed.
+    // for this test, connection to the /stream endpoint will never because of an un-retryable
+    // error.
     // we expect the disconnect handler to be called, connect handler should not be called
 
     assertEquals(0, updater.getConnectCount().get());
