@@ -15,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.NonNull;
 import lombok.SneakyThrows;
@@ -144,11 +145,30 @@ public class HarnessConnector implements Connector, AutoCloseable {
   }
 
   private Response metricsInterceptor(Interceptor.Chain chain) throws IOException {
-    final Request request =
-        chain.request().newBuilder().addHeader("X-Request-ID", getRequestID()).build();
-    log.debug("metrics interceptor: requesting url {}", request.url().url());
 
-    return chain.proceed(request);
+    Request originalRequest = chain.request();
+
+    // If this is flush when the SDK has been closed, then apply a per request timeout instead
+    // of the okhttp client timeout
+    if (isShuttingDown.get()) {
+      log.debug("SDK is shutting down, applying custom call timeout for flush request");
+
+      Request shutdownRequest =
+          originalRequest.newBuilder().addHeader("X-Request-ID", getRequestID()).build();
+
+      // Apply custom timeouts (e.g., 5 seconds for each timeout type)
+      return chain
+          .withConnectTimeout(5, TimeUnit.SECONDS) // Custom connect timeout
+          .withReadTimeout(5, TimeUnit.SECONDS) // Custom read timeout
+          .withWriteTimeout(5, TimeUnit.SECONDS) // Custom write timeout
+          .proceed(shutdownRequest);
+    } else {
+      final Request request =
+          originalRequest.newBuilder().addHeader("X-Request-ID", getRequestID()).build();
+      log.debug("metrics interceptor: requesting url {}", request.url().url());
+
+      return chain.proceed(request);
+    }
   }
 
   protected String getRequestID() {

@@ -304,7 +304,7 @@ class MetricsProcessor {
 
   public void stop() {
     if (config.isFlushAnalyticsOnClose()) {
-      flushWithTimeout(10);
+      flushWithTimeout(config.getFlushAnalyticsOnCloseTimeout());
     }
 
     log.debug("Stopping MetricsProcessor");
@@ -335,14 +335,14 @@ class MetricsProcessor {
     return runningTask != null && !runningTask.isCancelled();
   }
 
-  public synchronized void flushWithTimeout(int timeoutInSeconds) {
+  public synchronized void flushWithTimeout(long timeoutInSeconds) {
     log.debug("Flushing metrics with timeout: {} seconds", timeoutInSeconds);
     ScheduledFuture<?> future = null;
     try {
       future = flushQueue();
 
       // Wait for the task to complete or timeout
-      future.get(timeoutInSeconds, SECONDS);
+      future.get(1, SECONDS);
       log.debug("Metrics successfully flushed within the timeout of {} seconds", timeoutInSeconds);
 
     } catch (TimeoutException e) {

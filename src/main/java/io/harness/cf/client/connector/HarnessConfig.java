@@ -31,6 +31,36 @@ public class HarnessConfig {
   @Builder.Default long sseReadTimeout = 1;
 
   /**
+   * The timeout for flushing analytics on SDK close.
+   * <p>
+   * This option sets the maximum duration, in milliseconds, the SDK will wait for the
+   * analytics data to be flushed after the SDK has been closed. If the flush process takes longer
+   * than this timeout, the request will be canceled, and any remaining data will
+   * not be sent. This ensures that the SDK does not hang indefinitely during shutdown.
+   * <p>
+   * The default value is {@code 30000ms} which is the default read timeout for requests made by the SDK
+   * <p>
+   * <b>Note:</b> This timeout only applies to the flush process that happens when
+   * {@code flushAnalyticsOnClose} is set to {@code true}. It does not affect other
+   * requests made by the SDK during normal operation.
+   *
+   * <p>Example usage:
+   * <pre>
+   * {@code
+   * // Timeout the analytics flush request in 3000ms (3 seconds)
+   * HarnessConfig harnessConfig =
+   *                 HarnessConfig.builder().flushAnalyticsOnCloseTimeout(3000).build();
+   *
+   * // flush analytics on close is enabled via BaseConfig
+   * BaseConfig config = BaseConfig.builder()
+   *     .flushAnalyticsOnClose(true)
+   *     .build();
+   * }
+   * </pre>
+   */
+  @Builder.Default private final long flushAnalyticsOnCloseTimeout = 30000;
+
+  /**
    * list of trusted CAs - for when the given config/event URLs are signed with a private CA. You
    * should include intermediate CAs too to allow the HTTP client to build a full trust chain.
    */
