@@ -35,6 +35,8 @@ public class ConfigExample {
                                 .configUrl("http://localhost:3000/api/1.0")
                                 .eventUrl("http://localhost:3000/api/1.0")
                                 .maxRequestRetry(20)
+                                .flushAnalyticsOnClose(true)
+                                .flushAnalyticsOnCloseTimeout(30000)
                                 .build());
         client = new CfClient(hc);
         client.waitForInitialization();
