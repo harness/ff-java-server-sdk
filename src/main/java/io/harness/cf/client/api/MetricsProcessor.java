@@ -309,7 +309,7 @@ class MetricsProcessor {
   }
 
   public void stop() {
-    if (shouldFlushMetricsOnClose) {
+    if (shouldFlushMetricsOnClose && config.isAnalyticsEnabled()) {
       flushQueue();
     }
 
