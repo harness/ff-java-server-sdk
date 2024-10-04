@@ -15,7 +15,6 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.NonNull;
@@ -42,7 +41,6 @@ public class LocalConnector implements Connector, AutoCloseable {
   private static final String SEGMENTS = "segments";
   private final String source;
   private final Gson gson = new Gson();
-  private final AtomicBoolean isShuttingDown = new AtomicBoolean(false);
 
   static {
     LogUtil.setSystemProps();
@@ -199,13 +197,12 @@ public class LocalConnector implements Connector, AutoCloseable {
 
   @Override
   public boolean getShouldFlushAnalyticsOnClose() {
-    // TODO - do we want to support flush for local connector? need to pass it in somehow
     return false;
   }
 
   @Override
   public void setIsShuttingDown() {
-    isShuttingDown.set(true);
+    // No need for local connector as no retries used
   }
 
   private class FileWatcherService implements Service, AutoCloseable {
