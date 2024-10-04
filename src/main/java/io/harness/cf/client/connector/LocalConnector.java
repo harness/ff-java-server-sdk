@@ -195,6 +195,16 @@ public class LocalConnector implements Connector, AutoCloseable {
     log.debug("LocalConnector closed");
   }
 
+  @Override
+  public boolean getShouldFlushAnalyticsOnClose() {
+    return false;
+  }
+
+  @Override
+  public void setIsShuttingDown() {
+    // No need for local connector as no retries used
+  }
+
   private class FileWatcherService implements Service, AutoCloseable {
     private final FileWatcher flagWatcher;
     private final FileWatcher segmentWatcher;

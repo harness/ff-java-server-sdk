@@ -1,5 +1,7 @@
 package io.harness.cf.client.connector;
 
+import static io.harness.cf.client.api.BaseConfig.DEFAULT_REQUEST_RETRIES;
+
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -8,6 +10,7 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -19,16 +22,33 @@ public class NewRetryInterceptor implements Interceptor {
   private static final SimpleDateFormat imfDateFormat =
       new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.US);
   private final long retryBackoffDelay;
-  private final long maxTryCount;
+  private final boolean retryForever;
 
-  public NewRetryInterceptor(long retryBackoffDelay) {
+  private final AtomicBoolean isShuttingDown;
+
+  // Use SDK default is not specified
+  private long maxTryCount = DEFAULT_REQUEST_RETRIES;
+
+  public NewRetryInterceptor(long retryBackoffDelay, AtomicBoolean isShuttingDown) {
     this.retryBackoffDelay = retryBackoffDelay;
-    this.maxTryCount = 5;
+    this.retryForever = false;
+    this.isShuttingDown = isShuttingDown;
   }
 
-  public NewRetryInterceptor(long maxTryCount, long retryBackoffDelay) {
+  public NewRetryInterceptor(
+      long maxTryCount, long retryBackoffDelay, AtomicBoolean isShuttingDown) {
     this.retryBackoffDelay = retryBackoffDelay;
     this.maxTryCount = maxTryCount;
+    this.retryForever = false;
+    this.isShuttingDown = isShuttingDown;
+  }
+
+  // New constructor with retryForever flag
+  public NewRetryInterceptor(
+      long retryBackoffDelay, boolean retryForever, AtomicBoolean isShuttingDown) {
+    this.retryBackoffDelay = retryBackoffDelay;
+    this.retryForever = retryForever;
+    this.isShuttingDown = isShuttingDown;
   }
 
   @NotNull
@@ -36,7 +56,7 @@ public class NewRetryInterceptor implements Interceptor {
   public Response intercept(@NotNull Chain chain) throws IOException {
     int tryCount = 1;
     boolean successful;
-    boolean limitReached = false;
+    boolean limitReached;
     Response response = null;
     String msg = "";
     do {
@@ -66,29 +86,44 @@ public class NewRetryInterceptor implements Interceptor {
           return response;
         }
       }
+
       if (!successful) {
         int retryAfterHeaderValue = getRetryAfterHeaderInSeconds(response);
         long backOffDelayMs;
+
         if (retryAfterHeaderValue > 0) {
           // Use Retry-After header if detected first
           log.trace("Retry-After header detected: {} seconds", retryAfterHeaderValue);
           backOffDelayMs = retryAfterHeaderValue * 1000L;
         } else {
-          // Else fallback to a randomized exponential backoff
-          backOffDelayMs = retryBackoffDelay * tryCount;
+          // Else fallback to a randomized exponential backoff with a max delay of 1 minute
+          // (60,000ms)
+          backOffDelayMs = Math.min(retryBackoffDelay * tryCount, 60000L);
         }
 
-        limitReached = tryCount >= maxTryCount;
+        String retryLimitDisplay = retryForever ? "∞" : String.valueOf(maxTryCount);
+        limitReached = !retryForever && tryCount >= maxTryCount;
+
+        if (isShuttingDown.get()) {
+          log.warn(
+              "Request attempt {} to {} was not successful, [{}], SDK is shutting down, no retries will be attempted",
+              tryCount,
+              chain.request().url(),
+              msg);
+          return response; // Exit without further retries
+        }
+
         log.warn(
-            "Request attempt {} to {} was not successful, [{}]{}",
+            "Request attempt {} of {} to {} was not successful, [{}]{}",
             tryCount,
+            retryLimitDisplay,
             chain.request().url(),
             msg,
             limitReached
-                ? ", retry limited reached"
+                ? ", retry limit reached"
                 : String.format(
                     Locale.getDefault(),
-                    ", retrying in %dms  (retry-after hdr: %b)",
+                    ", retrying in %dms (retry-after hdr: %b)",
                     backOffDelayMs,
                     retryAfterHeaderValue > 0));
 
@@ -97,7 +132,7 @@ public class NewRetryInterceptor implements Interceptor {
         }
       }
       tryCount++;
-    } while (!successful && !limitReached);
+    } while (!successful && (retryForever || tryCount <= maxTryCount) && !isShuttingDown.get());
 
     return response;
   }

@@ -1,8 +1,7 @@
 package io.harness.cf.client.api;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import io.harness.cf.client.connector.Connector;
 import io.harness.cf.client.connector.ConnectorException;
@@ -34,8 +33,52 @@ public class MetricsProcessorTest implements MetricsCallback {
     MockitoAnnotations.openMocks(this);
     metricsProcessor =
         Mockito.spy(
-            new MetricsProcessor(connector, BaseConfig.builder().bufferSize(10_001).build(), this));
+            new MetricsProcessor(
+                connector, BaseConfig.builder().bufferSize(10_001).build(), this, false));
 
+    metricsProcessor.reset();
+  }
+
+  @Test
+  public void testFlushAnalyticsOnCloseDisabled() throws ConnectorException, InterruptedException {
+    // Arrange
+    Metrics mockMetrics = mock(Metrics.class);
+    doNothing().when(connector).postMetrics(mockMetrics);
+
+    // Act: Push some metrics data and call flush
+    Target target = Target.builder().identifier("target-1").build();
+    Variation variation = Variation.builder().identifier("true").value("true").build();
+    metricsProcessor.pushToQueue(target, "feature-1", variation);
+
+    // Mimic shutdown behavior
+    metricsProcessor.close();
+
+    // Assert: Verify that postMetrics not called during shutdown
+    verify(connector, times(0)).postMetrics(any(Metrics.class));
+    verifyNoMoreInteractions(connector);
+  }
+
+  @Test
+  public void testFlushAnalyticsOnCloseEnabled() throws ConnectorException, InterruptedException {
+    // Arrange
+    metricsProcessor =
+        Mockito.spy(
+            new MetricsProcessor(
+                connector, BaseConfig.builder().bufferSize(10_001).build(), this, true));
+
+    Metrics mockMetrics = mock(Metrics.class);
+    doNothing().when(connector).postMetrics(mockMetrics);
+
+    // Act: Push some metrics data and call flush
+    Target target = Target.builder().identifier("target-1").build();
+    Variation variation = Variation.builder().identifier("true").value("true").build();
+    metricsProcessor.pushToQueue(target, "feature-1", variation);
+
+    // Mimic shutdown behavior
+    metricsProcessor.close();
+
+    // Assert: Verify that postMetrics is called during shutdown
+    verify(connector, times(1)).postMetrics(any(Metrics.class));
     metricsProcessor.reset();
   }
 
@@ -183,7 +226,7 @@ public class MetricsProcessorTest implements MetricsCallback {
     doNothing().when(mockConnector).postMetrics(metricsArgumentCaptor.capture());
 
     final MetricsProcessor processor =
-        new MetricsProcessor(mockConnector, mockConfig, Mockito.mock(MetricsCallback.class));
+        new MetricsProcessor(mockConnector, mockConfig, Mockito.mock(MetricsCallback.class), false);
 
     final Target target = Target.builder().identifier("target123").build();
     final Variation variation = Variation.builder().identifier("true").value("true").build();

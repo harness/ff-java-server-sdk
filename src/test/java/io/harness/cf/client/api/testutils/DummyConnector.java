@@ -79,4 +79,12 @@ public class DummyConnector implements Connector {
 
   @Override
   public void close() {}
+
+  @Override
+  public boolean getShouldFlushAnalyticsOnClose() {
+    return false;
+  }
+
+  @Override
+  public void setIsShuttingDown() {}
 }

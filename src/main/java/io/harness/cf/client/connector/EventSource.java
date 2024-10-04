@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.net.ssl.*;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +38,7 @@ public class EventSource implements Callback, AutoCloseable, Service {
   private final Map<String, String> headers;
   private final long sseReadTimeoutMins;
   private final List<X509Certificate> trustedCAs;
+  private final AtomicBoolean isShuttingDown;
 
   static {
     LogUtil.setSystemProps();
@@ -48,7 +50,7 @@ public class EventSource implements Callback, AutoCloseable, Service {
       @NonNull Updater updater,
       long sseReadTimeoutMins)
       throws ConnectorException {
-    this(url, headers, updater, sseReadTimeoutMins, 2_000, null);
+    this(url, headers, updater, sseReadTimeoutMins, 2_000, null, new AtomicBoolean(false));
   }
 
   EventSource(
@@ -57,7 +59,8 @@ public class EventSource implements Callback, AutoCloseable, Service {
       @NonNull Updater updater,
       long sseReadTimeoutMins,
       int retryBackoffDelay,
-      List<X509Certificate> trustedCAs) {
+      List<X509Certificate> trustedCAs,
+      AtomicBoolean isShuttingDown) {
     this.url = url;
     this.headers = headers;
     this.updater = updater;
@@ -65,6 +68,7 @@ public class EventSource implements Callback, AutoCloseable, Service {
     this.retryBackoffDelay = retryBackoffDelay;
     this.trustedCAs = trustedCAs;
     this.loggingInterceptor = new HttpLoggingInterceptor();
+    this.isShuttingDown = isShuttingDown;
   }
 
   protected OkHttpClient makeStreamClient(long sseReadTimeoutMins, List<X509Certificate> trustedCAs)
@@ -83,7 +87,8 @@ public class EventSource implements Callback, AutoCloseable, Service {
       httpClientBuilder.interceptors().remove(loggingInterceptor);
     }
 
-    httpClientBuilder.addInterceptor(new NewRetryInterceptor(retryBackoffDelay));
+    httpClientBuilder.addInterceptor(
+        new NewRetryInterceptor(retryBackoffDelay, true, isShuttingDown));
     return httpClientBuilder.build();
   }
 
@@ -149,6 +154,7 @@ public class EventSource implements Callback, AutoCloseable, Service {
   public void close() {
     stop();
     if (this.streamClient != null) {
+      this.streamClient.dispatcher().executorService().shutdown();
       this.streamClient.connectionPool().evictAll();
     }
     log.debug("EventSource closed");

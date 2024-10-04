@@ -87,7 +87,6 @@ class InnerClient
     log.info("Starting SDK client with configuration: {}", this.options);
     this.connector = connector;
     this.connector.setOnUnauthorized(this::onUnauthorized);
-
     // initialization
     repository =
         new StorageRepository(
@@ -96,7 +95,9 @@ class InnerClient
     authService = new AuthService(this.connector, options.getPollIntervalInSeconds(), this);
     pollProcessor =
         new PollingProcessor(this.connector, repository, options.getPollIntervalInSeconds(), this);
-    metricsProcessor = new MetricsProcessor(this.connector, this.options, this);
+    metricsProcessor =
+        new MetricsProcessor(
+            this.connector, this.options, this, connector.getShouldFlushAnalyticsOnClose());
     updateProcessor = new UpdateProcessor(this.connector, this.repository, this);
 
     // start with authentication
@@ -228,7 +229,9 @@ class InnerClient
           closing,
           options.getPollIntervalInSeconds());
       log.debug("SSE disconnect detected - asking poller to refresh flags");
-      pollProcessor.retrieveAll();
+      if (!closing) {
+        pollProcessor.retrieveAll();
+      }
     }
   }
 
@@ -388,6 +391,12 @@ class InnerClient
   public void close() {
     log.info("Closing the client");
     closing = true;
+
+    // Mark the connector as shutting down to stop request retries from taking place. The
+    // connections will eventually
+    // be evicted when the connector is closed, but this ensures that if metrics are flushed when
+    // closed then it won't attempt to retry if the first request fails.
+    connector.setIsShuttingDown();
     off();
     authService.close();
     repository.close();

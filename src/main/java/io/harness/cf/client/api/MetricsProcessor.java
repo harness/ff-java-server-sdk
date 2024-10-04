@@ -4,6 +4,7 @@ import static io.harness.cf.client.common.SdkCodes.warnMetricsBufferFull;
 import static io.harness.cf.client.common.Utils.shutdownExecutorService;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import io.harness.cf.Version;
 import io.harness.cf.client.common.SdkCodes;
 import io.harness.cf.client.common.StringUtils;
 import io.harness.cf.client.connector.Connector;
@@ -15,10 +16,7 @@ import io.harness.cf.model.MetricsData;
 import io.harness.cf.model.TargetData;
 import io.harness.cf.model.Variation;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.LongAdder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -113,13 +111,19 @@ class MetricsProcessor {
   private final LongAdder metricsSent = new LongAdder();
   private final int maxFreqMapSize;
 
+  private final boolean shouldFlushMetricsOnClose;
+
   public MetricsProcessor(
-      @NonNull Connector connector, @NonNull BaseConfig config, @NonNull MetricsCallback callback) {
+      @NonNull Connector connector,
+      @NonNull BaseConfig config,
+      @NonNull MetricsCallback callback,
+      boolean shouldFlushMetricsOnClose) {
     this.connector = connector;
     this.config = config;
     this.frequencyMap = new FrequencyMap<>();
     this.targetsSeen = ConcurrentHashMap.newKeySet();
     this.maxFreqMapSize = clamp(config.getBufferSize(), 2048, MAX_FREQ_MAP_TO_RETAIN);
+    this.shouldFlushMetricsOnClose = shouldFlushMetricsOnClose;
     callback.onMetricsReady();
   }
 
@@ -218,7 +222,7 @@ class MetricsProcessor {
                   new KeyValue(TARGET_ATTRIBUTE, summary.getTargetIdentifier()),
                   new KeyValue(SDK_TYPE, SERVER),
                   new KeyValue(SDK_LANGUAGE, "java"),
-                  new KeyValue(SDK_VERSION, io.harness.cf.Version.VERSION)));
+                  new KeyValue(SDK_VERSION, Version.VERSION)));
           if (metrics.getMetricsData() != null) {
             metrics.getMetricsData().add(metricsData);
           }
@@ -305,6 +309,10 @@ class MetricsProcessor {
   }
 
   public void stop() {
+    if (shouldFlushMetricsOnClose && config.isAnalyticsEnabled()) {
+      flushQueue();
+    }
+
     log.debug("Stopping MetricsProcessor");
     if (scheduler.isShutdown()) {
       return;
@@ -324,7 +332,13 @@ class MetricsProcessor {
     shutdownExecutorService(
         scheduler,
         SdkCodes::infoMetricsThreadExited,
-        errMsg -> log.warn("failed to stop metrics scheduler: {}", errMsg));
+        errMsg -> {
+          if (shouldFlushMetricsOnClose) {
+            log.warn("Waited for flush to finish {}", errMsg);
+          } else {
+            log.warn("Failed to stop metrics scheduler: {}", errMsg);
+          }
+        });
 
     log.debug("Closing MetricsProcessor");
   }

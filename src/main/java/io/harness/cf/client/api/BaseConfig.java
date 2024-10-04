@@ -14,6 +14,7 @@ import lombok.experimental.SuperBuilder;
 @Data
 public class BaseConfig {
   public static final int MIN_FREQUENCY = 60;
+  public static final long DEFAULT_REQUEST_RETRIES = 10;
 
   @Builder.Default private final boolean streamEnabled = true;
   @Builder.Default private final int pollIntervalInSeconds = 60;
@@ -53,4 +54,33 @@ public class BaseConfig {
   @Builder.Default private final Cache cache = new CaffeineCache(10000);
 
   private final Storage store;
+
+  /**
+   * Defines the maximum number of retry attempts for certain types of requests:
+   * authentication, polling, metrics, and reacting to stream events. If a request fails,
+   * the SDK will retry up to this number of times before giving up.
+   * <p>
+   * - Authentication: Used for retrying authentication requests when the server is unreachable.
+   * - Polling: Applies to requests that fetch feature flags and target groups periodically.
+   * - Metrics: Applies to analytics requests for sending metrics data to the server.
+   * - Reacting to Stream Events: Applies to requests triggered by streamed flag or group changes,
+   *   where the SDK needs to fetch updated flag or group data.
+   * <p>
+   * <p>
+   * The default value is {@code 10}.
+   * <p>
+   * <b>Note:</b> This setting does not apply to streaming requests (either the initial connection or
+   * reconnecting after a disconnection). Streaming requests will always retry indefinitely
+   * (infinite retries).
+   * <p>
+   * Example usage:
+   * <pre>
+   * {@code
+   * BaseConfig config = BaseConfig.builder()
+   *     .maxRequestRetry(20)
+   *     .build();
+   * }
+   * </pre>
+   */
+  @Builder.Default private final long maxRequestRetry = DEFAULT_REQUEST_RETRIES;
 }
