@@ -83,28 +83,4 @@ public class BaseConfig {
    * </pre>
    */
   @Builder.Default private final long maxRequestRetry = DEFAULT_REQUEST_RETRIES;
-
-  /**
-   * Indicates whether to flush analytics data when the SDK is closed.
-   * <p>
-   * When set to {@code true}, any remaining analytics data (such as metrics)
-   * will be sent to the server before the SDK is fully closed. If {@code false},
-   * the data will not be flushed, and any unsent analytics data may be lost.
-   * <p>
-   * The default value is {@code false}.
-   * <p>
-   * <b>Note:</b> The flush will attempt to send the data in a single request.
-   * Any failures during this process will not be retried, and the analytics data
-   * may be lost.
-   *
-   * <p>Example usage:
-   * <pre>
-   * {@code
-   * BaseConfig config = BaseConfig.builder()
-   *     .flushAnalyticsOnClose(true)
-   *     .build();
-   * }
-   * </pre>
-   */
-  @Builder.Default private final boolean flushAnalyticsOnClose = false;
 }

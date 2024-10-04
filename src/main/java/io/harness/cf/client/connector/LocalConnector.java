@@ -198,6 +198,12 @@ public class LocalConnector implements Connector, AutoCloseable {
   }
 
   @Override
+  public boolean getShouldFlushAnalyticsOnClose() {
+    // TODO - do we want to support flush for local connector? need to pass it in somehow
+    return false;
+  }
+
+  @Override
   public void setIsShuttingDown() {
     isShuttingDown.set(true);
   }

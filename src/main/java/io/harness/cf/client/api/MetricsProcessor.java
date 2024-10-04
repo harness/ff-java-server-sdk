@@ -111,13 +111,19 @@ class MetricsProcessor {
   private final LongAdder metricsSent = new LongAdder();
   private final int maxFreqMapSize;
 
+  private final boolean shouldFlushMetricsOnClose;
+
   public MetricsProcessor(
-      @NonNull Connector connector, @NonNull BaseConfig config, @NonNull MetricsCallback callback) {
+      @NonNull Connector connector,
+      @NonNull BaseConfig config,
+      @NonNull MetricsCallback callback,
+      boolean shouldFlushMetricsOnClose) {
     this.connector = connector;
     this.config = config;
     this.frequencyMap = new FrequencyMap<>();
     this.targetsSeen = ConcurrentHashMap.newKeySet();
     this.maxFreqMapSize = clamp(config.getBufferSize(), 2048, MAX_FREQ_MAP_TO_RETAIN);
+    this.shouldFlushMetricsOnClose = shouldFlushMetricsOnClose;
     callback.onMetricsReady();
   }
 
@@ -303,7 +309,7 @@ class MetricsProcessor {
   }
 
   public void stop() {
-    if (config.isFlushAnalyticsOnClose()) {
+    if (shouldFlushMetricsOnClose) {
       flushQueue();
     }
 
@@ -327,7 +333,7 @@ class MetricsProcessor {
         scheduler,
         SdkCodes::infoMetricsThreadExited,
         errMsg -> {
-          if (config.isFlushAnalyticsOnClose()) {
+          if (shouldFlushMetricsOnClose) {
             log.warn("Waited for flush to finish {}", errMsg);
           } else {
             log.warn("Failed to stop metrics scheduler: {}", errMsg);

@@ -50,7 +50,8 @@ class MetricsProcessorStressTest {
             BaseConfig.builder()
                 // .globalTargetEnabled(false)
                 .build(),
-            new DummyMetricsCallback());
+            new DummyMetricsCallback(),
+            false);
 
     metricsProcessor.start();
 

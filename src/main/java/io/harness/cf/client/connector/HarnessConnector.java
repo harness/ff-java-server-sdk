@@ -34,6 +34,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
   private final MetricsApi metricsApi;
   private final String apiKey;
   private final HarnessConfig options;
+
   private final AtomicBoolean isShuttingDown = new AtomicBoolean(false);
 
   private String token;
@@ -471,6 +472,11 @@ public class HarnessConnector implements Connector, AutoCloseable {
 
   public void setIsShuttingDown() {
     this.isShuttingDown.set(true);
+  }
+
+  @Override
+  public boolean getShouldFlushAnalyticsOnClose() {
+    return options.isFlushAnalyticsOnClose();
   }
 
   private static boolean isNullOrEmpty(String string) {

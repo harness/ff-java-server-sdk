@@ -30,5 +30,7 @@ public interface Connector {
 
   void close();
 
+  boolean getShouldFlushAnalyticsOnClose();
+
   void setIsShuttingDown();
 }

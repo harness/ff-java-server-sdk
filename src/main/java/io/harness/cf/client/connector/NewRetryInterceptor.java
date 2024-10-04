@@ -96,7 +96,8 @@ public class NewRetryInterceptor implements Interceptor {
           log.trace("Retry-After header detected: {} seconds", retryAfterHeaderValue);
           backOffDelayMs = retryAfterHeaderValue * 1000L;
         } else {
-          // Else fallback to a randomized exponential backoff with a max delay of 1 minute (60,000ms)
+          // Else fallback to a randomized exponential backoff with a max delay of 1 minute
+          // (60,000ms)
           backOffDelayMs = Math.min(retryBackoffDelay * tryCount, 60000L);
         }
 
