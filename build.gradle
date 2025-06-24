@@ -259,3 +259,8 @@ wrapper {
     gradleVersion = '8.14.2'
     distributionType = Wrapper.DistributionType.ALL
 }
+
+tasks.named("generatePomFileForMavenPublication").configure {
+    def publication = publishing.publications.maven
+    destination = rootProject.file("${publication.artifactId}-${publication.version}.pom")
+}
