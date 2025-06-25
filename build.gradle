@@ -1,4 +1,7 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+import com.vanniktech.maven.publish.SonatypeHost
+import com.vanniktech.maven.publish.JavaLibrary
+import com.vanniktech.maven.publish.JavadocJar
 
 buildscript {
     repositories {
@@ -10,7 +13,6 @@ buildscript {
 plugins {
     id 'java'
     id 'jvm-test-suite'
-    id 'maven-publish'
     id "signing"
     id "org.openapi.generator" version libs.versions.openapi.generator
     id "com.diffplug.spotless" version libs.versions.spotless
@@ -19,6 +21,7 @@ plugins {
     id "com.github.spotbugs" version libs.versions.spotbugs
     id "org.owasp.dependencycheck" version libs.versions.depcheck
     id 'me.champeau.jmh' version '0.6.8' // Added JMH plugin
+    id "com.vanniktech.maven.publish" version "0.33.0"
 }
 
 
@@ -34,8 +37,6 @@ allprojects {
 
     java {
         sourceCompatibility = JavaVersion.VERSION_1_8
-        withJavadocJar()
-        withSourcesJar()
     }
 
     apply plugin: 'java-library'
@@ -98,16 +99,6 @@ tasks.register('generateVersion', Copy) {
     expand tokens
 }
 
-// From https://stackoverflow.com/a/74205283
-tasks.register("copyPomToRoot") {
-    def publication = publishing.publications.mavenJava
-    def generatePom = tasks.named("generatePomFileFor${publication.name.capitalize()}Publication")
-    dependsOn(generatePom)
-    def output = rootProject.file("${publication.artifactId}-${publication.version}.pom")
-    outputs.file(output)
-    doLast { output.bytes = generatePom.get().destination.bytes }
-}
-
 testing {
     suites {
         test {
@@ -152,94 +143,91 @@ testing {
     }
 }
 
-publishing {
-    repositories {
-        maven {
-            credentials {
-                username System.getenv("MAVEN_USERNAME") != null ? System.getenv("MAVEN_USERNAME") : ""
-                password System.getenv("MAVEN_PASSWORD") != null ? System.getenv("MAVEN_PASSWORD") : ""
-            }
+mavenPublishing {
 
-            def sonatypeSnapshotRepo = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
-            def sonatypeStagingRepo="https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
-            url = version.endsWith('SNAPSHOT') ? sonatypeSnapshotRepo : sonatypeStagingRepo
-        }
-    }
+    // To publish, make sure the following env vars are set
+    //
+    // ORG_GRADLE_PROJECT_mavenCentralUsername
+    // ORG_GRADLE_PROJECT_mavenCentralPassword
+    //
+    // To sign, make sure the following properties are set
+    //
+    // signing.secretKeyRingFile=(keyring location - e.g. output of `gpg --no-default-keyring --keyring secring.gpg --export-secret-keys <LONGID> >/tmp/keyring.gpg`)
+    // signing.password=(****)
+    // signing.keyId=(8 digit keyid)
+    //
+    // Also make sure that corresponding public key has been published to hkp://keys.openpgp.org, hkp://pgp.mit.edu, etc.
 
-    publications.create("mavenJava", MavenPublication) {
-        from components.java
+    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+    signAllPublications()
 
-        pom {
-           description = project.description
-           name = project.name
-           url = "https://github.com/harness/ff-java-server-sdk"
+    configure(new JavaLibrary(new JavadocJar.Javadoc(), true))
 
-           licenses {
-               license {
-                   name = "Apache License, Version 2.0"
-                   url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
-                   distribution = "repo"
-               }
-           }
+    pom {
+       description = project.description
+       name = project.name
+       url = "https://github.com/harness/ff-java-server-sdk"
 
-           scm {
-               developerConnection = "scm:git:ssh://https://github.com/harness/ff-java-server-sdk.git"
-               connection = "scm:git:ssh://https://github.com/harness/ff-java-server-sdk.git"
-               url = "https://github.com/drone/ff-java-server-sdk"
-           }
-
-           developers {
-               developer {
-                   id = "andybharness"
-                   name = "Andrew Bell"
-                   email = "andrew.bell@harness.io"
-                   organization = "Harness Inc"
-                   organizationUrl = "https://www.harness.io/"
-               }
-               developer {
-                   id = "davejohnston"
-                   name = "Dave Johnston"
-                   email = "dave.johnston@harness.io"
-                   organization = "Harness Inc"
-                   organizationUrl = "https://www.harness.io/"
-               }
-               developer {
-                   id = "enver-bisevac"
-                   name = "Enver Bisevac"
-                   email = "enver.bisevac@harness.io"
-                   organization = "Harness Inc"
-                   organizationUrl = "https://www.harness.io/"
-               }
-               developer {
-                   id = "rushabh-harness"
-                   name = "Rushabh Shah"
-                   email = "rushabh@harness.io"
-                   organization = "Harness Inc"
-                   organizationUrl = "https://www.harness.io/"
-               }
-               developer {
-                   id = "hannah-tang"
-                   name = "Hannah Tang"
-                   email = "hannah.tang@harness.io"
-                   organization = "Harness Inc"
-                   organizationUrl = "https://www.harness.io/"
-               }
-               developer {
-                   id = "subiradhikari"
-                   name = "Subir Adhikari"
-                   email = "subir.adhikari@harness.io"
-                   organization = "Harness Inc"
-                   organizationUrl = "https://www.harness.io/"
-               }
+       licenses {
+           license {
+               name = "Apache License, Version 2.0"
+               url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+               distribution = "repo"
            }
        }
+
+       scm {
+           developerConnection = "scm:git:ssh://https://github.com/harness/ff-java-server-sdk.git"
+           connection = "scm:git:ssh://https://github.com/harness/ff-java-server-sdk.git"
+           url = "https://github.com/drone/ff-java-server-sdk"
+       }
+
+       developers {
+           developer {
+               id = "andybharness"
+               name = "Andrew Bell"
+               email = "andrew.bell@harness.io"
+               organization = "Harness Inc"
+               organizationUrl = "https://www.harness.io/"
+           }
+           developer {
+               id = "davejohnston"
+               name = "Dave Johnston"
+               email = "dave.johnston@harness.io"
+               organization = "Harness Inc"
+               organizationUrl = "https://www.harness.io/"
+           }
+           developer {
+               id = "enver-bisevac"
+               name = "Enver Bisevac"
+               email = "enver.bisevac@harness.io"
+               organization = "Harness Inc"
+               organizationUrl = "https://www.harness.io/"
+           }
+           developer {
+               id = "rushabh-harness"
+               name = "Rushabh Shah"
+               email = "rushabh@harness.io"
+               organization = "Harness Inc"
+               organizationUrl = "https://www.harness.io/"
+           }
+           developer {
+               id = "hannah-tang"
+               name = "Hannah Tang"
+               email = "hannah.tang@harness.io"
+               organization = "Harness Inc"
+               organizationUrl = "https://www.harness.io/"
+           }
+           developer {
+               id = "subiradhikari"
+               name = "Subir Adhikari"
+               email = "subir.adhikari@harness.io"
+               organization = "Harness Inc"
+               organizationUrl = "https://www.harness.io/"
+           }
+       }
+
     }
-}
-
-signing {
-    required { gradle.taskGraph.hasTask("publish") }
-
-    sign publishing.publications.mavenJava
 }
 
 spotless {
@@ -261,8 +249,6 @@ dependencyCheck {
 compileJava.dependsOn tasks.openApiGenerate
 compileJava.dependsOn generateVersion
 compileJava.dependsOn spotlessApply
-sourcesJar.dependsOn tasks.openApiGenerate
-sourcesJar.dependsOn generateVersion
 jacocoTestReport.dependsOn test
 spotbugsTest.enabled = false
 spotbugsMain.enabled = false
@@ -271,4 +257,18 @@ sourceSets.main.java.srcDirs += [ "$buildDir/generated/src/main/java", "$buildDi
 
 tasks.withType(Javadoc).configureEach {
     options.addStringOption('Xdoclint:none', '-quiet')
+}
+
+tasks.named("sourcesJar") {
+    dependsOn(tasks.named("generateVersion"))
+}
+
+wrapper {
+    gradleVersion = '8.14.2'
+    distributionType = Wrapper.DistributionType.ALL
+}
+
+tasks.named("generatePomFileForMavenPublication").configure {
+    def publication = publishing.publications.maven
+    destination = rootProject.file("${publication.artifactId}-${publication.version}.pom")
 }
