@@ -149,6 +149,14 @@ mavenPublishing {
     //
     // ORG_GRADLE_PROJECT_mavenCentralUsername
     // ORG_GRADLE_PROJECT_mavenCentralPassword
+    //
+    // To sign, make sure the following properties are set
+    //
+    // signing.secretKeyRingFile=(keyring location - e.g. output of `gpg --no-default-keyring --keyring secring.gpg --export-secret-keys <LONGID> >/tmp/keyring.gpg`)
+    // signing.password=(****)
+    // signing.keyId=(8 digit keyid)
+    //
+    // Also make sure that corresponding public key has been published to hkp://keys.openpgp.org, hkp://pgp.mit.edu, etc.
 
     publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
     signAllPublications()
