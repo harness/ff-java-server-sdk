@@ -1,0 +1,31 @@
+package io.harness.cf.client.connector;
+
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import okhttp3.Authenticator;
+import okhttp3.Credentials;
+
+public class ProxyConfig {
+
+  public static Proxy getProxyConfig() {
+    final String host = System.getProperty("http.proxyHost");
+    final String port = System.getProperty("http.proxyPort");
+    if (host == null || host.isEmpty() || port == null || port.isEmpty()) {
+      return Proxy.NO_PROXY;
+    }
+    return new Proxy(Proxy.Type.HTTP, new InetSocketAddress(host, Integer.parseInt(port)));
+  }
+
+  public static Authenticator getProxyAuthentication() {
+    final String user = System.getProperty("http.proxyUser");
+    final String password = System.getProperty("http.proxyPassword");
+    if (user == null || user.isEmpty() || password == null || password.isEmpty()) {
+      return Authenticator.NONE;
+    }
+
+    return (route, response) -> {
+      final String credential = Credentials.basic(user, password);
+      return response.request().newBuilder().header("Proxy-Authorization", credential).build();
+    };
+  }
+}

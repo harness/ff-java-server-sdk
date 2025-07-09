@@ -75,6 +75,8 @@ public class EventSource implements Callback, AutoCloseable, Service {
       throws ConnectorException {
     OkHttpClient.Builder httpClientBuilder =
         new OkHttpClient.Builder()
+            .proxy(ProxyConfig.getProxyConfig())
+            .proxyAuthenticator(ProxyConfig.getProxyAuthentication())
             .eventListener(EventListener.NONE)
             .readTimeout(sseReadTimeoutMins, TimeUnit.MINUTES)
             .retryOnConnectionFailure(true);

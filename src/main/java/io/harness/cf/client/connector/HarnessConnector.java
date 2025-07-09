@@ -92,6 +92,8 @@ public class HarnessConnector implements Connector, AutoCloseable {
         apiClient
             .getHttpClient()
             .newBuilder()
+            .proxy(ProxyConfig.getProxyConfig())
+            .proxyAuthenticator(ProxyConfig.getProxyAuthentication())
             .addInterceptor(this::reauthInterceptor)
             .addInterceptor(
                 new NewRetryInterceptor(
