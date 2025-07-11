@@ -2,9 +2,11 @@ package io.harness.cf.client.connector;
 
 import java.net.InetSocketAddress;
 import java.net.Proxy;
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.Authenticator;
 import okhttp3.Credentials;
 
+@Slf4j
 public class ProxyConfig {
 
   public static Proxy getProxyConfig() {
@@ -24,8 +26,26 @@ public class ProxyConfig {
     }
 
     return (route, response) -> {
-      final String credential = Credentials.basic(user, password);
-      return response.request().newBuilder().header("Proxy-Authorization", credential).build();
+      final String targetIpPort = getIpAndPort((route == null ? null : route.socketAddress()));
+      final String configuredIpPort = getIpAndPort((InetSocketAddress) getProxyConfig().address());
+
+      if (targetIpPort.equalsIgnoreCase(configuredIpPort)) {
+        final String credential = Credentials.basic(user, password);
+        return response.request().newBuilder().header("Proxy-Authorization", credential).build();
+      } else {
+        log.warn(
+            "Target proxy `{}` does not match configured proxy `{}`. Credentials not sent",
+            targetIpPort,
+            configuredIpPort);
+        return null;
+      }
     };
+  }
+
+  private static String getIpAndPort(InetSocketAddress addr) {
+    if (addr == null) {
+      return "null";
+    }
+    return addr.getAddress().getHostAddress() + ":" + addr.getPort();
   }
 }
