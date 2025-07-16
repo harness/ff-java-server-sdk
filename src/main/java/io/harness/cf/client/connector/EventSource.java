@@ -198,13 +198,14 @@ public class EventSource implements Callback, AutoCloseable, Service {
     } catch (Throwable ex) {
       log.warn("SSE Stream aborted: " + getExceptionMsg(ex));
       log.trace("SSE Stream aborted trace", ex);
-      updater.onDisconnected(getExceptionMsg(ex));
+
+      updater.onDisconnected((isShuttingDown.get() ? "SDK_SHUTDOWN: " : "") + getExceptionMsg(ex));
     }
   }
 
   private String getExceptionMsg(Throwable ex) {
     return (ex.getMessage() == null || "null".equals(ex.getMessage()))
-        ? ex.getClass().getSimpleName()
+        ? ex.getClass().getCanonicalName()
         : ex.getMessage();
   }
 

@@ -71,7 +71,7 @@ class PollingProcessor {
       completableFuture.complete(segments);
     } catch (Throwable e) {
       log.error(
-          "Exception was raised when fetching flags data with the message {}", e.getMessage(), e);
+          "Exception was raised when fetching segments data with the message {}", e.getMessage(), e);
       completableFuture.completeExceptionally(e);
     }
     return completableFuture;
@@ -81,8 +81,7 @@ class PollingProcessor {
     try {
       CompletableFuture.allOf(retrieveFlags(), retrieveSegments()).join();
     } catch (CompletionException | CancellationException ex) {
-      log.warn("retrieveAll failed: {} - {}", ex.getClass().getSimpleName(), ex.getMessage());
-      log.trace("retrieveAll failed", ex);
+      log.warn("retrieveAll failed: {} - {}", ex.getClass().getSimpleName(), ex.getMessage(), ex);
     }
   }
 
