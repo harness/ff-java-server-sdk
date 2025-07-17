@@ -92,7 +92,7 @@ public class HarnessConnector implements Connector, AutoCloseable {
       .getHttpClient()
       .newBuilder();
 
-    ProxyConfig.setSocketFactory(builder);
+    ProxyConfig.configureTls(builder);
 
     // if http client response is 403 we need to reauthenticate
     apiClient.setHttpClient(builder.proxy(ProxyConfig.getProxyConfig())

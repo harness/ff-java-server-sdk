@@ -52,7 +52,7 @@ public class ProxyConfig {
     return addr.getAddress().getHostAddress() + ":" + addr.getPort();
   }
 
-  public static void setSocketFactory(OkHttpClient.Builder builder) {
+  public static void configureTls(OkHttpClient.Builder builder) {
     if (builder == null) {
       return;
     }

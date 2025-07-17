@@ -81,7 +81,7 @@ public class EventSource implements Callback, AutoCloseable, Service {
             .readTimeout(sseReadTimeoutMins, TimeUnit.MINUTES)
             .retryOnConnectionFailure(true);
 
-    ProxyConfig.setSocketFactory(httpClientBuilder);
+    ProxyConfig.configureTls(httpClientBuilder);
 
     setupTls(httpClientBuilder, trustedCAs);
 
