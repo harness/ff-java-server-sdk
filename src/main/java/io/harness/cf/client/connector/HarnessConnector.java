@@ -21,6 +21,7 @@ import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Interceptor;
+import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import org.slf4j.MDC;
@@ -87,18 +88,18 @@ public class HarnessConnector implements Connector, AutoCloseable {
 
     setupTls(apiClient);
 
+    final OkHttpClient.Builder builder = apiClient
+      .getHttpClient()
+      .newBuilder();
+
+    ProxyConfig.setSocketFactory(builder);
+
     // if http client response is 403 we need to reauthenticate
-    apiClient.setHttpClient(
-        apiClient
-            .getHttpClient()
-            .newBuilder()
-            .proxy(ProxyConfig.getProxyConfig())
-            .proxyAuthenticator(ProxyConfig.getProxyAuthentication())
-            .addInterceptor(this::reauthInterceptor)
-            .addInterceptor(
-                new NewRetryInterceptor(
-                    options.getMaxRequestRetry(), retryBackOfDelay, isShuttingDown))
-            .build());
+    apiClient.setHttpClient(builder.proxy(ProxyConfig.getProxyConfig())
+      .proxyAuthenticator(ProxyConfig.getProxyAuthentication())
+      .addInterceptor(this::reauthInterceptor)
+      .addInterceptor(new NewRetryInterceptor(options.getMaxRequestRetry(), retryBackOfDelay, isShuttingDown))
+      .build());
 
     return apiClient;
   }

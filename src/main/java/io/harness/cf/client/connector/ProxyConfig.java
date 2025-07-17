@@ -5,13 +5,16 @@ import java.net.Proxy;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Authenticator;
 import okhttp3.Credentials;
+import okhttp3.OkHttpClient;
+
+import javax.net.ssl.SSLSocketFactory;
 
 @Slf4j
 public class ProxyConfig {
 
   public static Proxy getProxyConfig() {
-    final String host = System.getProperty("http.proxyHost");
-    final String port = System.getProperty("http.proxyPort");
+    final String host = System.getProperty("https.proxyHost", System.getProperty("http.proxyHost"));
+    final String port = System.getProperty("https.proxyPort", System.getProperty("http.proxyPort"));
     if (host == null || host.isEmpty() || port == null || port.isEmpty()) {
       return Proxy.NO_PROXY;
     }
@@ -47,5 +50,18 @@ public class ProxyConfig {
       return "null";
     }
     return addr.getAddress().getHostAddress() + ":" + addr.getPort();
+  }
+
+  public static void setSocketFactory(OkHttpClient.Builder builder) {
+    if (builder == null) {
+      return;
+    }
+    final String host = System.getProperty("https.proxyHost");
+    final String port = System.getProperty("https.proxyPort");
+    if (host == null || host.isEmpty() || port == null || port.isEmpty()) {
+      return;
+    }
+
+    builder.socketFactory(new DelegatingSocketFactory(SSLSocketFactory.getDefault()));
   }
 }
