@@ -42,7 +42,7 @@ public class TestUtils {
     for (int i = 1; i <= size; i++) {
       FeatureConfig f = fg;
       f.setFeature("simpleBool" + i);
-      f.setVersion(new Long(version));
+      f.setVersion((long) version);
       // we are copying objects
       FeatureConfig df = gson.fromJson(gson.toJson(f), FeatureConfig.class);
       list.add(df);

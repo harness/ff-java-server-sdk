@@ -50,7 +50,7 @@ class StorageRepositoryTest {
     assertNotNull(current);
 
     // check if the current version is correct
-    assertEquals(current.getVersion(), new Long(2));
+    assertEquals(current.getVersion(), 2L);
   }
 
   @Test
@@ -84,7 +84,7 @@ class StorageRepositoryTest {
     assertNotNull(current);
 
     // check if the current version is correct
-    assertEquals(current.getVersion(), new Long(2));
+    assertEquals(current.getVersion(), 2L);
   }
 
   @Test
@@ -118,8 +118,8 @@ class StorageRepositoryTest {
     assertNotNull(current);
 
     // check if the current version is correct
-    assertEquals(previous.getVersion(), new Long(1));
-    assertEquals(current.getVersion(), new Long(2));
+    assertEquals(previous.getVersion(), 1L);
+    assertEquals(current.getVersion(), 2L);
   }
 
   @Test
@@ -146,8 +146,8 @@ class StorageRepositoryTest {
     assertNotNull(current);
 
     // check if the current version is correct
-    assertEquals(previous.getVersion(), new Long(1));
-    assertEquals(current.getVersion(), new Long(2));
+    assertEquals(previous.getVersion(), 1L);
+    assertEquals(current.getVersion(), 2L);
   }
 
   @Test
@@ -176,8 +176,8 @@ class StorageRepositoryTest {
     assertNotNull(current);
 
     // check if the current version is correct
-    assertEquals(previous.getVersion(), new Long(1));
-    assertEquals(current.getVersion(), new Long(2));
+    assertEquals(previous.getVersion(), 1L);
+    assertEquals(current.getVersion(), 2L);
 
     // delete config
     repository.deleteFlag(featureIdentifier);
@@ -233,7 +233,7 @@ class StorageRepositoryTest {
 
   private FeatureConfig GetUpdatedFeatureConfigFromFile() throws Exception {
     FeatureConfig fc = GetFeatureConfigFromFile();
-    fc.setVersion(new Long(2));
+    fc.setVersion(2L);
     return fc;
   }
 
@@ -262,7 +262,7 @@ class StorageRepositoryTest {
     for (int i = 1; i <= flagNumber; i++) {
       FeatureConfig f = fg;
       f.setFeature("simpleBool" + i);
-      f.setVersion(new Long(version));
+      f.setVersion((long) version);
       list.add(f);
     }
     //    System.out.println(list);
