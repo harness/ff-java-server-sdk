@@ -105,7 +105,7 @@ public class NewRetryInterceptor implements Interceptor {
         limitReached = !retryForever && tryCount >= maxTryCount;
 
         if (isShuttingDown.get()) {
-          log.warn(
+          log.trace(
               "Request attempt {} to {} was not successful, [{}], SDK is shutting down, no retries will be attempted",
               tryCount,
               chain.request().url(),
@@ -147,6 +147,7 @@ public class NewRetryInterceptor implements Interceptor {
     try {
       seconds = Integer.parseInt(retryAfterValue);
     } catch (NumberFormatException ignored) {
+      log.trace("Unable to parse Retry-After header as integer: {}", retryAfterValue);
     }
 
     if (seconds <= 0) {
@@ -156,6 +157,7 @@ public class NewRetryInterceptor implements Interceptor {
           seconds = (int) Duration.between(Instant.now(), then.toInstant()).getSeconds();
         }
       } catch (ParseException ignored) {
+        log.warn("Unable to parse  Retry-After header value: `{}` as integer or date", retryAfterValue);
       }
     }
 

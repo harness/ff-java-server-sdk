@@ -209,7 +209,9 @@ class InnerClient
   @Override
   public void onDisconnected(String reason) {
 
-    SdkCodes.warnStreamDisconnected(reason);
+    if (!reason.contains("SDK_SHUTDOWN")) {
+      SdkCodes.warnStreamDisconnected(reason);
+    }
 
     if (!closing && !pollProcessor.isRunning()) {
       log.debug("onDisconnected triggered, starting poller to get latest flags");
