@@ -2,12 +2,11 @@ package io.harness.cf.client.connector;
 
 import java.net.InetSocketAddress;
 import java.net.Proxy;
+import javax.net.ssl.SSLSocketFactory;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Authenticator;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
-
-import javax.net.ssl.SSLSocketFactory;
 
 @Slf4j
 public class ProxyConfig {

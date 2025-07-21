@@ -88,18 +88,20 @@ public class HarnessConnector implements Connector, AutoCloseable {
 
     setupTls(apiClient);
 
-    final OkHttpClient.Builder builder = apiClient
-      .getHttpClient()
-      .newBuilder();
+    final OkHttpClient.Builder builder = apiClient.getHttpClient().newBuilder();
 
     ProxyConfig.configureTls(builder);
 
     // if http client response is 403 we need to reauthenticate
-    apiClient.setHttpClient(builder.proxy(ProxyConfig.getProxyConfig())
-      .proxyAuthenticator(ProxyConfig.getProxyAuthentication())
-      .addInterceptor(this::reauthInterceptor)
-      .addInterceptor(new NewRetryInterceptor(options.getMaxRequestRetry(), retryBackOfDelay, isShuttingDown))
-      .build());
+    apiClient.setHttpClient(
+        builder
+            .proxy(ProxyConfig.getProxyConfig())
+            .proxyAuthenticator(ProxyConfig.getProxyAuthentication())
+            .addInterceptor(this::reauthInterceptor)
+            .addInterceptor(
+                new NewRetryInterceptor(
+                    options.getMaxRequestRetry(), retryBackOfDelay, isShuttingDown))
+            .build());
 
     return apiClient;
   }

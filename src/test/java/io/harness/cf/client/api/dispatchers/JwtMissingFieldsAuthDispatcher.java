@@ -60,7 +60,7 @@ public class JwtMissingFieldsAuthDispatcher extends TestWebServerDispatcher {
       case SIMPLE_BOOL_FLAG_ENDPOINT:
         assertHeaders(recordedRequest);
         return makeMockSingleBoolFlagResponse(200, "simplebool", "off", version.get());
-        // TODO add metrics here
+      // TODO add metrics here
       default:
         throw new UnsupportedOperationException(
             "ERROR: url not mapped " + recordedRequest.getPath());

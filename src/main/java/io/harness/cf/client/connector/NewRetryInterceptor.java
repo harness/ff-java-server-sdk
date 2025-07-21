@@ -157,7 +157,8 @@ public class NewRetryInterceptor implements Interceptor {
           seconds = (int) Duration.between(Instant.now(), then.toInstant()).getSeconds();
         }
       } catch (ParseException ignored) {
-        log.warn("Unable to parse  Retry-After header value: `{}` as integer or date", retryAfterValue);
+        log.warn(
+            "Unable to parse  Retry-After header value: `{}` as integer or date", retryAfterValue);
       }
     }
 

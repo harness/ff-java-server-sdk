@@ -4,7 +4,7 @@ dependencyResolutionManagement {
     versionCatalogs {
         libs {
             // main sdk version
-            version('sdk', '1.8.3');
+            version('sdk', '1.9.0-SNAPSHOT');
 
             // sdk deps
             version('okhttp3', '4.12.0')
@@ -17,7 +17,7 @@ dependencyResolutionManagement {
             library('swagger-annotations', 'io.swagger:swagger-annotations:1.6.2')
             library('javax-annotation-api', 'javax.annotation:javax.annotation-api:1.2')
             library('slf4j-api', 'org.slf4j:slf4j-api:1.7.36')
-            library('lombok', 'org.projectlombok:lombok:1.18.30')
+            library('lombok', 'org.projectlombok:lombok:1.18.38')
             library('google-findbugs', 'com.google.code.findbugs:jsr305:3.0.2')
 
             // test libs
@@ -26,6 +26,9 @@ dependencyResolutionManagement {
             library('junit-bom', 'org.junit:junit-bom:5.10.1')
             library('mockito-junit5', 'org.mockito:mockito-junit-jupiter:4.8.1')
             library('okhttp3-mockwebserver', 'com.squareup.okhttp3', 'mockwebserver').versionRef('okhttp3')
+            version('jmh', '1.37')
+            library('jmh-core', 'org.openjdk.jmh', 'jmh-core').versionRef('jmh')
+            library('jmh-annotations', 'org.openjdk.jmh', 'jmh-generator-annprocess').versionRef('jmh')
 
             // examples
             library('bc', 'org.bouncycastle:bcpkix-jdk18on:1.78.1')
@@ -35,10 +38,11 @@ dependencyResolutionManagement {
             // do not upgrade openapi, doing so will break compatibility with customers using SpringBoot 2.5.x
             // (newer 5.x.x generators use APIs not present in okhttp 3.14.9)
             version('openapi.generator', '4.3.1')
-            version('spotless', '6.23.3')
+            version('spotless', '7.1.0')
             version('depsize', '0.2.0')
-            version('spotbugs', '6.0.4')
+            version('spotbugs', '6.1.5')
             version('depcheck', '9.0.7')
+            version('maven.publish', '0.33.0')
         }
     }
 }

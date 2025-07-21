@@ -71,7 +71,9 @@ class PollingProcessor {
       completableFuture.complete(segments);
     } catch (Throwable e) {
       log.error(
-          "Exception was raised when fetching segments data with the message {}", e.getMessage(), e);
+          "Exception was raised when fetching segments data with the message {}",
+          e.getMessage(),
+          e);
       completableFuture.completeExceptionally(e);
     }
     return completableFuture;
