@@ -35,7 +35,7 @@ public class EvaluatorIntegrationTest {
 
     assertTrue(
         testCasesDirectory.exists(),
-        "ff-test-cases folder missing - please check 'git submodule init' has been run");
+        "ff-test-cases folder missing - please check 'git submodule update --init' has been run");
 
     try (Stream<Path> pathStream = Files.walk(Paths.get(testCasesBasePath))) {
       pathStream
