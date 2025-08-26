@@ -38,7 +38,7 @@ dependencyResolutionManagement {
             // do not upgrade openapi, doing so will break compatibility with customers using SpringBoot 2.5.x
             // (newer 5.x.x generators use APIs not present in okhttp 3.14.9)
             version('openapi.generator', '4.3.1')
-            version('spotless', '7.1.0')
+            version('spotless', '7.2.1')
             version('depsize', '0.2.0')
             version('spotbugs', '6.2.3')
             version('depcheck', '12.1.3')
