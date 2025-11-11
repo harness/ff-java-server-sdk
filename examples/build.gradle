@@ -1,11 +1,6 @@
 group = 'io.harness.featureflags'
 version = libs.versions.sdk.get()
-repositories {
-    mavenLocal()
-    maven {
-        url = uri('https://repo.maven.apache.org/maven2/')
-    }
-}
+
 dependencies {
     implementation project(":") // libs.harness.ff.sdk
 
