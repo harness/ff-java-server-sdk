@@ -70,7 +70,7 @@ public class NewRetryInterceptor implements Interceptor {
               String.format(
                   Locale.getDefault(), "httpCode=%d %s", response.code(), response.message());
           if (!shouldRetryHttpErrorCode(response.code())) {
-            return response;
+            return getReturnResp(chain, response, "nullcheck: shouldRetryHttpErrorCode is false");
           }
         } else if (tryCount > 1) {
           log.info(
@@ -83,7 +83,7 @@ public class NewRetryInterceptor implements Interceptor {
         response = makeErrorResp(chain, msg);
         successful = false;
         if (!shouldRetryException(ex)) {
-          return response;
+          return getReturnResp(chain, response, "nullcheck: shouldRetryException is false");
         }
       }
 
@@ -110,7 +110,8 @@ public class NewRetryInterceptor implements Interceptor {
               tryCount,
               chain.request().url(),
               msg);
-          return response; // Exit without further retries
+          return getReturnResp(
+              chain, response, "nullcheck: isShuttingDown is true"); // Exit without further retries
         }
 
         log.warn(
@@ -134,7 +135,21 @@ public class NewRetryInterceptor implements Interceptor {
       tryCount++;
     } while (!successful && (retryForever || tryCount <= maxTryCount) && !isShuttingDown.get());
 
-    return response;
+    return getReturnResp(
+        chain,
+        response,
+        String.format(
+            "nullcheck: exit loop successful=%s, retryForever=%s tryCount=%d maxTryCount=%d shutdown=%s",
+            successful, retryForever, tryCount, maxTryCount, isShuttingDown.get()));
+  }
+
+  // interceptor should never return null, create dummy resp and embed an error msg if it does
+  private Response getReturnResp(Chain chain, Response resp, String msg) {
+    if (resp != null) {
+      return resp;
+    }
+
+    return makeErrorResp(chain, String.format(msg, "%s url: %s", chain.request().url()));
   }
 
   int getRetryAfterHeaderInSeconds(Response response) {
