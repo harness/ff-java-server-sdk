@@ -11,7 +11,7 @@ dependencyResolutionManagement {
             library('okhttp3-core', 'com.squareup.okhttp3', 'okhttp').versionRef('okhttp3')
             library('okhttp3-logging-interceptor', 'com.squareup.okhttp3', 'logging-interceptor').versionRef('okhttp3')
             library('gson-fire', 'io.gsonfire:gson-fire:1.7.1')
-            library('google-gson', 'com.google.code.gson:gson:2.10')
+            library('google-gson', 'com.google.code.gson:gson:2.13.2')
             library('caffeine-cache', 'com.github.ben-manes.caffeine:caffeine:2.8.5')
             library('murmur3', 'com.sangupta:murmur:1.0.0')
             library('swagger-annotations', 'io.swagger:swagger-annotations:1.6.2')
