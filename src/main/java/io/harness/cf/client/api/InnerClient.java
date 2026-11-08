@@ -34,7 +34,7 @@ class InnerClient
 
   private Connector connector;
   private Evaluation evaluator;
-  private Repository repository;
+  private StorageRepository repository;
   private BaseConfig options;
   private AuthService authService;
   private PollingProcessor pollProcessor;
@@ -201,8 +201,9 @@ class InnerClient
 
     if (pollProcessor.isRunning()) {
       // refresh any flags that may have gotten out of sync if the SSE connection was down
-      pollProcessor.retrieveAll();
-      pollProcessor.stop();
+      if (pollProcessor.retrieveAll()) {
+        pollProcessor.stop();
+      }
     }
   }
 

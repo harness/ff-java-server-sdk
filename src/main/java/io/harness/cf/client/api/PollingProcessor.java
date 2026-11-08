@@ -5,10 +5,11 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import io.harness.cf.client.common.SdkCodes;
 import io.harness.cf.client.connector.Connector;
-import io.harness.cf.model.FeatureConfig;
-import io.harness.cf.model.Segment;
+import io.harness.cf.client.connector.ConnectorException;
 import java.util.List;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Lock;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -17,8 +18,8 @@ class PollingProcessor {
 
   private final Connector connector;
   private final int pollIntervalSeconds;
-  private final Repository repository;
-  private boolean initialized = false;
+  private final StorageRepository repository;
+  private final AtomicBoolean initialized = new AtomicBoolean();
   private final PollerCallback callback;
   private ScheduledFuture<?> runningTask = null;
 
@@ -26,7 +27,7 @@ class PollingProcessor {
 
   public PollingProcessor(
       @NonNull final Connector connector,
-      @NonNull final Repository repository,
+      @NonNull final StorageRepository repository,
       final int pollIntervalSeconds,
       @NonNull final PollerCallback callback) {
     this.connector = connector;
@@ -35,55 +36,35 @@ class PollingProcessor {
     this.callback = callback;
   }
 
-  public CompletableFuture<List<FeatureConfig>> retrieveFlags() {
-    CompletableFuture<List<FeatureConfig>> completableFuture = new CompletableFuture<>();
+  public boolean retrieveAll() {
     try {
-      log.debug("Fetching flags started");
-      final List<FeatureConfig> featureConfig = connector.getFlags();
-      log.debug("Fetching flags finished");
-      featureConfig.forEach(
-          fc -> {
-            if (fc != null) {
-              repository.setFlag(fc.getFeature(), fc);
-            }
-          });
-      completableFuture.complete(featureConfig);
-    } catch (Throwable e) {
-      log.error(
-          "Exception was raised when fetching flags data with the message {}", e.getMessage());
-      completableFuture.completeExceptionally(e);
-    }
-    return completableFuture;
-  }
-
-  public CompletableFuture<List<Segment>> retrieveSegments() {
-    final CompletableFuture<List<Segment>> completableFuture = new CompletableFuture<>();
-    try {
-      log.debug("Fetching segments started");
-      final List<Segment> segments = connector.getSegments();
-      log.debug("Fetching segments finished");
-      segments.forEach(
-          s -> {
-            if (s != null) {
-              repository.setSegment(s.getIdentifier(), s);
-            }
-          });
-      completableFuture.complete(segments);
-    } catch (Throwable e) {
-      log.error(
-          "Exception was raised when fetching segments data with the message {}",
-          e.getMessage(),
-          e);
-      completableFuture.completeExceptionally(e);
-    }
-    return completableFuture;
-  }
-
-  public void retrieveAll() {
-    try {
-      CompletableFuture.allOf(retrieveFlags(), retrieveSegments()).join();
-    } catch (CompletionException | CancellationException ex) {
+      refresh();
+      return true;
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      return false;
+    } catch (ConnectorException | RuntimeException ex) {
       log.warn("retrieveAll failed: {} - {}", ex.getClass().getSimpleName(), ex.getMessage(), ex);
+      return false;
+    }
+  }
+
+  private void refresh() throws ConnectorException, InterruptedException {
+    final List<Runnable> notifications;
+    // Serialize requests with stream writes without blocking reads of the current cache.
+    Lock lock = repository.snapshotLock();
+    lock.lockInterruptibly();
+    try {
+      ConfigurationSnapshot snapshot =
+          new ConfigurationSnapshot(connector.getFlags(), connector.getSegments());
+      notifications = repository.replaceSnapshot(snapshot);
+    } finally {
+      lock.unlock();
+    }
+    StorageRepository.notifyCallbacks(notifications);
+    if (initialized.compareAndSet(false, true)) {
+      log.debug("PollingProcessor initialized");
+      callback.onPollerReady();
     }
   }
 
@@ -91,14 +72,12 @@ class PollingProcessor {
     Thread.currentThread().setName("PollThread");
     log.debug("running poll iteration");
     try {
-      retrieveAll();
-      if (!initialized) {
-        initialized = true;
-        log.debug("PollingProcessor initialized");
-        callback.onPollerReady();
-      }
+      refresh();
     } catch (Exception exc) {
-      if (!initialized) {
+      if (exc instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
+      if (!initialized.get()) {
         callback.onPollerFailed(exc);
       } else {
         callback.onPollerError(exc);

@@ -7,8 +7,12 @@ import io.harness.cf.client.connector.Updater;
 import io.harness.cf.client.dto.Message;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Segment;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -16,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 class UpdateProcessor implements AutoCloseable {
   private final Connector connector;
   private final Repository repository;
+  private final Lock updateLock;
   private final Updater updater;
   private final ExecutorService executor = Executors.newFixedThreadPool(10);
 
@@ -29,6 +34,10 @@ class UpdateProcessor implements AutoCloseable {
       @NonNull final Updater callback) {
     this.connector = connector;
     this.repository = repository;
+    this.updateLock =
+        repository instanceof StorageRepository
+            ? ((StorageRepository) repository).updateLock()
+            : new ReentrantLock();
     this.updater = callback;
     log.debug("Update processor initialized");
   }
@@ -90,46 +99,76 @@ class UpdateProcessor implements AutoCloseable {
   protected Runnable processFlag(@NonNull final Message message) {
 
     return () -> {
+      List<Runnable> notifications = Collections.emptyList();
+      try {
+        updateLock.lockInterruptibly();
+      } catch (InterruptedException ex) {
+        Thread.currentThread().interrupt();
+        return;
+      }
       try {
         if (message.getEvent().equals("create") || message.getEvent().equals("patch")) {
           final FeatureConfig config = connector.getFlag(message.getIdentifier());
           if (config != null) {
-            repository.setFlag(message.getIdentifier(), config);
+            notifications =
+                updateRepository(() -> repository.setFlag(message.getIdentifier(), config));
             log.trace("Set new segment with key {} and value {}", message.getIdentifier(), config);
           }
         } else if (message.getEvent().equals("delete")) {
           log.debug("Delete flag with key {}", message.getIdentifier());
-          repository.deleteFlag(message.getIdentifier());
+          notifications = updateRepository(() -> repository.deleteFlag(message.getIdentifier()));
         }
-      } catch (Throwable e) {
+      } catch (ConnectorException | RuntimeException e) {
         log.error(
             "Exception was raised when fetching flag '{}' with the message {}",
             message.getIdentifier(),
             e.getMessage());
+      } finally {
+        updateLock.unlock();
       }
+      StorageRepository.notifyCallbacks(notifications);
     };
   }
 
   protected Runnable processSegment(@NonNull final Message message) {
     return () -> {
+      List<Runnable> notifications = Collections.emptyList();
+      try {
+        updateLock.lockInterruptibly();
+      } catch (InterruptedException ex) {
+        Thread.currentThread().interrupt();
+        return;
+      }
       try {
         if (message.getEvent().equals("create") || message.getEvent().equals("patch")) {
           final Segment segment = connector.getSegment(message.getIdentifier());
           if (segment != null) {
             log.trace("Set new segment with key {} and value {}", message.getIdentifier(), segment);
-            repository.setSegment(message.getIdentifier(), segment);
+            notifications =
+                updateRepository(() -> repository.setSegment(message.getIdentifier(), segment));
           }
         } else if (message.getEvent().equals("delete")) {
           log.debug("Delete segment with key {}", message.getIdentifier());
-          repository.deleteSegment(message.getIdentifier());
+          notifications = updateRepository(() -> repository.deleteSegment(message.getIdentifier()));
         }
-      } catch (Throwable e) {
+      } catch (ConnectorException | RuntimeException e) {
         log.error(
             "Exception was raised when fetching segment '{}' with the message {}",
             message.getIdentifier(),
             e.getMessage());
+      } finally {
+        updateLock.unlock();
       }
+      StorageRepository.notifyCallbacks(notifications);
     };
+  }
+
+  private List<Runnable> updateRepository(Runnable mutation) {
+    if (repository instanceof StorageRepository) {
+      return ((StorageRepository) repository).collectNotifications(mutation);
+    }
+    mutation.run();
+    return Collections.emptyList();
   }
 
   @Override

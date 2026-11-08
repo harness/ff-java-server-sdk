@@ -6,6 +6,9 @@ import io.harness.cf.client.common.Storage;
 import io.harness.cf.client.common.Utils;
 import io.harness.cf.model.*;
 import java.util.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -15,6 +18,9 @@ class StorageRepository implements Repository {
   private final Cache cache;
   private Storage store;
   private final RepositoryCallback callback;
+  // Stream requests share the read lock so only full refreshes exclude them.
+  private final ReadWriteLock updateLock = new ReentrantReadWriteLock(true);
+  private List<Runnable> pendingNotifications;
 
   private final boolean cachePreviousFeatureConfigVersion;
 
@@ -36,7 +42,8 @@ class StorageRepository implements Repository {
     this.store = store;
   }
 
-  public Optional<FeatureConfig> getFlag(@NonNull String identifier, boolean cacheable) {
+  public synchronized Optional<FeatureConfig> getFlag(
+      @NonNull String identifier, boolean cacheable) {
     final String flagKey = formatFlagKey(identifier);
     FeatureConfig flag = (FeatureConfig) cache.get(flagKey);
     if (flag != null) {
@@ -57,9 +64,9 @@ class StorageRepository implements Repository {
     return getFlag(identifier, true);
   }
 
-  public List<String> getAllFeatureIdentifiers(String prefix) {
+  public synchronized List<String> getAllFeatureIdentifiers(String prefix) {
     List<String> identifiers = new LinkedList<>();
-    List<String> keys = cache.keys();
+    Set<String> keys = allKeys();
     String flagPrefix = "flags/";
     for (String key : keys) {
       if (key.startsWith(flagPrefix)) {
@@ -74,7 +81,8 @@ class StorageRepository implements Repository {
     return identifiers;
   }
 
-  public Optional<FeatureConfig[]> getCurrentAndPreviousFeatureConfig(@NonNull String identifier) {
+  public synchronized Optional<FeatureConfig[]> getCurrentAndPreviousFeatureConfig(
+      @NonNull String identifier) {
     final String flagKey = formatFlagKey(identifier);
     final String pFlagKey = formatPrevFlagKey(identifier);
 
@@ -99,7 +107,7 @@ class StorageRepository implements Repository {
     return Optional.empty();
   }
 
-  public FeatureSnapshot getFeatureSnapshot(@NonNull String identifier) {
+  public synchronized FeatureSnapshot getFeatureSnapshot(@NonNull String identifier) {
     Gson gson = new Gson();
     final String flagKey = formatFlagKey(identifier);
     final String pFlagKey = formatPrevFlagKey(identifier);
@@ -130,7 +138,7 @@ class StorageRepository implements Repository {
     return null;
   }
 
-  public Optional<Segment> getSegment(@NonNull String identifier, boolean cacheable) {
+  public synchronized Optional<Segment> getSegment(@NonNull String identifier, boolean cacheable) {
     final String segmentKey = formatSegmentKey(identifier);
     Segment segment = (Segment) cache.get(segmentKey);
     if (segment != null) {
@@ -152,16 +160,16 @@ class StorageRepository implements Repository {
   }
 
   @Override
-  public List<String> findFlagsBySegment(@NonNull String segment) {
+  public synchronized List<String> findFlagsBySegment(@NonNull String segment) {
 
     List<String> result = new ArrayList<>();
-    List<String> keys = this.cache.keys();
-    if (store != null) {
-      log.debug("Store is available, load all keys");
-      keys = store.keys();
-    }
+    Set<String> keys = allKeys();
     for (String key : keys) {
-      final Optional<FeatureConfig> optionalFeatureConfig = getFlag(key);
+      if (!key.startsWith("flags/")) {
+        continue;
+      }
+      final Optional<FeatureConfig> optionalFeatureConfig =
+          getFlag(key.substring("flags/".length()));
       if (!optionalFeatureConfig.isPresent()) {
         log.debug("Flag not found {}, continue...", key);
         continue;
@@ -186,9 +194,15 @@ class StorageRepository implements Repository {
 
   @Override
   public void setFlag(@NonNull String identifier, @NonNull FeatureConfig featureConfig) {
+    if (storeFlag(identifier, featureConfig) && callback != null) {
+      publish(() -> callback.onFlagStored(identifier));
+    }
+  }
+
+  private synchronized boolean storeFlag(String identifier, FeatureConfig featureConfig) {
     if (isFlagOutdated(identifier, featureConfig)) {
       log.debug("Flag {} already exists", identifier);
-      return;
+      return false;
     }
 
     final String flagKey = formatFlagKey(identifier);
@@ -215,16 +229,20 @@ class StorageRepository implements Repository {
 
     log.debug("Flag {} successfully stored", identifier);
 
-    if (callback != null) {
-      callback.onFlagStored(identifier);
-    }
+    return true;
   }
 
   @Override
   public void setSegment(@NonNull String identifier, @NonNull Segment segment) {
+    if (storeSegment(identifier, segment) && callback != null) {
+      publish(() -> callback.onSegmentStored(identifier));
+    }
+  }
+
+  private synchronized boolean storeSegment(String identifier, Segment segment) {
     if (isSegmentOutdated(identifier, segment)) {
       log.debug("Segment {} already exists", identifier);
-      return;
+      return false;
     }
 
     // Sort the serving rules before storing the segment
@@ -239,34 +257,39 @@ class StorageRepository implements Repository {
       cache.set(segmentKey, segment);
       log.debug("Segment {} successfully cached", identifier);
     }
-    if (callback != null) {
-      callback.onSegmentStored(identifier);
-    }
+    return true;
   }
 
   @Override
   public void deleteFlag(@NonNull String identifier) {
+    removeFlag(identifier);
+    if (callback != null) {
+      publish(() -> callback.onFlagDeleted(identifier));
+    }
+  }
+
+  private synchronized void removeFlag(String identifier) {
     final String flagKey = this.formatFlagKey(identifier);
     final String pflgKey = this.formatPrevFlagKey(identifier);
     if (store != null) {
-      if (cachePreviousFeatureConfigVersion) {
-        store.delete(pflgKey);
-      }
+      store.delete(pflgKey);
       store.delete(flagKey);
       log.debug("Flag {} successfully deleted from store", identifier);
     }
-    if (cachePreviousFeatureConfigVersion) {
-      this.cache.delete(pflgKey);
-    }
+    this.cache.delete(pflgKey);
     this.cache.delete(flagKey);
     log.debug("Flag {} successfully deleted from cache", identifier);
-    if (callback != null) {
-      callback.onFlagDeleted(identifier);
-    }
   }
 
   @Override
   public void deleteSegment(@NonNull String identifier) {
+    removeSegment(identifier);
+    if (callback != null) {
+      publish(() -> callback.onSegmentDeleted(identifier));
+    }
+  }
+
+  private synchronized void removeSegment(String identifier) {
     final String segmentKey = this.formatSegmentKey(identifier);
     if (store != null) {
       store.delete(segmentKey);
@@ -274,9 +297,79 @@ class StorageRepository implements Repository {
     }
     this.cache.delete(segmentKey);
     log.debug("Segment {} successfully deleted from cache", identifier);
-    if (callback != null) {
-      callback.onSegmentDeleted(identifier);
+  }
+
+  Lock updateLock() {
+    return updateLock.readLock();
+  }
+
+  Lock snapshotLock() {
+    return updateLock.writeLock();
+  }
+
+  synchronized List<Runnable> replaceSnapshot(ConfigurationSnapshot snapshot) {
+    Set<String> keys = allKeys();
+    Set<String> removedFlags = new LinkedHashSet<>();
+    Set<String> removedSegments = new LinkedHashSet<>();
+    for (String key : keys) {
+      if (key.startsWith("flags/") || key.startsWith("previous/")) {
+        String identifier = key.substring(key.indexOf('/') + 1);
+        if (!snapshot.flags().containsKey(identifier)) {
+          removedFlags.add(identifier);
+        }
+      } else if (key.startsWith("segments/")) {
+        String identifier = key.substring("segments/".length());
+        if (!snapshot.segments().containsKey(identifier)) {
+          removedSegments.add(identifier);
+        }
+      }
     }
+    return collectNotifications(
+        () -> {
+          removedFlags.forEach(this::deleteFlag);
+          removedSegments.forEach(this::deleteSegment);
+          snapshot.segments().forEach(this::setSegment);
+          snapshot.flags().forEach(this::setFlag);
+        });
+  }
+
+  synchronized List<Runnable> collectNotifications(Runnable mutation) {
+    List<Runnable> notifications = new ArrayList<>();
+    pendingNotifications = notifications;
+    try {
+      mutation.run();
+    } finally {
+      pendingNotifications = null;
+    }
+    return notifications;
+  }
+
+  static void notifyCallbacks(List<Runnable> notifications) {
+    for (Runnable notification : notifications) {
+      try {
+        notification.run();
+      } catch (RuntimeException ex) {
+        log.warn("Repository notification failed", ex);
+      }
+    }
+  }
+
+  private Set<String> allKeys() {
+    Set<String> keys = new LinkedHashSet<>(cache.keys());
+    if (store != null) {
+      keys.addAll(store.keys());
+    }
+    return keys;
+  }
+
+  private void publish(Runnable notification) {
+    synchronized (this) {
+      if (pendingNotifications != null) {
+        pendingNotifications.add(notification);
+        return;
+      }
+    }
+    notification.run();
   }
 
   protected boolean isFlagOutdated(
@@ -302,9 +395,16 @@ class StorageRepository implements Repository {
     return false;
   }
 
-  private void sortSegmentServingRules(Segment segment) {
-    if (segment.getServingRules() != null && segment.getServingRules().size() > 1) {
-      segment.getServingRules().sort(Comparator.comparing(GroupServingRule::getPriority));
+  static void sortSegmentServingRules(Segment segment) {
+    if (segment.getServingRules() != null) {
+      List<GroupServingRule> rules = new ArrayList<>(segment.getServingRules());
+      for (GroupServingRule rule : rules) {
+        if (rule == null || rule.getPriority() == null) {
+          throw new IllegalArgumentException("Invalid segment serving rule");
+        }
+      }
+      rules.sort(Comparator.comparing(GroupServingRule::getPriority));
+      segment.setServingRules(rules);
     }
   }
 
