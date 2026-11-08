@@ -6,6 +6,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import io.harness.cf.client.common.SdkCodes;
 import io.harness.cf.client.connector.Connector;
 import io.harness.cf.client.connector.ConnectorException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -50,22 +51,23 @@ class PollingProcessor {
   }
 
   private void refresh() throws ConnectorException, InterruptedException {
-    final List<Runnable> notifications;
+    final List<Runnable> notifications = new ArrayList<>();
     // Serialize requests with stream writes without blocking reads of the current cache.
     Lock lock = repository.snapshotLock();
     lock.lockInterruptibly();
     try {
       ConfigurationSnapshot snapshot =
           new ConfigurationSnapshot(connector.getFlags(), connector.getSegments());
-      notifications = repository.replaceSnapshot(snapshot);
+      repository.replaceSnapshot(snapshot, notifications);
     } finally {
       lock.unlock();
+      StorageRepository.notifyCallbacks(notifications);
     }
-    StorageRepository.notifyCallbacks(notifications);
     if (initialized.compareAndSet(false, true)) {
       log.debug("PollingProcessor initialized");
       callback.onPollerReady();
     }
+    callback.onPollerRefresh();
   }
 
   private void runOneIteration() {
@@ -85,7 +87,7 @@ class PollingProcessor {
     }
   }
 
-  public void start() {
+  public synchronized void start() {
     if (isRunning()) {
       return;
     }
@@ -95,7 +97,7 @@ class PollingProcessor {
     SdkCodes.infoPollStarted(pollIntervalSeconds);
   }
 
-  public void stop() {
+  public synchronized void stop() {
     log.debug("Stopping PollingProcessor");
 
     if (scheduler.isShutdown()) {
@@ -121,7 +123,7 @@ class PollingProcessor {
     log.debug("Closing PollingProcessor");
   }
 
-  public boolean isRunning() {
+  public synchronized boolean isRunning() {
     return runningTask != null && !runningTask.isCancelled();
   }
 }

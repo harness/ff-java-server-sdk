@@ -489,6 +489,105 @@ class SnapshotReconciliationTest {
     assertEquals(singletonList("dependent"), notified.get());
   }
 
+  @Test
+  void stopsFallbackPollingWhenTheConnectedStreamRecovers() throws Exception {
+    InnerClient client = mock(InnerClient.class, CALLS_REAL_METHODS);
+    PollingProcessor fallback = new PollingProcessor(connector, repository, 1, client);
+    Field field = InnerClient.class.getDeclaredField("pollProcessor");
+    field.setAccessible(true);
+    field.set(client, fallback);
+    doNothing().when(client).onPollerReady();
+    AtomicBoolean failing = new AtomicBoolean(true);
+    CountDownLatch stopped = new CountDownLatch(1);
+    doAnswer(
+            invocation -> {
+              invocation.callRealMethod();
+              stopped.countDown();
+              return null;
+            })
+        .when(client)
+        .onPollerRefresh();
+    when(connector.getFlags()).thenReturn(singletonList(flag("kept", 1)));
+    when(connector.getSegments())
+        .thenAnswer(
+            invocation -> {
+              if (failing.get()) throw new ConnectorException("synthetic HTTP 503");
+              return emptyList();
+            });
+    try {
+      client.onConnected();
+      assertTrue(fallback.isRunning());
+      assertFalse(repository.getFlag("kept").isPresent());
+      failing.set(false);
+      assertTrue(stopped.await(3, SECONDS));
+      assertFalse(fallback.isRunning());
+      assertTrue(repository.getFlag("kept").isPresent());
+    } finally {
+      fallback.close();
+    }
+  }
+
+  @Test
+  void retainsNotificationsForChangesAppliedBeforeAStoreFailure() throws Exception {
+    AtomicBoolean failing = new AtomicBoolean(true);
+    MemoryStorage store =
+        new MemoryStorage() {
+          @Override
+          public void set(String key, Object value) {
+            if (key.equals("flags/new") && failing.get()) {
+              throw new IllegalStateException("synthetic store failure");
+            }
+            super.set(key, value);
+          }
+        };
+    StorageRepository stored = new StorageRepository(cache, store, callback, true);
+    PollingProcessor storedPoller = new PollingProcessor(connector, stored, 1, pollerCallback);
+    stored.setFlag("gone", flag("gone", 1));
+    when(connector.getFlags()).thenReturn(singletonList(flag("new", 1)));
+    when(connector.getSegments()).thenReturn(emptyList());
+    clearInvocations(callback);
+    try {
+      assertFalse(storedPoller.retrieveAll());
+      assertFalse(stored.getFlag("gone").isPresent());
+      assertFalse(stored.getFlag("new").isPresent());
+      verify(callback).onFlagDeleted("gone");
+      verify(callback, never()).onFlagStored("new");
+      verify(pollerCallback, never()).onPollerReady();
+      failing.set(false);
+      assertTrue(storedPoller.retrieveAll());
+      assertTrue(stored.getFlag("new").isPresent());
+      verify(callback, times(1)).onFlagDeleted("gone");
+      verify(callback).onFlagStored("new");
+      verify(pollerCallback).onPollerReady();
+    } finally {
+      storedPoller.close();
+    }
+  }
+
+  @Test
+  void preservesExistingSingleRuleHandlingForStreamedSegments() throws Exception {
+    Segment group = segment("group");
+    group.setServingRules(singletonList(new GroupServingRule()));
+    when(connector.getSegment("group")).thenReturn(group);
+
+    updater.processSegment(new Message("create", "target-segment", "group", 1)).run();
+
+    assertTrue(repository.getSegment("group").isPresent());
+    verify(callback).onSegmentStored("group");
+  }
+
+  @Test
+  void rejectsAMissingFlagResponseWithoutTreatingItAsAnEmptySnapshot() throws Exception {
+    repository.setFlag("kept", flag("kept", 1));
+    when(connector.getFlags()).thenReturn(null);
+    when(connector.getSegments()).thenReturn(emptyList());
+
+    assertFalse(poller.retrieveAll());
+
+    assertTrue(repository.getFlag("kept").isPresent());
+    verify(callback, never()).onFlagDeleted("kept");
+  }
+
   private static FeatureConfig flag(String name, long version) throws Exception {
     String json =
         new String(

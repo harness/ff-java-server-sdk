@@ -7,7 +7,7 @@ import io.harness.cf.client.connector.Updater;
 import io.harness.cf.client.dto.Message;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Segment;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -99,7 +99,7 @@ class UpdateProcessor implements AutoCloseable {
   protected Runnable processFlag(@NonNull final Message message) {
 
     return () -> {
-      List<Runnable> notifications = Collections.emptyList();
+      List<Runnable> notifications = new ArrayList<>();
       try {
         updateLock.lockInterruptibly();
       } catch (InterruptedException ex) {
@@ -110,13 +110,13 @@ class UpdateProcessor implements AutoCloseable {
         if (message.getEvent().equals("create") || message.getEvent().equals("patch")) {
           final FeatureConfig config = connector.getFlag(message.getIdentifier());
           if (config != null) {
-            notifications =
-                updateRepository(() -> repository.setFlag(message.getIdentifier(), config));
+            updateRepository(
+                () -> repository.setFlag(message.getIdentifier(), config), notifications);
             log.trace("Set new segment with key {} and value {}", message.getIdentifier(), config);
           }
         } else if (message.getEvent().equals("delete")) {
           log.debug("Delete flag with key {}", message.getIdentifier());
-          notifications = updateRepository(() -> repository.deleteFlag(message.getIdentifier()));
+          updateRepository(() -> repository.deleteFlag(message.getIdentifier()), notifications);
         }
       } catch (ConnectorException | RuntimeException e) {
         log.error(
@@ -132,7 +132,7 @@ class UpdateProcessor implements AutoCloseable {
 
   protected Runnable processSegment(@NonNull final Message message) {
     return () -> {
-      List<Runnable> notifications = Collections.emptyList();
+      List<Runnable> notifications = new ArrayList<>();
       try {
         updateLock.lockInterruptibly();
       } catch (InterruptedException ex) {
@@ -144,12 +144,12 @@ class UpdateProcessor implements AutoCloseable {
           final Segment segment = connector.getSegment(message.getIdentifier());
           if (segment != null) {
             log.trace("Set new segment with key {} and value {}", message.getIdentifier(), segment);
-            notifications =
-                updateRepository(() -> repository.setSegment(message.getIdentifier(), segment));
+            updateRepository(
+                () -> repository.setSegment(message.getIdentifier(), segment), notifications);
           }
         } else if (message.getEvent().equals("delete")) {
           log.debug("Delete segment with key {}", message.getIdentifier());
-          notifications = updateRepository(() -> repository.deleteSegment(message.getIdentifier()));
+          updateRepository(() -> repository.deleteSegment(message.getIdentifier()), notifications);
         }
       } catch (ConnectorException | RuntimeException e) {
         log.error(
@@ -163,12 +163,12 @@ class UpdateProcessor implements AutoCloseable {
     };
   }
 
-  private List<Runnable> updateRepository(Runnable mutation) {
+  private void updateRepository(Runnable mutation, List<Runnable> notifications) {
     if (repository instanceof StorageRepository) {
-      return ((StorageRepository) repository).collectNotifications(mutation);
+      ((StorageRepository) repository).collectNotifications(mutation, notifications);
+    } else {
+      mutation.run();
     }
-    mutation.run();
-    return Collections.emptyList();
   }
 
   @Override

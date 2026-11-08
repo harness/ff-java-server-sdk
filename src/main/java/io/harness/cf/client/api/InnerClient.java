@@ -45,6 +45,7 @@ class InnerClient
   private boolean failure = false;
   private boolean pollerReady = false;
   private boolean streamReady = false;
+  private volatile boolean streamConnected = false;
   private boolean metricReady = false;
 
   private final ConcurrentHashMap<Event, CopyOnWriteArrayList<Consumer<String>>> events =
@@ -108,6 +109,7 @@ class InnerClient
     if (closing) {
       return;
     }
+    streamConnected = false;
     log.info("Unauthorized event received. Stopping all processors and run auth service");
     pollProcessor.stop();
     if (options.isStreamEnabled()) {
@@ -147,6 +149,13 @@ class InnerClient
   @Override
   public void onPollerReady() {
     initialize(Processor.POLL);
+  }
+
+  @Override
+  public void onPollerRefresh() {
+    if (streamConnected && !closing) {
+      pollProcessor.stop();
+    }
   }
 
   @Override
@@ -198,17 +207,21 @@ class InnerClient
   @Override
   public void onConnected() {
     SdkCodes.infoStreamConnected();
-
-    if (pollProcessor.isRunning()) {
-      // refresh any flags that may have gotten out of sync if the SSE connection was down
-      if (pollProcessor.retrieveAll()) {
-        pollProcessor.stop();
-      }
+    if (closing) {
+      return;
+    }
+    streamConnected = true;
+    // A stream connection does not prove that the full configuration refresh succeeded.
+    if (pollProcessor.retrieveAll()) {
+      pollProcessor.stop();
+    } else if (!closing) {
+      pollProcessor.start();
     }
   }
 
   @Override
   public void onDisconnected(String reason) {
+    streamConnected = false;
 
     if (!reason.contains("SDK_SHUTDOWN")) {
       SdkCodes.warnStreamDisconnected(reason);

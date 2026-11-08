@@ -307,7 +307,7 @@ class StorageRepository implements Repository {
     return updateLock.writeLock();
   }
 
-  synchronized List<Runnable> replaceSnapshot(ConfigurationSnapshot snapshot) {
+  synchronized void replaceSnapshot(ConfigurationSnapshot snapshot, List<Runnable> notifications) {
     Set<String> keys = allKeys();
     Set<String> removedFlags = new LinkedHashSet<>();
     Set<String> removedSegments = new LinkedHashSet<>();
@@ -324,24 +324,23 @@ class StorageRepository implements Repository {
         }
       }
     }
-    return collectNotifications(
+    collectNotifications(
         () -> {
           removedFlags.forEach(this::deleteFlag);
           removedSegments.forEach(this::deleteSegment);
           snapshot.segments().forEach(this::setSegment);
           snapshot.flags().forEach(this::setFlag);
-        });
+        },
+        notifications);
   }
 
-  synchronized List<Runnable> collectNotifications(Runnable mutation) {
-    List<Runnable> notifications = new ArrayList<>();
+  synchronized void collectNotifications(Runnable mutation, List<Runnable> notifications) {
     pendingNotifications = notifications;
     try {
       mutation.run();
     } finally {
       pendingNotifications = null;
     }
-    return notifications;
   }
 
   static void notifyCallbacks(List<Runnable> notifications) {
@@ -396,13 +395,8 @@ class StorageRepository implements Repository {
   }
 
   static void sortSegmentServingRules(Segment segment) {
-    if (segment.getServingRules() != null) {
+    if (segment.getServingRules() != null && segment.getServingRules().size() > 1) {
       List<GroupServingRule> rules = new ArrayList<>(segment.getServingRules());
-      for (GroupServingRule rule : rules) {
-        if (rule == null || rule.getPriority() == null) {
-          throw new IllegalArgumentException("Invalid segment serving rule");
-        }
-      }
       rules.sort(Comparator.comparing(GroupServingRule::getPriority));
       segment.setServingRules(rules);
     }
