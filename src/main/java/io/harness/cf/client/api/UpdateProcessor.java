@@ -9,8 +9,11 @@ import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Segment;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import lombok.NonNull;
@@ -18,11 +21,27 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 class UpdateProcessor implements AutoCloseable {
+  private static final int MAX_PENDING_UPDATES = 256;
+  private static final long ADMISSION_CHECK_MILLIS = 100;
   private final Connector connector;
   private final Repository repository;
   private final Lock updateLock;
   private final Updater updater;
-  private final ExecutorService executor = Executors.newFixedThreadPool(10);
+  private final AtomicBoolean closed = new AtomicBoolean();
+  private volatile Thread workerThread;
+  private final ThreadPoolExecutor executor =
+      new ThreadPoolExecutor(
+          1,
+          1,
+          0,
+          TimeUnit.MILLISECONDS,
+          new ArrayBlockingQueue<>(MAX_PENDING_UPDATES),
+          task -> {
+            Thread worker = new Thread(task, "HarnessFlagUpdates");
+            workerThread = worker;
+            return worker;
+          },
+          this::awaitCapacity);
 
   private Service stream;
 
@@ -42,9 +61,9 @@ class UpdateProcessor implements AutoCloseable {
     log.debug("Update processor initialized");
   }
 
-  public void start() {
+  public synchronized void start() {
     log.debug("Starting updater (EventSource)");
-    if (running) {
+    if (closed.get() || running) {
       log.debug("updater already started");
       return;
     }
@@ -65,7 +84,7 @@ class UpdateProcessor implements AutoCloseable {
     }
   }
 
-  public void stop() {
+  public synchronized void stop() {
     try {
       if (stream != null) {
         if (!running) {
@@ -84,20 +103,39 @@ class UpdateProcessor implements AutoCloseable {
   }
 
   public void update(@NonNull final Message message) {
+    if (closed.get()) throw new RejectedExecutionException("Update processor is closed");
 
     if (message.getDomain().equals("flag")) {
       log.debug("execute processFlag with message {}", message);
-      executor.submit(processFlag(message));
+      executor.execute(processFlag(message));
     }
 
     if (message.getDomain().equals("target-segment")) {
       log.debug("execute processSegment with message {}", message);
-      executor.submit(processSegment(message));
+      executor.execute(processSegment(message));
     }
   }
 
-  protected Runnable processFlag(@NonNull final Message message) {
+  private void awaitCapacity(Runnable task, ThreadPoolExecutor pool) {
+    if (Thread.currentThread() == workerThread) {
+      throw new RejectedExecutionException("The update callback cannot wait for its own queue");
+    }
+    try {
+      while (!pool.isShutdown() && !closed.get()) {
+        if (pool.getQueue().offer(task, ADMISSION_CHECK_MILLIS, TimeUnit.MILLISECONDS)) {
+          if (pool.isShutdown() && pool.remove(task)) break;
+          return;
+        }
+      }
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      throw new RejectedExecutionException("Interrupted while waiting for update capacity", ex);
+    }
+    throw new RejectedExecutionException("Update processor is closed");
+  }
 
+  protected Runnable processFlag(@NonNull final Message message) {
+    long sequence = nextStreamSequence();
     return () -> {
       List<Runnable> notifications = new ArrayList<>();
       try {
@@ -107,6 +145,7 @@ class UpdateProcessor implements AutoCloseable {
         return;
       }
       try {
+        if (isSupersededBySnapshot(sequence)) return;
         if (message.getEvent().equals("create") || message.getEvent().equals("patch")) {
           final FeatureConfig config = connector.getFlag(message.getIdentifier());
           if (config != null) {
@@ -131,6 +170,7 @@ class UpdateProcessor implements AutoCloseable {
   }
 
   protected Runnable processSegment(@NonNull final Message message) {
+    long sequence = nextStreamSequence();
     return () -> {
       List<Runnable> notifications = new ArrayList<>();
       try {
@@ -140,6 +180,7 @@ class UpdateProcessor implements AutoCloseable {
         return;
       }
       try {
+        if (isSupersededBySnapshot(sequence)) return;
         if (message.getEvent().equals("create") || message.getEvent().equals("patch")) {
           final Segment segment = connector.getSegment(message.getIdentifier());
           if (segment != null) {
@@ -171,20 +212,43 @@ class UpdateProcessor implements AutoCloseable {
     }
   }
 
+  private long nextStreamSequence() {
+    return repository instanceof StorageRepository
+        ? ((StorageRepository) repository).nextStreamSequence()
+        : 0;
+  }
+
+  private boolean isSupersededBySnapshot(long sequence) {
+    return repository instanceof StorageRepository
+        && ((StorageRepository) repository).isSupersededBySnapshot(sequence);
+  }
+
   @Override
   public void close() {
+    if (!closed.compareAndSet(false, true)) return;
     log.debug("Closing UpdateProcessor");
-    stop();
-    if (stream != null) {
+    try {
       try {
-        stream.close();
-      } catch (InterruptedException e) {
-        log.error("Exception was raised while trying to close the stream, err: {}", e.getMessage());
-        Thread.currentThread().interrupt();
+        stop();
+      } finally {
+        if (stream != null) {
+          try {
+            stream.close();
+          } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while closing the update stream", ex);
+          }
+        }
+      }
+    } finally {
+      executor.shutdownNow();
+      if (Thread.currentThread() != workerThread) {
+        io.harness.cf.client.common.Utils.shutdownExecutorService(
+            executor,
+            () -> log.debug("Update worker stopped"),
+            message -> log.warn("Failed to stop update worker: {}", message));
       }
     }
-
-    executor.shutdownNow();
     log.debug("UpdateProcessor closed");
   }
 

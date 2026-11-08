@@ -56,9 +56,11 @@ class PollingProcessor {
     Lock lock = repository.snapshotLock();
     lock.lockInterruptibly();
     try {
+      long sequence = repository.currentStreamSequence();
       ConfigurationSnapshot snapshot =
           new ConfigurationSnapshot(connector.getFlags(), connector.getSegments());
       repository.replaceSnapshot(snapshot, notifications);
+      repository.markSnapshotApplied(sequence);
     } finally {
       lock.unlock();
       StorageRepository.notifyCallbacks(notifications);

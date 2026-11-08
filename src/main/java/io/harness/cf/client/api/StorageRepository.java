@@ -6,6 +6,7 @@ import io.harness.cf.client.common.Storage;
 import io.harness.cf.client.common.Utils;
 import io.harness.cf.model.*;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -21,6 +22,8 @@ class StorageRepository implements Repository {
   // Stream requests share the read lock so only full refreshes exclude them.
   private final ReadWriteLock updateLock = new ReentrantReadWriteLock(true);
   private List<Runnable> pendingNotifications;
+  private final AtomicLong streamSequence = new AtomicLong();
+  private volatile long snapshotSequence;
 
   private final boolean cachePreviousFeatureConfigVersion;
 
@@ -301,6 +304,22 @@ class StorageRepository implements Repository {
 
   Lock updateLock() {
     return updateLock.readLock();
+  }
+
+  long nextStreamSequence() {
+    return streamSequence.incrementAndGet();
+  }
+
+  long currentStreamSequence() {
+    return streamSequence.get();
+  }
+
+  void markSnapshotApplied(long sequence) {
+    snapshotSequence = sequence;
+  }
+
+  boolean isSupersededBySnapshot(long sequence) {
+    return sequence <= snapshotSequence;
   }
 
   Lock snapshotLock() {
