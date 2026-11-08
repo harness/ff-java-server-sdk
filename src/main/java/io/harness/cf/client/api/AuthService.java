@@ -18,8 +18,17 @@ class AuthService {
   private final Connector connector;
   private final int pollIntervalInSec;
   private final AuthCallback callback;
-  private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+  private volatile Thread workerThread;
+  private final ScheduledExecutorService scheduler =
+      Executors.newScheduledThreadPool(
+          1,
+          task -> {
+            Thread worker = new Thread(task, "AuthThread");
+            workerThread = worker;
+            return worker;
+          });
   private ScheduledFuture<?> runningTask = null;
+  private volatile boolean closed;
 
   public AuthService(
       @NonNull final Connector connector,
@@ -33,6 +42,7 @@ class AuthService {
   }
 
   private void runOneIteration() {
+    if (closed) return;
     Thread.currentThread().setName("AuthThread");
     try {
       connector.authenticate();
@@ -40,6 +50,7 @@ class AuthService {
       callback.onAuthSuccess();
       log.debug("Stopping Auth service");
     } catch (ConnectorException e) {
+      if (closed) return;
       log.error("Exception while authenticating", e);
       callback.onFailure(e.getMessage());
     } finally {
@@ -47,8 +58,8 @@ class AuthService {
     }
   }
 
-  public void start() {
-    if (isRunning()) {
+  public synchronized void start() {
+    if (closed || isRunning()) {
       log.debug("authentication already in progress, skipping");
       return;
     }
@@ -57,7 +68,7 @@ class AuthService {
         scheduler.scheduleAtFixedRate(this::runOneIteration, 0, pollIntervalInSec, SECONDS);
   }
 
-  public void stop() {
+  public synchronized void stop() {
     if (scheduler.isShutdown()) {
       return;
     }
@@ -72,7 +83,16 @@ class AuthService {
   }
 
   public void close() {
-    stop();
+    synchronized (this) {
+      if (closed) return;
+      closed = true;
+      stop();
+    }
+    if (Thread.currentThread() == workerThread) {
+      scheduler.shutdown();
+      return;
+    }
+    scheduler.shutdownNow();
 
     shutdownExecutorService(
         scheduler,
@@ -82,7 +102,7 @@ class AuthService {
     log.debug("Authentication service closed");
   }
 
-  public boolean isRunning() {
-    return runningTask != null && !runningTask.isCancelled();
+  public synchronized boolean isRunning() {
+    return runningTask != null && !runningTask.isDone();
   }
 }

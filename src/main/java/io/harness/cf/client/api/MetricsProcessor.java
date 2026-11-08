@@ -4,6 +4,7 @@ import static io.harness.cf.client.common.SdkCodes.warnMetricsBufferFull;
 import static io.harness.cf.client.common.Utils.shutdownExecutorService;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import com.google.gson.Gson;
 import io.harness.cf.Version;
 import io.harness.cf.client.common.SdkCodes;
 import io.harness.cf.client.common.StringUtils;
@@ -15,8 +16,12 @@ import io.harness.cf.model.Metrics;
 import io.harness.cf.model.MetricsData;
 import io.harness.cf.model.TargetData;
 import io.harness.cf.model.Variation;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.LongAdder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +39,14 @@ class MetricsProcessor {
 
     void increment(K key) {
       freqMap.compute(key, (k, v) -> (v == null) ? 1L : v + 1L);
+    }
+
+    void add(K key, long count) {
+      freqMap.merge(key, count, Long::sum);
+    }
+
+    void clear() {
+      freqMap.clear();
     }
 
     int size() {
@@ -78,8 +91,12 @@ class MetricsProcessor {
   private static final String FEATURE_NAME_ATTRIBUTE = "featureName";
   private static final String VARIATION_IDENTIFIER_ATTRIBUTE = "variationIdentifier";
   private static final String TARGET_ATTRIBUTE = "target";
-  private static final Set<Target> globalTargetSet = new HashSet<>();
-  private static final Set<Target> stagingTargetSet = new HashSet<>();
+  private final Set<String> globalTargetSet = new LinkedHashSet<>();
+  private final Object stateLock = new Object();
+  private final Object flushLock = new Object();
+  private final AtomicBoolean closing = new AtomicBoolean();
+  private volatile boolean closed;
+  private final Gson gson = new Gson();
   private static final String SDK_TYPE = "SDK_TYPE";
 
   /** This target identifier is used to aggregate and send data for all targets as a summary */
@@ -97,16 +114,24 @@ class MetricsProcessor {
   private static final int MAX_SENT_TARGETS_TO_RETAIN = 100_000;
   private static final int MAX_FREQ_MAP_TO_RETAIN = 10_000;
 
-  private static final LongAdder evalCounter = new LongAdder();
-  private static final LongAdder metricsEvalsDropped = new LongAdder();
-  private static final LongAdder targetsSeenDropped = new LongAdder();
+  private final LongAdder evalCounter = new LongAdder();
+  private final LongAdder metricsEvalsDropped = new LongAdder();
+  private final LongAdder targetsSeenDropped = new LongAdder();
   private final Connector connector;
   private final BaseConfig config;
   private final FrequencyMap<MetricEvent> frequencyMap;
   private final Set<Target> targetsSeen;
 
   private ScheduledFuture<?> runningTask = null;
-  private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+  private volatile Thread workerThread;
+  private final ScheduledExecutorService scheduler =
+      Executors.newScheduledThreadPool(
+          1,
+          task -> {
+            Thread worker = new Thread(task, "MetricsThread");
+            workerThread = worker;
+            return worker;
+          });
 
   private final LongAdder metricsSent = new LongAdder();
   private final int maxFreqMapSize;
@@ -137,60 +162,97 @@ class MetricsProcessor {
   }
 
   void registerEvaluation(Target target, String featureName, Variation variation) {
+    synchronized (stateLock) {
+      if (closing.get()) return;
 
-    Target metricTarget = globalTarget;
+      Target metricTarget = globalTarget;
 
-    if (target != null) {
-      if (!targetsSeen.contains(target) && targetsSeen.size() + 1 > MAX_SENT_TARGETS_TO_RETAIN) {
-        targetsSeenDropped.increment();
-      } else {
-        targetsSeen.add(target);
-        if (!config.isGlobalTargetEnabled()) {
-          metricTarget = target;
+      if (target != null) {
+        if (!targetsSeen.contains(target) && targetsSeen.size() + 1 > MAX_SENT_TARGETS_TO_RETAIN) {
+          targetsSeenDropped.increment();
+        } else {
+          targetsSeen.add(target);
+          if (!config.isGlobalTargetEnabled()) {
+            metricTarget = target;
+          }
         }
       }
+
+      final MetricEvent metricsEvent = new MetricEvent(featureName, metricTarget, variation);
+
+      if (!frequencyMap.containsKey(metricsEvent) && frequencyMap.size() + 1 > maxFreqMapSize) {
+        metricsEvalsDropped.increment();
+      } else {
+        frequencyMap.increment(metricsEvent);
+      }
+
+      evalCounter.increment();
     }
-
-    final MetricEvent metricsEvent = new MetricEvent(featureName, metricTarget, variation);
-
-    if (!frequencyMap.containsKey(metricsEvent) && frequencyMap.size() + 1 > maxFreqMapSize) {
-      metricsEvalsDropped.increment();
-    } else {
-      frequencyMap.increment(metricsEvent);
-    }
-
-    evalCounter.increment();
   }
 
   /** This method sends the metrics data to the analytics server and resets the cache */
   public void sendDataAndResetCache(
       final Map<MetricEvent, Long> freqMap, final Set<Target> uniqueTargets) {
-
-    log.debug("Reading from queue and preparing the metrics");
-
-    if (!freqMap.isEmpty()) {
-
-      log.debug("Preparing summary metrics");
-      // We will only submit summary metrics to the event server
+    synchronized (flushLock) {
+      if (closed || (freqMap.isEmpty() && uniqueTargets.isEmpty())) return;
       Metrics metrics = prepareSummaryMetricsBody(freqMap, uniqueTargets);
-      if ((metrics.getMetricsData() != null && !metrics.getMetricsData().isEmpty())
-          || (metrics.getTargetData() != null && !metrics.getTargetData().isEmpty())) {
-        try {
-          long startTime = System.currentTimeMillis();
-          connector.postMetrics(metrics);
-
-          metricsSent.add(sumOfValuesInMap(freqMap));
-          long endTime = System.currentTimeMillis();
-          if ((endTime - startTime) > config.getMetricsServiceAcceptableDuration()) {
-            log.warn("Metrics service API duration=[{}]", (endTime - startTime));
+      if (metrics.getMetricsData().isEmpty() && metrics.getTargetData().isEmpty()) return;
+      try {
+        long startTime = System.currentTimeMillis();
+        connector.postMetrics(metrics);
+        metricsSent.add(sumOfValuesInMap(freqMap));
+        synchronized (stateLock) {
+          if (!closed) {
+            for (TargetData target : metrics.getTargetData()) {
+              globalTargetSet.add(fingerprint(target));
+            }
+            Iterator<String> oldest = globalTargetSet.iterator();
+            while (globalTargetSet.size() > MAX_SENT_TARGETS_TO_RETAIN) {
+              oldest.next();
+              oldest.remove();
+            }
           }
-          log.debug("Successfully sent analytics data to the server");
-        } catch (ConnectorException e) {
-          SdkCodes.warnPostMetricsFailed(e.getMessage());
+        }
+        long duration = System.currentTimeMillis() - startTime;
+        if (duration > config.getMetricsServiceAcceptableDuration()) {
+          log.warn("Metrics service API duration=[{}]", duration);
+        }
+      } catch (ConnectorException ex) {
+        SdkCodes.warnPostMetricsFailed(ex.getMessage());
+        retainFailedBatch(freqMap, uniqueTargets);
+      }
+    }
+  }
+
+  private void retainFailedBatch(Map<MetricEvent, Long> events, Set<Target> targets) {
+    synchronized (stateLock) {
+      if (closing.get()) return;
+      events.forEach(
+          (event, count) -> {
+            if (frequencyMap.containsKey(event) || frequencyMap.size() < maxFreqMapSize) {
+              frequencyMap.add(event, count);
+            } else {
+              metricsEvalsDropped.add(count);
+            }
+          });
+      for (Target target : targets) {
+        if (targetsSeen.contains(target) || targetsSeen.size() < MAX_SENT_TARGETS_TO_RETAIN) {
+          targetsSeen.add(target);
+        } else {
+          targetsSeenDropped.increment();
         }
       }
-      globalTargetSet.addAll(stagingTargetSet);
-      stagingTargetSet.clear();
+    }
+  }
+
+  private String fingerprint(TargetData target) {
+    try {
+      byte[] hash =
+          MessageDigest.getInstance("SHA-256")
+              .digest(gson.toJson(target).getBytes(StandardCharsets.UTF_8));
+      return Base64.getEncoder().encodeToString(hash);
+    } catch (NoSuchAlgorithmException ex) {
+      throw new IllegalStateException("SHA-256 is required by the JVM", ex);
     }
   }
 
@@ -240,66 +302,44 @@ class MetricsProcessor {
   }
 
   private void addTargetData(Metrics metrics, Target target) {
+    if (Boolean.TRUE.equals(target.isPrivate())) return;
     Set<String> privateAttributes = target.getPrivateAttributes();
-    TargetData targetData = new TargetData();
-
-    if (!stagingTargetSet.contains(target)
-        && !globalTargetSet.contains(target)
-        && !target.isPrivate()) {
-
-      stagingTargetSet.add(target);
-      final Map<String, Object> attributes = target.getAttributes();
-      for (Map.Entry<String, Object> entry : attributes.entrySet()) {
-        String k = entry.getKey();
-        Object v = entry.getValue();
-        KeyValue keyValue = new KeyValue();
-        if ((!privateAttributes.isEmpty())) {
-          if (!privateAttributes.contains(k)) {
-            keyValue.setKey(k);
-            keyValue.setValue(v.toString());
-          }
-        } else {
-          keyValue.setKey(k);
-          keyValue.setValue(v.toString());
-        }
-        targetData.getAttributes().add(keyValue);
+    TargetData data = new TargetData();
+    data.setIdentifier(target.getIdentifier());
+    data.setName(
+        StringUtils.isNullOrEmpty(target.getName()) ? target.getIdentifier() : target.getName());
+    for (Map.Entry<String, Object> entry : target.getAttributes().entrySet()) {
+      if (!privateAttributes.contains(entry.getKey())) {
+        data.getAttributes().add(new KeyValue(entry.getKey(), String.valueOf(entry.getValue())));
       }
-
-      targetData.setIdentifier(target.getIdentifier());
-      if (StringUtils.isNullOrEmpty(target.getName())) {
-        targetData.setName(target.getIdentifier());
-      } else {
-        targetData.setName(target.getName());
-      }
-      if (metrics.getTargetData() != null) {
-        metrics.getTargetData().add(targetData);
-      }
+    }
+    synchronized (stateLock) {
+      if (!globalTargetSet.contains(fingerprint(data))) metrics.getTargetData().add(data);
     }
   }
 
   void runOneIteration() {
     Thread.currentThread().setName("MetricsThread");
-
-    final long droppedEvals = metricsEvalsDropped.sumThenReset();
-    final long droppedTargets = targetsSeenDropped.sumThenReset();
-
-    if (droppedEvals > 0 || droppedTargets > 0) {
-      warnMetricsBufferFull(droppedEvals, droppedTargets);
+    synchronized (flushLock) {
+      final Map<MetricEvent, Long> events;
+      final Set<Target> targets;
+      synchronized (stateLock) {
+        if (closed) return;
+        long droppedEvents = metricsEvalsDropped.sumThenReset();
+        long droppedTargets = targetsSeenDropped.sumThenReset();
+        if (droppedEvents > 0 || droppedTargets > 0) {
+          warnMetricsBufferFull(droppedEvents, droppedTargets);
+        }
+        events = frequencyMap.drainToMap();
+        targets = new HashSet<>(targetsSeen);
+        targetsSeen.clear();
+      }
+      sendDataAndResetCache(events, targets);
     }
-
-    if (log.isDebugEnabled()) {
-      log.debug(
-          "Drain metrics queue : frequencyMap size={} uniqueTargetSet size={}",
-          frequencyMap.size(),
-          targetsSeen.size());
-    }
-    sendDataAndResetCache(frequencyMap.drainToMap(), new HashSet<>(targetsSeen));
-
-    targetsSeen.clear();
   }
 
-  public void start() {
-    if (isRunning()) {
+  public synchronized void start() {
+    if (closing.get() || isRunning()) {
       return;
     }
     runningTask =
@@ -308,7 +348,8 @@ class MetricsProcessor {
     SdkCodes.infoMetricsThreadStarted(config.getFrequency());
   }
 
-  public void stop() {
+  public synchronized void stop() {
+    if (scheduler.isShutdown()) return;
     if (shouldFlushMetricsOnClose && config.isAnalyticsEnabled()) {
       flushQueue();
     }
@@ -327,30 +368,35 @@ class MetricsProcessor {
   }
 
   public void close() {
-    stop();
-
-    shutdownExecutorService(
-        scheduler,
-        SdkCodes::infoMetricsThreadExited,
-        errMsg -> {
-          if (shouldFlushMetricsOnClose) {
-            log.warn("Waited for flush to finish {}", errMsg);
-          } else {
-            log.warn("Failed to stop metrics scheduler: {}", errMsg);
-          }
-        });
-
-    log.debug("Closing MetricsProcessor");
+    if (!closing.compareAndSet(false, true)) return;
+    try {
+      synchronized (this) {
+        stop();
+        scheduler.shutdown();
+      }
+      if (Thread.currentThread() != workerThread)
+        shutdownExecutorService(
+            scheduler,
+            SdkCodes::infoMetricsThreadExited,
+            message -> log.warn("Failed to stop metrics scheduler: {}", message));
+    } finally {
+      synchronized (stateLock) {
+        closed = true;
+        frequencyMap.clear();
+        targetsSeen.clear();
+        globalTargetSet.clear();
+      }
+    }
   }
 
-  public boolean isRunning() {
+  public synchronized boolean isRunning() {
     return runningTask != null && !runningTask.isCancelled();
   }
 
   /* package private */
 
   synchronized void flushQueue() {
-    scheduler.schedule(this::runOneIteration, 0, SECONDS);
+    if (!scheduler.isShutdown()) scheduler.schedule(this::runOneIteration, 0, SECONDS);
   }
 
   long getMetricsSent() {
@@ -378,7 +424,8 @@ class MetricsProcessor {
   }
 
   void reset() {
-    stagingTargetSet.clear();
-    globalTargetSet.clear();
+    synchronized (stateLock) {
+      globalTargetSet.clear();
+    }
   }
 }

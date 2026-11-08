@@ -5,6 +5,8 @@ import lombok.NonNull;
 interface PollerCallback {
   void onPollerReady();
 
+  void onPollerRefresh();
+
   void onPollerFailed(@NonNull Exception exc);
 
   void onPollerError(@NonNull Exception exc);

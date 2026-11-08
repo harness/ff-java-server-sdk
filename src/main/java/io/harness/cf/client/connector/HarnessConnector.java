@@ -450,14 +450,20 @@ public class HarnessConnector implements Connector, AutoCloseable {
   public void close() {
     log.debug("closing connector");
     isShuttingDown.set(true);
-    api.getApiClient().getHttpClient().connectionPool().evictAll();
+    closeHttpClient(api.getApiClient().getHttpClient());
     log.debug("All apiClient connections evicted");
-    metricsApi.getApiClient().getHttpClient().connectionPool().evictAll();
+    closeHttpClient(metricsApi.getApiClient().getHttpClient());
     log.debug("All metricsApiClient connections evicted");
     if (eventSource != null) {
       eventSource.close();
     }
     log.debug("connector closed!");
+  }
+
+  private void closeHttpClient(OkHttpClient client) {
+    client.dispatcher().cancelAll();
+    client.dispatcher().executorService().shutdown();
+    client.connectionPool().evictAll();
   }
 
   private void setupTls(ApiClient apiClient) {
@@ -477,6 +483,8 @@ public class HarnessConnector implements Connector, AutoCloseable {
 
   public void setIsShuttingDown() {
     this.isShuttingDown.set(true);
+    api.getApiClient().getHttpClient().dispatcher().cancelAll();
+    if (eventSource != null) eventSource.stop();
   }
 
   @Override

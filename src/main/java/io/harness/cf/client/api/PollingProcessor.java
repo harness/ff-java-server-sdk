@@ -5,10 +5,12 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import io.harness.cf.client.common.SdkCodes;
 import io.harness.cf.client.connector.Connector;
-import io.harness.cf.model.FeatureConfig;
-import io.harness.cf.model.Segment;
+import io.harness.cf.client.connector.ConnectorException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Lock;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -17,16 +19,25 @@ class PollingProcessor {
 
   private final Connector connector;
   private final int pollIntervalSeconds;
-  private final Repository repository;
-  private boolean initialized = false;
+  private final StorageRepository repository;
+  private final AtomicBoolean initialized = new AtomicBoolean();
+  private final AtomicBoolean closed = new AtomicBoolean();
   private final PollerCallback callback;
   private ScheduledFuture<?> runningTask = null;
 
-  private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+  private volatile Thread workerThread;
+  private final ScheduledExecutorService scheduler =
+      Executors.newScheduledThreadPool(
+          1,
+          task -> {
+            Thread worker = new Thread(task, "PollThread");
+            workerThread = worker;
+            return worker;
+          });
 
   public PollingProcessor(
       @NonNull final Connector connector,
-      @NonNull final Repository repository,
+      @NonNull final StorageRepository repository,
       final int pollIntervalSeconds,
       @NonNull final PollerCallback callback) {
     this.connector = connector;
@@ -35,70 +46,57 @@ class PollingProcessor {
     this.callback = callback;
   }
 
-  public CompletableFuture<List<FeatureConfig>> retrieveFlags() {
-    CompletableFuture<List<FeatureConfig>> completableFuture = new CompletableFuture<>();
+  public boolean retrieveAll() {
+    if (closed.get()) return false;
     try {
-      log.debug("Fetching flags started");
-      final List<FeatureConfig> featureConfig = connector.getFlags();
-      log.debug("Fetching flags finished");
-      featureConfig.forEach(
-          fc -> {
-            if (fc != null) {
-              repository.setFlag(fc.getFeature(), fc);
-            }
-          });
-      completableFuture.complete(featureConfig);
-    } catch (Throwable e) {
-      log.error(
-          "Exception was raised when fetching flags data with the message {}", e.getMessage());
-      completableFuture.completeExceptionally(e);
-    }
-    return completableFuture;
-  }
-
-  public CompletableFuture<List<Segment>> retrieveSegments() {
-    final CompletableFuture<List<Segment>> completableFuture = new CompletableFuture<>();
-    try {
-      log.debug("Fetching segments started");
-      final List<Segment> segments = connector.getSegments();
-      log.debug("Fetching segments finished");
-      segments.forEach(
-          s -> {
-            if (s != null) {
-              repository.setSegment(s.getIdentifier(), s);
-            }
-          });
-      completableFuture.complete(segments);
-    } catch (Throwable e) {
-      log.error(
-          "Exception was raised when fetching segments data with the message {}",
-          e.getMessage(),
-          e);
-      completableFuture.completeExceptionally(e);
-    }
-    return completableFuture;
-  }
-
-  public void retrieveAll() {
-    try {
-      CompletableFuture.allOf(retrieveFlags(), retrieveSegments()).join();
-    } catch (CompletionException | CancellationException ex) {
+      refresh();
+      return true;
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      return false;
+    } catch (ConnectorException | RuntimeException ex) {
+      if (closed.get()) return false;
       log.warn("retrieveAll failed: {} - {}", ex.getClass().getSimpleName(), ex.getMessage(), ex);
+      return false;
     }
+  }
+
+  private void refresh() throws ConnectorException, InterruptedException {
+    final List<Runnable> notifications = new ArrayList<>();
+    // Serialize requests with stream writes without blocking reads of the current cache.
+    Lock lock = repository.snapshotLock();
+    lock.lockInterruptibly();
+    try {
+      if (closed.get()) throw new CancellationException("Poller closed");
+      long sequence = repository.currentStreamSequence();
+      ConfigurationSnapshot snapshot =
+          new ConfigurationSnapshot(connector.getFlags(), connector.getSegments());
+      if (closed.get()) throw new CancellationException("Poller closed");
+      repository.replaceSnapshot(snapshot, notifications);
+      repository.markSnapshotApplied(sequence);
+    } finally {
+      lock.unlock();
+      StorageRepository.notifyCallbacks(notifications);
+    }
+    if (initialized.compareAndSet(false, true)) {
+      log.debug("PollingProcessor initialized");
+      callback.onPollerReady();
+    }
+    callback.onPollerRefresh();
   }
 
   private void runOneIteration() {
+    if (closed.get()) return;
     Thread.currentThread().setName("PollThread");
     log.debug("running poll iteration");
     try {
-      retrieveAll();
-      if (!initialized) {
-        initialized = true;
-        log.debug("PollingProcessor initialized");
-        callback.onPollerReady();
-      }
+      refresh();
     } catch (Exception exc) {
-      if (!initialized) {
+      if (closed.get()) return;
+      if (exc instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
+      if (!initialized.get()) {
         callback.onPollerFailed(exc);
       } else {
         callback.onPollerError(exc);
@@ -106,8 +104,8 @@ class PollingProcessor {
     }
   }
 
-  public void start() {
-    if (isRunning()) {
+  public synchronized void start() {
+    if (closed.get() || isRunning()) {
       return;
     }
 
@@ -116,7 +114,7 @@ class PollingProcessor {
     SdkCodes.infoPollStarted(pollIntervalSeconds);
   }
 
-  public void stop() {
+  public synchronized void stop() {
     log.debug("Stopping PollingProcessor");
 
     if (scheduler.isShutdown()) {
@@ -132,7 +130,13 @@ class PollingProcessor {
   }
 
   public void close() {
+    if (!closed.compareAndSet(false, true)) return;
     stop();
+    if (Thread.currentThread() == workerThread) {
+      scheduler.shutdown();
+      return;
+    }
+    scheduler.shutdownNow();
 
     shutdownExecutorService(
         scheduler,
@@ -142,7 +146,7 @@ class PollingProcessor {
     log.debug("Closing PollingProcessor");
   }
 
-  public boolean isRunning() {
-    return runningTask != null && !runningTask.isCancelled();
+  public synchronized boolean isRunning() {
+    return runningTask != null && !runningTask.isDone();
   }
 }
