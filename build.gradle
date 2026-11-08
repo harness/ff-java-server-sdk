@@ -70,6 +70,66 @@ dependencies {
     annotationProcessor libs.lombok
 }
 
+// Isolate the release because this project currently has the same module coordinates.
+def compatibilityBaseline = configurations.detachedConfiguration(
+    dependencies.create('io.harness:ff-java-server-sdk:1.9.3@jar'))
+compatibilityBaseline.transitive = false
+compatibilityBaseline.resolutionStrategy.useGlobalDependencySubstitutionRules = false
+
+sourceSets {
+    compatibilityTest {
+        resources.srcDir 'src/test/resources'
+    }
+}
+
+configurations.compatibilityTestImplementation.extendsFrom(configurations.implementation)
+sourceSets.compatibilityTest.compileClasspath += compatibilityBaseline
+
+dependencies {
+    compatibilityTestImplementation platform(libs.junit.bom)
+    compatibilityTestImplementation 'org.junit.jupiter:junit-jupiter'
+    compatibilityTestRuntimeOnly libs.junit.platform.launcher
+    compatibilityTestRuntimeOnly libs.logback.classic
+}
+
+tasks.named('compileCompatibilityTestJava', JavaCompile) {
+    options.release = 8
+    dependsOn tasks.named('spotlessApply')
+    doFirst {
+        if (classpath.files.any { it.toPath().startsWith(layout.buildDirectory.get().asFile.toPath()) }) {
+            throw new GradleException('Compatibility consumers must compile against the released SDK, not local output.')
+        }
+    }
+}
+
+tasks.register('compatibilityTest', Test) {
+    description = 'Run consumers compiled against SDK 1.9.3 with the current SDK.'
+    group = 'verification'
+    testClassesDirs = sourceSets.compatibilityTest.output.classesDirs
+    classpath = sourceSets.compatibilityTest.runtimeClasspath + sourceSets.main.output
+    systemProperty 'compatibility.sdk.location', sourceSets.main.output.classesDirs.singleFile.absolutePath
+    useJUnitPlatform()
+}
+
+tasks.register('compatibilityBaselineTest', Test) {
+    description = 'Verify the same compiled consumers against the released SDK 1.9.3.'
+    group = 'verification'
+    testClassesDirs = sourceSets.compatibilityTest.output.classesDirs
+    classpath = sourceSets.compatibilityTest.runtimeClasspath + compatibilityBaseline
+    doFirst {
+        systemProperty 'compatibility.sdk.location', compatibilityBaseline.singleFile.absolutePath
+    }
+    useJUnitPlatform()
+}
+
+tasks.named('test') {
+    dependsOn tasks.named('compatibilityTest')
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('compatibilityTest')
+}
+
 group = 'io.harness'
 version = libs.versions.sdk.get()
 description = 'Harness Feature Flag Java Server SDK'
