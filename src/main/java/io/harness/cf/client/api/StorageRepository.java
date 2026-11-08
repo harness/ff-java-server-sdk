@@ -89,7 +89,7 @@ class StorageRepository implements Repository {
     FeatureConfig pFlag = (FeatureConfig) cache.get(pFlagKey);
     FeatureConfig cFlag = (FeatureConfig) cache.get(flagKey);
 
-    if (cFlag != null) {
+    if (cFlag != null && (pFlag != null || store == null)) {
       return Optional.of(new FeatureConfig[] {pFlag, cFlag});
     }
     // if we don't have it in cache we check the file
@@ -115,7 +115,7 @@ class StorageRepository implements Repository {
     FeatureConfig pFlag = (FeatureConfig) cache.get(pFlagKey);
     FeatureConfig cFlag = (FeatureConfig) cache.get(flagKey);
 
-    if (cFlag != null) {
+    if (cFlag != null && (pFlag != null || store == null)) {
       FeatureSnapshot deepCopySnapshot =
           gson.fromJson(gson.toJson(new FeatureSnapshot(cFlag, pFlag)), FeatureSnapshot.class);
       return deepCopySnapshot;
