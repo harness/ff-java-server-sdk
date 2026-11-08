@@ -441,7 +441,7 @@ public class Evaluator implements Evaluation {
   private boolean isTargetInList(Target target, List<io.harness.cf.model.Target> listOfTargets) {
     if (listOfTargets != null) {
       for (io.harness.cf.model.Target includedTarget : listOfTargets) {
-        if (includedTarget.getIdentifier().contains(target.getIdentifier())) {
+        if (includedTarget.getIdentifier().equals(target.getIdentifier())) {
           return true;
         }
       }
