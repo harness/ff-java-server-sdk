@@ -123,7 +123,7 @@ class UpdateProcessor implements AutoCloseable {
     try {
       while (!pool.isShutdown() && !closed.get()) {
         if (pool.getQueue().offer(task, ADMISSION_CHECK_MILLIS, TimeUnit.MILLISECONDS)) {
-          if (pool.isShutdown() && pool.remove(task)) break;
+          if ((pool.isShutdown() || closed.get()) && pool.remove(task)) break;
           return;
         }
       }
@@ -145,7 +145,7 @@ class UpdateProcessor implements AutoCloseable {
         return;
       }
       try {
-        if (isSupersededBySnapshot(sequence)) return;
+        if (closed.get() || isSupersededBySnapshot(sequence)) return;
         if (message.getEvent().equals("create") || message.getEvent().equals("patch")) {
           final FeatureConfig config = connector.getFlag(message.getIdentifier());
           if (config != null) {
@@ -180,7 +180,7 @@ class UpdateProcessor implements AutoCloseable {
         return;
       }
       try {
-        if (isSupersededBySnapshot(sequence)) return;
+        if (closed.get() || isSupersededBySnapshot(sequence)) return;
         if (message.getEvent().equals("create") || message.getEvent().equals("patch")) {
           final Segment segment = connector.getSegment(message.getIdentifier());
           if (segment != null) {
@@ -241,8 +241,11 @@ class UpdateProcessor implements AutoCloseable {
         }
       }
     } finally {
-      executor.shutdownNow();
-      if (Thread.currentThread() != workerThread) {
+      if (Thread.currentThread() == workerThread) {
+        executor.getQueue().clear();
+        executor.shutdown();
+      } else {
+        executor.shutdownNow();
         io.harness.cf.client.common.Utils.shutdownExecutorService(
             executor,
             () -> log.debug("Update worker stopped"),

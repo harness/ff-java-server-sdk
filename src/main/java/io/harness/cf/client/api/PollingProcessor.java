@@ -21,10 +21,19 @@ class PollingProcessor {
   private final int pollIntervalSeconds;
   private final StorageRepository repository;
   private final AtomicBoolean initialized = new AtomicBoolean();
+  private final AtomicBoolean closed = new AtomicBoolean();
   private final PollerCallback callback;
   private ScheduledFuture<?> runningTask = null;
 
-  private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+  private volatile Thread workerThread;
+  private final ScheduledExecutorService scheduler =
+      Executors.newScheduledThreadPool(
+          1,
+          task -> {
+            Thread worker = new Thread(task, "PollThread");
+            workerThread = worker;
+            return worker;
+          });
 
   public PollingProcessor(
       @NonNull final Connector connector,
@@ -38,6 +47,7 @@ class PollingProcessor {
   }
 
   public boolean retrieveAll() {
+    if (closed.get()) return false;
     try {
       refresh();
       return true;
@@ -45,6 +55,7 @@ class PollingProcessor {
       Thread.currentThread().interrupt();
       return false;
     } catch (ConnectorException | RuntimeException ex) {
+      if (closed.get()) return false;
       log.warn("retrieveAll failed: {} - {}", ex.getClass().getSimpleName(), ex.getMessage(), ex);
       return false;
     }
@@ -56,9 +67,11 @@ class PollingProcessor {
     Lock lock = repository.snapshotLock();
     lock.lockInterruptibly();
     try {
+      if (closed.get()) throw new CancellationException("Poller closed");
       long sequence = repository.currentStreamSequence();
       ConfigurationSnapshot snapshot =
           new ConfigurationSnapshot(connector.getFlags(), connector.getSegments());
+      if (closed.get()) throw new CancellationException("Poller closed");
       repository.replaceSnapshot(snapshot, notifications);
       repository.markSnapshotApplied(sequence);
     } finally {
@@ -73,11 +86,13 @@ class PollingProcessor {
   }
 
   private void runOneIteration() {
+    if (closed.get()) return;
     Thread.currentThread().setName("PollThread");
     log.debug("running poll iteration");
     try {
       refresh();
     } catch (Exception exc) {
+      if (closed.get()) return;
       if (exc instanceof InterruptedException) {
         Thread.currentThread().interrupt();
       }
@@ -90,7 +105,7 @@ class PollingProcessor {
   }
 
   public synchronized void start() {
-    if (isRunning()) {
+    if (closed.get() || isRunning()) {
       return;
     }
 
@@ -115,7 +130,13 @@ class PollingProcessor {
   }
 
   public void close() {
+    if (!closed.compareAndSet(false, true)) return;
     stop();
+    if (Thread.currentThread() == workerThread) {
+      scheduler.shutdown();
+      return;
+    }
+    scheduler.shutdownNow();
 
     shutdownExecutorService(
         scheduler,
@@ -126,6 +147,6 @@ class PollingProcessor {
   }
 
   public synchronized boolean isRunning() {
-    return runningTask != null && !runningTask.isCancelled();
+    return runningTask != null && !runningTask.isDone();
   }
 }

@@ -18,6 +18,7 @@ class StorageRepository implements Repository {
 
   private final Cache cache;
   private Storage store;
+  private boolean closed;
   private final RepositoryCallback callback;
   // Stream requests share the read lock so only full refreshes exclude them.
   private final ReadWriteLock updateLock = new ReentrantReadWriteLock(true);
@@ -203,6 +204,7 @@ class StorageRepository implements Repository {
   }
 
   private synchronized boolean storeFlag(String identifier, FeatureConfig featureConfig) {
+    requireOpen();
     if (isFlagOutdated(identifier, featureConfig)) {
       log.debug("Flag {} already exists", identifier);
       return false;
@@ -243,6 +245,7 @@ class StorageRepository implements Repository {
   }
 
   private synchronized boolean storeSegment(String identifier, Segment segment) {
+    requireOpen();
     if (isSegmentOutdated(identifier, segment)) {
       log.debug("Segment {} already exists", identifier);
       return false;
@@ -272,6 +275,7 @@ class StorageRepository implements Repository {
   }
 
   private synchronized void removeFlag(String identifier) {
+    requireOpen();
     final String flagKey = this.formatFlagKey(identifier);
     final String pflgKey = this.formatPrevFlagKey(identifier);
     if (store != null) {
@@ -293,6 +297,7 @@ class StorageRepository implements Repository {
   }
 
   private synchronized void removeSegment(String identifier) {
+    requireOpen();
     final String segmentKey = this.formatSegmentKey(identifier);
     if (store != null) {
       store.delete(segmentKey);
@@ -327,6 +332,7 @@ class StorageRepository implements Repository {
   }
 
   synchronized void replaceSnapshot(ConfigurationSnapshot snapshot, List<Runnable> notifications) {
+    requireOpen();
     Set<String> keys = allKeys();
     Set<String> removedFlags = new LinkedHashSet<>();
     Set<String> removedSegments = new LinkedHashSet<>();
@@ -354,6 +360,7 @@ class StorageRepository implements Repository {
   }
 
   synchronized void collectNotifications(Runnable mutation, List<Runnable> notifications) {
+    requireOpen();
     pendingNotifications = notifications;
     try {
       mutation.run();
@@ -435,8 +442,14 @@ class StorageRepository implements Repository {
     return String.format("segments/%s", identifier);
   }
 
+  private void requireOpen() {
+    if (closed) throw new IllegalStateException("Feature flag repository is closed");
+  }
+
   @Override
-  public void close() {
+  public synchronized void close() {
+    if (closed) return;
+    closed = true;
     if (store != null) {
       store.close();
       log.debug("store closed");

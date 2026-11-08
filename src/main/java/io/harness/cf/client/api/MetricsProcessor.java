@@ -123,7 +123,15 @@ class MetricsProcessor {
   private final Set<Target> targetsSeen;
 
   private ScheduledFuture<?> runningTask = null;
-  private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+  private volatile Thread workerThread;
+  private final ScheduledExecutorService scheduler =
+      Executors.newScheduledThreadPool(
+          1,
+          task -> {
+            Thread worker = new Thread(task, "MetricsThread");
+            workerThread = worker;
+            return worker;
+          });
 
   private final LongAdder metricsSent = new LongAdder();
   private final int maxFreqMapSize;
@@ -366,10 +374,11 @@ class MetricsProcessor {
         stop();
         scheduler.shutdown();
       }
-      shutdownExecutorService(
-          scheduler,
-          SdkCodes::infoMetricsThreadExited,
-          message -> log.warn("Failed to stop metrics scheduler: {}", message));
+      if (Thread.currentThread() != workerThread)
+        shutdownExecutorService(
+            scheduler,
+            SdkCodes::infoMetricsThreadExited,
+            message -> log.warn("Failed to stop metrics scheduler: {}", message));
     } finally {
       synchronized (stateLock) {
         closed = true;

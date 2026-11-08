@@ -8,6 +8,7 @@ import io.harness.cf.client.dto.Target;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.FeatureSnapshot;
 import io.harness.cf.model.Variation;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -41,7 +42,7 @@ class InnerClient
   private MetricsProcessor metricsProcessor;
   private UpdateProcessor updateProcessor;
   private boolean initialized = false;
-  private boolean closing = false;
+  private volatile boolean closing = false;
   private boolean failure = false;
   private boolean pollerReady = false;
   private boolean streamReady = false;
@@ -230,9 +231,6 @@ class InnerClient
     if (!closing && !pollProcessor.isRunning()) {
       log.debug("onDisconnected triggered, starting poller to get latest flags");
 
-      pollProcessor.close();
-      pollProcessor =
-          new PollingProcessor(connector, repository, options.getPollIntervalInSeconds(), this);
       pollProcessor.start();
 
       if (updateProcessor != null && options.isStreamEnabled()) {
@@ -278,34 +276,36 @@ class InnerClient
     update(message);
   }
 
-  private synchronized void initialize(@NonNull final Processor processor) {
-    if (initialized || closing) {
-      log.debug("client is already initialized {} or closing {}", initialized, closing);
-      return;
-    }
-    switch (processor) {
-      case POLL:
-        pollerReady = true;
-        log.debug("PollingProcessor ready");
-        break;
-      case STREAM:
-        streamReady = true;
-        log.debug("Updater ready");
-        break;
-      case METRICS:
-        metricReady = true;
-        log.debug("MetricsProcessor ready");
-        break;
-    }
+  private void initialize(@NonNull final Processor processor) {
+    synchronized (this) {
+      if (initialized || closing) {
+        log.debug("client is already initialized {} or closing {}", initialized, closing);
+        return;
+      }
+      switch (processor) {
+        case POLL:
+          pollerReady = true;
+          log.debug("PollingProcessor ready");
+          break;
+        case STREAM:
+          streamReady = true;
+          log.debug("Updater ready");
+          break;
+        case METRICS:
+          metricReady = true;
+          log.debug("MetricsProcessor ready");
+          break;
+      }
 
-    if ((options.isStreamEnabled() && !streamReady)
-        || (options.isAnalyticsEnabled() && !this.metricReady)
-        || (!this.pollerReady)) {
-      return;
-    }
+      if ((options.isStreamEnabled() && !streamReady)
+          || (options.isAnalyticsEnabled() && !this.metricReady)
+          || (!this.pollerReady)) {
+        return;
+      }
 
-    initialized = true;
-    notifyAll();
+      initialized = true;
+      notifyAll();
+    }
     notifyConsumers(Event.READY, null);
     SdkCodes.infoSdkInitOk();
   }
@@ -321,10 +321,11 @@ class InnerClient
   public synchronized void waitForInitialization()
       throws InterruptedException, FeatureFlagInitializeException {
     while (!initialized) {
+      if (closing) throw new FeatureFlagInitializeException();
       log.info("Wait for initialization to finish");
       wait(5000);
 
-      if (failure) {
+      if (failure || closing) {
         log.error("Failure while initializing SDK!");
         throw new FeatureFlagInitializeException();
       }
@@ -405,21 +406,30 @@ class InnerClient
   }
 
   public void close() {
-    log.info("Closing the client");
-    closing = true;
-
-    // Mark the connector as shutting down to stop request retries from taking place. The
-    // connections will eventually
-    // be evicted when the connector is closed, but this ensures that if metrics are flushed when
-    // closed then it won't attempt to retry if the first request fails.
-    connector.setIsShuttingDown();
-    off();
-    authService.close();
-    repository.close();
-    pollProcessor.close();
-    updateProcessor.close();
-    metricsProcessor.close();
-    connector.close();
+    synchronized (this) {
+      if (closing) return;
+      closing = true;
+      notifyAll();
+    }
+    RuntimeException failure = null;
+    for (Runnable close :
+        Arrays.<Runnable>asList(
+            connector::setIsShuttingDown,
+            this::off,
+            authService::close,
+            updateProcessor::close,
+            pollProcessor::close,
+            metricsProcessor::close,
+            connector::close,
+            repository::close)) {
+      try {
+        close.run();
+      } catch (RuntimeException ex) {
+        if (failure == null) failure = ex;
+        else if (failure != ex) failure.addSuppressed(ex);
+      }
+    }
+    if (failure != null) throw failure;
     log.info("All resources released and client closed");
   }
 

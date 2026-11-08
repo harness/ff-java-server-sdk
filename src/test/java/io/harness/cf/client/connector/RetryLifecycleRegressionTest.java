@@ -200,4 +200,49 @@ class RetryLifecycleRegressionTest {
       worker.join(2000);
     }
   }
+
+  @Test
+  void clientShutdownCancelsAnActiveConfigurationRequest() throws Exception {
+    try (MockWebServer server = new MockWebServer()) {
+      server.enqueue(
+          new MockResponse().setSocketPolicy(okhttp3.mockwebserver.SocketPolicy.NO_RESPONSE));
+      server.start();
+      HarnessConnector connector =
+          new HarnessConnector(
+              "synthetic-key",
+              HarnessConfig.builder()
+                  .configUrl(server.url("/api").toString())
+                  .readTimeout(5000)
+                  .maxRequestRetry(1)
+                  .build());
+      String claims = "{\"environment\":\"synthetic-env\",\"clusterIdentifier\":\"1\"}";
+      connector.processToken(
+          "header."
+              + java.util.Base64.getUrlEncoder()
+                  .withoutPadding()
+                  .encodeToString(claims.getBytes(java.nio.charset.StandardCharsets.UTF_8))
+              + ".signature");
+      java.util.concurrent.ExecutorService worker =
+          java.util.concurrent.Executors.newSingleThreadExecutor();
+      try {
+        java.util.concurrent.Future<?> request =
+            worker.submit(
+                () -> {
+                  connector.getFlags();
+                  return null;
+                });
+        assertNotNull(server.takeRequest(2, TimeUnit.SECONDS));
+        connector.setIsShuttingDown();
+        java.util.concurrent.ExecutionException canceled =
+            assertThrows(
+                java.util.concurrent.ExecutionException.class,
+                () -> request.get(2, TimeUnit.SECONDS));
+        assertInstanceOf(ConnectorException.class, canceled.getCause());
+        assertEquals(1, server.getRequestCount());
+      } finally {
+        connector.close();
+        worker.shutdownNow();
+      }
+    }
+  }
 }
