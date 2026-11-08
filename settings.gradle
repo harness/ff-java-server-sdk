@@ -11,13 +11,13 @@ dependencyResolutionManagement {
             library('okhttp3-core', 'com.squareup.okhttp3', 'okhttp').versionRef('okhttp3')
             library('okhttp3-logging-interceptor', 'com.squareup.okhttp3', 'logging-interceptor').versionRef('okhttp3')
             library('gson-fire', 'io.gsonfire:gson-fire:1.7.1')
-            library('google-gson', 'com.google.code.gson:gson:2.10')
+            library('google-gson', 'com.google.code.gson:gson:2.13.2')
             library('caffeine-cache', 'com.github.ben-manes.caffeine:caffeine:2.8.5')
             library('murmur3', 'com.sangupta:murmur:1.0.0')
             library('swagger-annotations', 'io.swagger:swagger-annotations:1.6.2')
             library('javax-annotation-api', 'javax.annotation:javax.annotation-api:1.2')
             library('slf4j-api', 'org.slf4j:slf4j-api:1.7.36')
-            library('lombok', 'org.projectlombok:lombok:1.18.38')
+            library('lombok', 'org.projectlombok:lombok:1.18.42')
             library('google-findbugs', 'com.google.code.findbugs:jsr305:3.0.2')
 
             // test libs
@@ -40,8 +40,8 @@ dependencyResolutionManagement {
             version('openapi.generator', '4.3.1')
             version('spotless', '7.2.1')
             version('depsize', '0.2.0')
-            version('spotbugs', '6.2.3')
-            version('depcheck', '12.1.3')
+            version('spotbugs', '6.4.8')
+            version('depcheck', '12.2.0')
             version('maven.publish', '0.33.0')
         }
     }
