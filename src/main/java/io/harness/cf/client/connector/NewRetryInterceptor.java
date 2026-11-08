@@ -3,6 +3,7 @@ package io.harness.cf.client.connector;
 import static io.harness.cf.client.api.BaseConfig.DEFAULT_REQUEST_RETRIES;
 
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
@@ -17,6 +18,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class NewRetryInterceptor implements Interceptor {
+
+  private static final long CANCELLATION_CHECK_MILLIS = 100;
 
   private static final Logger log = LoggerFactory.getLogger(NewRetryInterceptor.class);
   private static final SimpleDateFormat imfDateFormat =
@@ -60,6 +63,7 @@ public class NewRetryInterceptor implements Interceptor {
     Response response = null;
     String msg = "";
     do {
+      checkCanceled(chain, response);
       try {
         if (response != null) response.close();
 
@@ -77,7 +81,8 @@ public class NewRetryInterceptor implements Interceptor {
               "Connection to {} was successful after {} attempts", chain.request().url(), tryCount);
         }
 
-      } catch (Exception ex) {
+      } catch (IOException ex) {
+        checkCanceled(chain, response);
         log.trace("Error while attempting to make request", ex);
         msg = ex.getClass().getSimpleName() + ": " + ex.getMessage();
         response = makeErrorResp(chain, msg);
@@ -129,7 +134,7 @@ public class NewRetryInterceptor implements Interceptor {
                     retryAfterHeaderValue > 0));
 
         if (!limitReached) {
-          sleep(backOffDelayMs);
+          sleep(backOffDelayMs, chain, response);
         }
       }
       tryCount++;
@@ -207,12 +212,34 @@ public class NewRetryInterceptor implements Interceptor {
         .build();
   }
 
-  private void sleep(long delayMs) {
+  private void checkCanceled(Chain chain, Response response) throws IOException {
+    if (Thread.currentThread().isInterrupted()) {
+      if (response != null) response.close();
+      throw new InterruptedIOException("Request interrupted");
+    }
+    if (chain.call() != null && chain.call().isCanceled()) {
+      if (response != null) response.close();
+      throw new IOException("Canceled");
+    }
+  }
+
+  private void sleep(long delayMs, Chain chain, Response response) throws IOException {
+    long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(delayMs);
     try {
-      TimeUnit.MILLISECONDS.sleep(delayMs);
+      while (true) {
+        checkCanceled(chain, response);
+        if (isShuttingDown.get()) return;
+        long remaining = deadline - System.nanoTime();
+        if (remaining <= 0) return;
+        TimeUnit.NANOSECONDS.sleep(
+            Math.min(remaining, TimeUnit.MILLISECONDS.toNanos(CANCELLATION_CHECK_MILLIS)));
+      }
     } catch (InterruptedException e) {
-      log.debug("Retry backoff interrupted", e);
       Thread.currentThread().interrupt();
+      if (response != null) response.close();
+      InterruptedIOException interrupted = new InterruptedIOException("Retry backoff interrupted");
+      interrupted.initCause(e);
+      throw interrupted;
     }
   }
 }

@@ -33,6 +33,7 @@ public class EventSource implements Callback, AutoCloseable, Service {
   private final long retryBackoffDelay;
   private OkHttpClient streamClient;
   private Call call;
+  private volatile boolean stopped;
 
   private final String url;
   private final Map<String, String> headers;
@@ -128,6 +129,7 @@ public class EventSource implements Callback, AutoCloseable, Service {
 
   @Override
   public void start() throws ConnectorException, InterruptedException {
+    stopped = false;
     log.info("EventSource connecting with url {} and headers {}", url, redactHeaders(headers));
 
     this.streamClient = makeStreamClient(sseReadTimeoutMins, trustedCAs);
@@ -148,6 +150,7 @@ public class EventSource implements Callback, AutoCloseable, Service {
 
   @Override
   public void stop() {
+    stopped = true;
     log.debug("Stopping EventSource service.");
 
     if (call != null) {
@@ -166,6 +169,7 @@ public class EventSource implements Callback, AutoCloseable, Service {
 
   @Override // Callback
   public void onFailure(@NotNull Call call, @NotNull IOException e) {
+    if (stopped) return;
     log.warn("SSE stream error", e);
     updater.onDisconnected(e.getMessage());
   }
@@ -174,7 +178,8 @@ public class EventSource implements Callback, AutoCloseable, Service {
   public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
     log.debug("SSE stream data: {}", response.message());
 
-    try {
+    try (Response streamResponse = response) {
+      if (stopped) return;
       if (!response.isSuccessful()) {
         throw new SSEStreamException("Invalid SSE HTTP response: " + response);
       }
@@ -188,7 +193,7 @@ public class EventSource implements Callback, AutoCloseable, Service {
       final BufferedSource reader = response.body().source();
 
       String line;
-      while ((line = reader.readUtf8Line()) != null) {
+      while (!stopped && (line = reader.readUtf8Line()) != null) {
         log.debug("SSE stream data: {}", line);
 
         if (line.startsWith("data:")) {
@@ -197,9 +202,12 @@ public class EventSource implements Callback, AutoCloseable, Service {
           updater.update(msg);
         }
       }
-      log.warn("End of SSE stream");
-      updater.onDisconnected("End of SSE stream");
+      if (!stopped) {
+        log.warn("End of SSE stream");
+        updater.onDisconnected("End of SSE stream");
+      }
     } catch (Throwable ex) {
+      if (stopped) return;
       log.warn("SSE Stream aborted: " + getExceptionMsg(ex));
       log.trace("SSE Stream aborted trace", ex);
 
