@@ -8,7 +8,10 @@ import io.harness.cf.client.connector.Connector;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.Segment;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.*;
+import java.util.stream.Collectors;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -39,6 +42,7 @@ class PollingProcessor {
     CompletableFuture<List<FeatureConfig>> completableFuture = new CompletableFuture<>();
     try {
       log.debug("Fetching flags started");
+      final Set<String> knownBefore = repository.flagIdentifiers();
       final List<FeatureConfig> featureConfig = connector.getFlags();
       log.debug("Fetching flags finished");
       featureConfig.forEach(
@@ -47,6 +51,12 @@ class PollingProcessor {
               repository.setFlag(fc.getFeature(), fc);
             }
           });
+      repository.removeStaleFlags(
+          knownBefore,
+          featureConfig.stream()
+              .filter(Objects::nonNull)
+              .map(FeatureConfig::getFeature)
+              .collect(Collectors.toSet()));
       completableFuture.complete(featureConfig);
     } catch (Throwable e) {
       log.error(
@@ -60,6 +70,7 @@ class PollingProcessor {
     final CompletableFuture<List<Segment>> completableFuture = new CompletableFuture<>();
     try {
       log.debug("Fetching segments started");
+      final Set<String> knownBefore = repository.segmentIdentifiers();
       final List<Segment> segments = connector.getSegments();
       log.debug("Fetching segments finished");
       segments.forEach(
@@ -68,6 +79,12 @@ class PollingProcessor {
               repository.setSegment(s.getIdentifier(), s);
             }
           });
+      repository.removeStaleSegments(
+          knownBefore,
+          segments.stream()
+              .filter(Objects::nonNull)
+              .map(Segment::getIdentifier)
+              .collect(Collectors.toSet()));
       completableFuture.complete(segments);
     } catch (Throwable e) {
       log.error(

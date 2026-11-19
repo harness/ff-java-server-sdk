@@ -3,22 +3,65 @@ package io.harness.cf.client.api;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.google.gson.Gson;
+import io.harness.cf.client.connector.Connector;
 import io.harness.cf.model.FeatureConfig;
 import io.harness.cf.model.FeatureSnapshot;
+import io.harness.cf.model.Segment;
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Stream;
 import lombok.NonNull;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 class StorageRepositoryTest {
   private final Gson gson = new Gson();
+
+  @Test
+  void fullRefreshShouldRemoveFlagsAndSegmentsMissedWhileDisconnected() throws Exception {
+    final StorageRepository repository =
+        new StorageRepository(new CaffeineCache(1000), null, false);
+    repository.setFlag("old", new FeatureConfig().feature("old").version(1L));
+    repository.setFlag("kept", new FeatureConfig().feature("kept").version(1L));
+    repository.setSegment("oldSeg", new Segment().identifier("oldSeg").version(1L));
+    repository.setSegment("keptSeg", new Segment().identifier("keptSeg").version(1L));
+
+    final Connector connector = Mockito.mock(Connector.class);
+    Mockito.when(connector.getFlags())
+        .thenReturn(Arrays.asList(new FeatureConfig().feature("kept").version(1L), null));
+    Mockito.when(connector.getSegments())
+        .thenReturn(Collections.singletonList(new Segment().identifier("keptSeg").version(1L)));
+
+    new PollingProcessor(connector, repository, 60, Mockito.mock(PollerCallback.class))
+        .retrieveAll();
+
+    assertEquals(Collections.singleton("kept"), repository.flagIdentifiers());
+    assertEquals(Collections.singleton("keptSeg"), repository.segmentIdentifiers());
+    assertFalse(repository.getFlag("old").isPresent());
+    assertFalse(repository.getSegment("oldSeg").isPresent());
+  }
+
+  @Test
+  void removeStaleShouldOnlyConsiderCandidates() {
+    final StorageRepository repository =
+        new StorageRepository(new CaffeineCache(1000), null, false);
+    repository.setFlag(
+        "addedDuringFetch", new FeatureConfig().feature("addedDuringFetch").version(1L));
+    repository.setFlag("old", new FeatureConfig().feature("old").version(1L));
+
+    repository.removeStaleFlags(Collections.singleton("old"), Collections.emptySet());
+
+    assertFalse(repository.getFlag("old").isPresent());
+    assertTrue(repository.getFlag("addedDuringFetch").isPresent());
+  }
 
   @Test
   void shouldInitialiseRepo() {

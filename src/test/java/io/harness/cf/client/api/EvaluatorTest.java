@@ -345,6 +345,35 @@ public class EvaluatorTest {
     }
   }
 
+  @Test
+  public void segmentTargetMatchingShouldUseExactIdentifiers() {
+    final StorageRepository repo = new StorageRepository(new CaffeineCache(100), null, false);
+    final Evaluator eval = new Evaluator(repo, Mockito.mock(BaseConfig.class));
+
+    final Segment included = new Segment().identifier("inc").name("inc");
+    included.setIncluded(
+        Collections.singletonList(
+            new io.harness.cf.model.Target().identifier("customer-12345").name("c")));
+    repo.setSegment("inc", included);
+
+    final Segment excluded = new Segment().identifier("exc").name("exc");
+    excluded.setExcluded(
+        Collections.singletonList(
+            new io.harness.cf.model.Target().identifier("customer-12345").name("c")));
+    repo.setSegment("exc", excluded);
+
+    final Target partial = Target.builder().identifier("123").name("n").build();
+    final Target exact = Target.builder().identifier("customer-12345").name("n").build();
+
+    assertFalse(
+        eval.isTargetIncludedOrExcludedInSegment(Collections.singletonList("inc"), partial));
+    assertTrue(eval.isTargetIncludedOrExcludedInSegment(Collections.singletonList("inc"), exact));
+    // exclusion of "customer-12345" must not exclude target "123"
+    assertFalse(
+        eval.isTargetIncludedOrExcludedInSegment(Collections.singletonList("exc"), partial));
+    assertFalse(eval.isTargetIncludedOrExcludedInSegment(Collections.singletonList("exc"), exact));
+  }
+
   private void loadSegments(StorageRepository repository, String resourceName)
       throws IOException, URISyntaxException {
     String segmentsJson = getJsonResource(resourceName);

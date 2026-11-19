@@ -279,6 +279,49 @@ class StorageRepository implements Repository {
     }
   }
 
+  @Override
+  public void removeStaleFlags(@NonNull Set<String> candidates, @NonNull Set<String> current) {
+    for (String identifier : candidates) {
+      if (!current.contains(identifier)) {
+        log.debug("Flag {} missing from full refresh, removing", identifier);
+        deleteFlag(identifier);
+      }
+    }
+  }
+
+  @Override
+  public void removeStaleSegments(@NonNull Set<String> candidates, @NonNull Set<String> current) {
+    for (String identifier : candidates) {
+      if (!current.contains(identifier)) {
+        log.debug("Segment {} missing from full refresh, removing", identifier);
+        deleteSegment(identifier);
+      }
+    }
+  }
+
+  /** Identifiers of all flags currently held (in the store if present, otherwise the cache). */
+  @Override
+  public Set<String> flagIdentifiers() {
+    return identifiersWithPrefix("flags/");
+  }
+
+  /** Identifiers of all segments currently held (in the store if present, otherwise the cache). */
+  @Override
+  public Set<String> segmentIdentifiers() {
+    return identifiersWithPrefix("segments/");
+  }
+
+  private Set<String> identifiersWithPrefix(String prefix) {
+    final List<String> keys = store != null ? store.keys() : cache.keys();
+    final Set<String> ids = new HashSet<>();
+    for (String key : keys) {
+      if (key.startsWith(prefix)) {
+        ids.add(key.substring(prefix.length()));
+      }
+    }
+    return ids;
+  }
+
   protected boolean isFlagOutdated(
       @NonNull String identifier, @NonNull FeatureConfig newFeatureConfig) {
     final Optional<FeatureConfig> oldFlag = getFlag(identifier, false);

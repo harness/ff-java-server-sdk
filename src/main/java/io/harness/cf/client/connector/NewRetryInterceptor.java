@@ -21,6 +21,7 @@ public class NewRetryInterceptor implements Interceptor {
   private static final Logger log = LoggerFactory.getLogger(NewRetryInterceptor.class);
   private static final SimpleDateFormat imfDateFormat =
       new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.US);
+  private static final long SLEEP_SLICE_MS = 100;
   private final long retryBackoffDelay;
   private final boolean retryForever;
 
@@ -104,6 +105,15 @@ public class NewRetryInterceptor implements Interceptor {
         String retryLimitDisplay = retryForever ? "∞" : String.valueOf(maxTryCount);
         limitReached = !retryForever && tryCount >= maxTryCount;
 
+        if (chain.call().isCanceled() || Thread.currentThread().isInterrupted()) {
+          log.trace(
+              "Request attempt {} to {} was not successful, [{}], call was cancelled, no retries will be attempted",
+              tryCount,
+              chain.request().url(),
+              msg);
+          return getReturnResp(chain, response, "nullcheck: call cancelled");
+        }
+
         if (isShuttingDown.get()) {
           log.trace(
               "Request attempt {} to {} was not successful, [{}], SDK is shutting down, no retries will be attempted",
@@ -129,11 +139,15 @@ public class NewRetryInterceptor implements Interceptor {
                     retryAfterHeaderValue > 0));
 
         if (!limitReached) {
-          sleep(backOffDelayMs);
+          sleep(chain.call(), backOffDelayMs);
         }
       }
       tryCount++;
-    } while (!successful && (retryForever || tryCount <= maxTryCount) && !isShuttingDown.get());
+    } while (!successful
+        && (retryForever || tryCount <= maxTryCount)
+        && !isShuttingDown.get()
+        && !chain.call().isCanceled()
+        && !Thread.currentThread().isInterrupted());
 
     return getReturnResp(
         chain,
@@ -207,9 +221,16 @@ public class NewRetryInterceptor implements Interceptor {
         .build();
   }
 
-  private void sleep(long delayMs) {
+  /** Sleeps for delayMs, waking early if the call is cancelled or the thread is interrupted. */
+  private void sleep(Call call, long delayMs) {
+    final long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(delayMs);
     try {
-      TimeUnit.MILLISECONDS.sleep(delayMs);
+      long remainingMs;
+      while (!call.isCanceled()
+          && !isShuttingDown.get()
+          && (remainingMs = TimeUnit.NANOSECONDS.toMillis(deadline - System.nanoTime())) > 0) {
+        TimeUnit.MILLISECONDS.sleep(Math.min(remainingMs, SLEEP_SLICE_MS));
+      }
     } catch (InterruptedException e) {
       log.debug("Retry backoff interrupted", e);
       Thread.currentThread().interrupt();

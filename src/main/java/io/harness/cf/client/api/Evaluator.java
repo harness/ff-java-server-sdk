@@ -206,7 +206,7 @@ public class Evaluator implements Evaluation {
    * @param target the target to check if its included
    * @return true if the target is included in the segment via rules
    */
-  private boolean isTargetIncludedOrExcludedInSegment(List<String> segmentList, Target target) {
+  boolean isTargetIncludedOrExcludedInSegment(List<String> segmentList, Target target) {
     for (String segmentIdentifier : segmentList) {
       final Optional<Segment> optionalSegment = query.getSegment(segmentIdentifier);
       if (optionalSegment.isPresent()) {
@@ -441,7 +441,7 @@ public class Evaluator implements Evaluation {
   private boolean isTargetInList(Target target, List<io.harness.cf.model.Target> listOfTargets) {
     if (listOfTargets != null) {
       for (io.harness.cf.model.Target includedTarget : listOfTargets) {
-        if (includedTarget.getIdentifier().contains(target.getIdentifier())) {
+        if (includedTarget.getIdentifier().equals(target.getIdentifier())) {
           return true;
         }
       }
